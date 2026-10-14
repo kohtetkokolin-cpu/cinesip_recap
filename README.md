@@ -3,10 +3,40 @@
 မြန်မာလို movie recap studio — YouTube long-form (၁-၂ နာရီ) + shorts (၁-၁၀ မိနစ်)။
 Fair-use editing tools ပါဝင်ပြီး၊ Gemini free quota နဲ့ ကိုက်အောင် ဒီဇိုင်းထုတ်ထားတယ်။
 
-> **Status: Phase 1** — project scaffold + WYSIWYG preview editor (upload → blur/logo/
-> watermark/subtitle/video adjustments → 10s test render)။ AI pipeline (transcription,
-> script, TTS, full render) က Phase 2-4 မှာ လာမယ်။ အသေးစိတ် workflow ကို
-> [Recap Studio V2 Workflow] စာမျက်နှာမှာ ကြည့်ပါ။
+> **Status: Phase 2 complete** — full AI pipeline wired: parallel Whisper analysis →
+> Gemini script (bible/outline/beats, hook + commentary rules) → script review gate →
+> voice (Gemini TTS → edge-tts → Piper) → fair-use auto-edit render → shorts →
+> upload metadata. Premium dark-gold Studio UI (dashboard, wizard, job tracker,
+> script review, preview studio).
+>
+> Fair-use tools reduce Content ID risk (clip caps, transforms, muted source
+> audio, commentary checks) — they do NOT guarantee copyright clearance.
+> Human review is required before publishing.
+
+## Full pipeline (Phase 2)
+
+1. **Upload** — video in → `POST /api/upload`.
+2. **Preview Studio** — WYSIWYG overlays (blur, subtitle, logo, watermark,
+   brightness/contrast/saturation, fonts) + 10s test render.
+3. **New Recap wizard** — mode (long/short/both), target minutes, narration
+   style, voice provider. **Quota pre-check** blocks the job if Gemini calls
+   won't fit the remaining free-tier budget (~16 calls for a 2h movie).
+4. **Analyze** (local, free) — faster-whisper `tiny` int8, 10-min parallel
+   chunks; PySceneDetect cuts; evidence cached by file hash.
+5. **Script** (Gemini) — story bible → outline → beats in parallel batches.
+   Hook-first cold open, ≥20% commentary rule, open loops. Low-commentary
+   beats are flagged.
+6. **Review gate** — read/edit every beat in the UI, preview each beat's
+   voice, then Approve.
+7. **Voice** — Gemini TTS (30 voices) → edge-tts (Nilar/Thiha, unlimited) →
+   Piper (offline). Word timings → karaoke captions. Over-long VO is
+   rewritten shorter or sped ≤1.15x.
+8. **Render** — each beat's video is cut to ≤5s clips (mirror/zoom/reframe/
+   speed/grade transforms) and extended/trimmed to EXACTLY the VO duration —
+   sync is structural, never drifts. Source audio always muted; BGM ducked
+   under VO. Karaoke subtitles + your overlays burned in.
+9. **Shorts** — 4 vertical 9:16 cuts from the strongest hooks.
+10. **Metadata** — titles, description, tags, hashtags (copy buttons).
 
 ## Windows laptop (RAM 4GB) မှာ run နည်း
 
@@ -20,12 +50,20 @@ Fair-use editing tools ပါဝင်ပြီး၊ Gemini free quota နဲ�
    venv\Scripts\activate
    pip install -r requirements.txt
    ```
-4. `.env.example` ကို `.env` လို့ ကူးပြီး `GOOGLE_API_KEY=` ဖြည့် (Phase 2 အတွက်)
-5. Run:
+4. `.env.example` ကို `.env` လို့ ကူးပြီး `GOOGLE_API_KEY=` ဖြည့်
+   (AI Studio key, free) — script + Gemini TTS အတွက်။ Key အများအပြားရှိရင်
+   `GOOGLE_API_KEYS=k1,k2,k3` လို့ ကော်မာခြားထည့်ပါ (quota auto-rotate)။
+5. AI pipeline (recap အပြည့်ထုတ်ရန်):
+   ```bat
+   pip install -r requirements-ai.txt
+   ```
+   ပြီးရင် browser မှာ **New Recap** → video ရွေး → mode/target/voice ရွေး →
+   Start → script review → Approve → render တက်လာမယ်။
+6. Run:
    ```bat
    uvicorn backend.main:app --host 0.0.0.0 --port 8000
    ```
-6. Browser မှာ http://localhost:8000 ဖွင့်
+7. Browser မှာ http://localhost:8000 ဖွင့်
 
 ## Project map
 
@@ -36,15 +74,18 @@ cinesip-recap/
 │   ├── config.py          # env, paths (4GB-laptop tuned)
 │   └── pipeline/
 │       ├── overlays.py    # ★ WYSIWYG overlay engine (preview = render)
-│       ├── ingest.py      # Phase 2: upload / yt-dlp
-│       ├── analyze.py     # Phase 2: whisper + scenedetect (parallel)
-│       ├── script.py      # Phase 2: Gemini writers (quota-budgeted)
-│       ├── voice.py       # Phase 2: edge-tts + duration fit
-│       ├── fairuse.py     # Phase 2: auto transforms (≤5s clips, mirror/zoom/grade)
-│       ├── render.py      # Phase 3: ffmpeg assembly
-│       └── shorts.py      # Phase 4: shorts auto-cut
+│       ├── quota.py       # Gemini multi-key rotation + per-job budget
+│       ├── analyze.py     # parallel whisper (tiny int8) + scenedetect + cache
+│       ├── script.py      # Gemini bible/outline/beats (hook + commentary rules)
+│       ├── voice.py       # Gemini TTS → edge-tts → Piper + word timings + fit
+│       ├── fairuse.py     # ≤5s clip cap, auto transforms, commentary check
+│       ├── render.py      # beat-synced A/V assembly, BGM duck, karaoke ASS
+│       ├── shorts.py      # 9:16 shorts auto-cut from top hooks
+│       ├── metadata.py    # titles/description/tags/hashtags
+│       └── jobs.py        # background job orchestrator + script review gate
 ├── frontend/
-│   └── index.html         # WYSIWYG preview editor (Burmese UI)
+│   └── index.html         # ★ Cinesip Studio SPA — dashboard, wizard, job
+│                          #   tracker, script review, preview studio (Burmese)
 ├── fonts/                 # Myanmar TTFs (Padauk recommended, OFL)
 ├── data/                  # runtime (gitignored): uploads, overlays, clips
 ├── requirements.txt       # Phase 1 (light)
