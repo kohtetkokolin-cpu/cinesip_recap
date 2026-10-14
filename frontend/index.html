@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cinesip Recap — Preview Editor</title>
+<style>
+  :root{
+    --bg:#121418; --panel:#1b1e25; --panel2:#22262f; --border:#2e333d;
+    --text:#e9ebf1; --muted:#9aa1af; --accent:#f0a832; --accent-d:#b97a12;
+    --danger:#e5534b; --ok:#3fb950;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:"Padauk","Noto Sans Myanmar",system-ui,sans-serif;font-size:15px}
+  header{background:#0d0f13;border-bottom:1px solid var(--border);
+    padding:10px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:50}
+  header h1{font-size:18px;margin:0;color:var(--accent)}
+  header .sub{color:var(--muted);font-size:13px}
+  main{padding:12px;max-width:1400px;margin:0 auto}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:12px}
+  #uploadBox{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+  #uploadBox label{font-weight:600}
+  .layout{display:grid;grid-template-columns:minmax(0,1fr) 350px;gap:12px;align-items:start}
+  @media (max-width:920px){.layout{grid-template-columns:1fr}}
+
+  /* ---- preview stage ---- */
+  #stage{position:relative;width:100%;background:#000;border-radius:8px;overflow:hidden;aspect-ratio:16/9}
+  #vid{width:100%;height:100%;display:block;object-fit:fill;background:#000}
+  #olayer{position:absolute;inset:0;overflow:hidden;touch-action:none}
+  #videoInfo{margin-top:8px;color:var(--muted);font-size:13px}
+  .placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    color:var(--muted);font-size:15px;text-align:center;padding:20px}
+
+  /* ---- overlay elements ---- */
+  .blur-region{position:absolute;border:1px dashed rgba(240,168,50,.85);background:rgba(240,168,50,.06);
+    cursor:move;min-width:14px;min-height:14px}
+  .blur-region.sel{border:2px solid var(--accent);background:rgba(240,168,50,.12)}
+  .blur-region .tag{position:absolute;top:-18px;left:0;font-size:11px;color:var(--accent);
+    background:rgba(0,0,0,.55);padding:0 4px;border-radius:3px;white-space:nowrap}
+  .blur-region .rh{position:absolute;right:-8px;bottom:-8px;width:16px;height:16px;border-radius:50%;
+    background:var(--accent);cursor:nwse-resize;border:2px solid #000}
+  #subBox{position:absolute;transform:translate(-50%,-50%);cursor:move;text-align:center;
+    font-weight:700;line-height:1.35;padding:2px 8px;user-select:none;white-space:pre-wrap;word-break:break-word}
+  #logoImg{position:absolute;cursor:move;user-select:none}
+  #logoEmpty{position:absolute;border:1px dashed var(--muted);color:var(--muted);font-size:12px;
+    display:flex;align-items:center;justify-content:center;cursor:move}
+  #wmBox{position:absolute;cursor:move;user-select:none;white-space:nowrap;font-weight:600}
+
+  /* ---- panel ---- */
+  .tabs{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+  .tabs button{background:var(--panel2);color:var(--muted);border:1px solid var(--border);
+    border-radius:6px;padding:7px 10px;cursor:pointer;font-size:14px;font-family:inherit}
+  .tabs button.active{background:var(--accent);color:#111;border-color:var(--accent);font-weight:700}
+  .tabpage{display:none}
+  .tabpage.active{display:block}
+  .row{margin:10px 0}
+  .row label{display:block;margin-bottom:4px;color:var(--muted);font-size:13px}
+  .row .val{color:var(--text);font-weight:600}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  input[type=text],select{width:100%;background:#0f1116;color:var(--text);border:1px solid var(--border);
+    border-radius:6px;padding:8px;font-size:14px;font-family:inherit}
+  input[type=file]{color:var(--muted);font-size:13px;max-width:100%}
+  .btn{background:var(--accent);color:#141414;border:none;border-radius:8px;padding:10px 14px;
+    font-size:15px;font-weight:700;cursor:pointer;font-family:inherit}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn.ghost{background:var(--panel2);color:var(--text);border:1px solid var(--border)}
+  .btn.danger{background:var(--danger);color:#fff}
+  .btn.small{padding:6px 10px;font-size:13px}
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+  #status{margin-top:10px;font-size:13px;color:var(--muted);min-height:18px}
+  #status.err{color:var(--danger)} #status.ok{color:var(--ok)}
+  .hint{font-size:12.5px;color:var(--muted);line-height:1.6}
+  .chk{display:flex;align-items:center;gap:8px;margin:8px 0}
+  .chk input{width:18px;height:18px;accent-color:var(--accent)}
+  #fontList{list-style:none;margin:8px 0;padding:0;max-height:150px;overflow:auto}
+  #fontList li{padding:6px 8px;border:1px solid var(--border);border-radius:6px;margin-bottom:6px;
+    font-size:13px;display:flex;justify-content:space-between;gap:8px;align-items:center}
+  #fontList li.cur{border-color:var(--accent)}
+
+  /* ---- modal ---- */
+  #modal{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;
+    justify-content:center;z-index:100;padding:16px}
+  #modal.open{display:flex}
+  #modalBox{background:var(--panel);border:1px solid var(--border);border-radius:12px;
+    max-width:720px;width:100%;padding:14px}
+  #modalBox video{width:100%;border-radius:8px;background:#000}
+  #modalNote{margin:10px 0;color:var(--accent);font-size:14px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Cinesip Recap</h1>
+  <span class="sub">Preview Editor — မြင်တဲ့အတိုင်း ထွက်မယ်</span>
+</header>
+
+<main>
+  <div class="card" id="uploadBox">
+    <label for="fileInput">ဗီဒီယို ရွေးပါ</label>
+    <input type="file" id="fileInput" accept="video/mp4,video/*">
+    <button class="btn small" id="btnUpload">တင်မည်</button>
+    <span class="hint" id="uploadHint"></span>
+  </div>
+
+  <div class="layout">
+    <section>
+      <div class="card">
+        <div id="stage">
+          <video id="vid" controls playsinline preload="metadata"></video>
+          <div id="olayer"></div>
+          <div class="placeholder" id="stagePlaceholder">ဗီဒီယို တင်ပြီးမှ preview မြင်ရမယ်</div>
+        </div>
+        <div id="videoInfo">ဗီဒီယို မတင်ရသေးပါ</div>
+      </div>
+    </section>
+
+    <aside class="card" id="panel">
+      <div class="tabs" id="tabs">
+        <button data-tab="blur" class="active">Blur</button>
+        <button data-tab="sub">စာတန်း</button>
+        <button data-tab="logo">Logo</button>
+        <button data-tab="wm">Watermark</button>
+        <button data-tab="video">Video</button>
+        <button data-tab="font">Font</button>
+      </div>
+
+      <!-- BLUR -->
+      <div class="tabpage active" id="tab-blur">
+        <div class="row">
+          <button class="btn small" id="btnAddBlur">Blur နေရာ ထည့်မည်</button>
+          <span class="hint" id="blurCount"></span>
+        </div>
+        <div class="hint">နေရာကို နှိပ်၍ ရွေးပါ — ဆွဲပြီး ရွှေ့လို့ရတယ်၊ အောက်ခြေညာဘက် အစက်ကလေးနဲ့ အရွယ်ပြင်လို့ရတယ်။</div>
+        <div class="row">
+          <label>ရွေးထားသော နေရာ: <span class="val" id="blurSelLabel">—</span></label>
+        </div>
+        <div class="row">
+          <label>ပြင်းအား (strength): <span class="val" id="blurSVal">25</span></label>
+          <input type="range" id="blurS" min="0" max="50" value="25">
+        </div>
+        <div class="row">
+          <button class="btn small danger" id="btnDelBlur">ရွေးထားတာ ဖျက်မည်</button>
+        </div>
+      </div>
+
+      <!-- SUBTITLE -->
+      <div class="tabpage" id="tab-sub">
+        <div class="hint">အောက်က နမူနာစာသားကို preview ပေါ်မှာ ဆွဲပြီး နေရာချပါ။</div>
+        <div class="row">
+          <label>နမူနာ စာသား</label>
+          <input type="text" id="subText" value="ဒါက နမူနာ စာတန်းထိုးပါ">
+        </div>
+        <div class="row">
+          <label>စာလုံး အရွယ်အစား (%): <span class="val" id="subSizeVal">4.5</span></label>
+          <input type="range" id="subSize" min="1" max="12" step="0.5" value="4.5">
+        </div>
+        <div class="row">
+          <label>အကျယ် အများဆုံး (%): <span class="val" id="subMaxwVal">88</span></label>
+          <input type="range" id="subMaxw" min="30" max="100" step="1" value="88">
+        </div>
+        <div class="row">
+          <label>အရောင်</label>
+          <select id="subColor">
+            <option value="White">အဖြူ (White)</option>
+            <option value="Yellow" selected>အဝါ (Yellow)</option>
+            <option value="Green">အစိမ်း (Green)</option>
+            <option value="Cyan">စိမ်းပြာ (Cyan)</option>
+            <option value="Red">အနီ (Red)</option>
+          </select>
+        </div>
+        <div class="row">
+          <label>ဖောင့်</label>
+          <select id="subFont"><option value="">(မူရင်း)</option></select>
+        </div>
+        <div class="row hint">အနေအထား: <span class="val" id="subPosVal">50, 88</span></div>
+      </div>
+
+      <!-- LOGO -->
+      <div class="tabpage" id="tab-logo">
+        <div class="chk"><input type="checkbox" id="logoEnabled" checked><label for="logoEnabled" style="margin:0">လိုဂို ပြသမည်</label></div>
+        <div class="row">
+          <label>လိုဂို ပုံ (PNG/JPG)</label>
+          <input type="file" id="logoFile" accept="image/*">
+          <div class="hint" id="logoUpHint"></div>
+        </div>
+        <div class="hint">လိုဂိုကို preview ပေါ်မှာ ဆွဲပြီး နေရာချပါ။</div>
+        <div class="row">
+          <label>အကျယ် (%): <span class="val" id="logoWVal">12</span></label>
+          <input type="range" id="logoW" min="2" max="40" step="0.5" value="12">
+        </div>
+        <div class="row">
+          <label>အမှိန် (opacity): <span class="val" id="logoOpVal">0.9</span></label>
+          <input type="range" id="logoOp" min="0.1" max="1" step="0.05" value="0.9">
+        </div>
+        <div class="row hint">အနေအထား: <span class="val" id="logoPosVal">3, 3</span></div>
+      </div>
+
+      <!-- WATERMARK -->
+      <div class="tabpage" id="tab-wm">
+        <div class="chk"><input type="checkbox" id="wmEnabled"><label for="wmEnabled" style="margin:0">Watermark ပြသမည်</label></div>
+        <div class="row">
+          <label>စာသား</label>
+          <input type="text" id="wmText" value="Cinesip">
+        </div>
+        <div class="hint">စာသားကို preview ပေါ်မှာ ဆွဲပြီး နေရာချပါ။</div>
+        <div class="row">
+          <label>အရွယ်အစား (%): <span class="val" id="wmSizeVal">4</span></label>
+          <input type="range" id="wmSize" min="1" max="12" step="0.5" value="4">
+        </div>
+        <div class="row">
+          <label>အမှိန် (opacity): <span class="val" id="wmOpVal">0.5</span></label>
+          <input type="range" id="wmOp" min="0.1" max="1" step="0.05" value="0.5">
+        </div>
+        <div class="row">
+          <label>အရောင်</label>
+          <select id="wmColor">
+            <option value="White" selected>အဖြူ (White)</option>
+            <option value="Yellow">အဝါ (Yellow)</option>
+            <option value="Green">အစိမ်း (Green)</option>
+            <option value="Cyan">စိမ်းပြာ (Cyan)</option>
+            <option value="Red">အနီ (Red)</option>
+          </select>
+        </div>
+        <div class="row hint">အနေအထား: <span class="val" id="wmPosVal">50, 95</span></div>
+      </div>
+
+      <!-- VIDEO -->
+      <div class="tabpage" id="tab-video">
+        <div class="hint">ဒီတန်ဖိုးတွေက preview မှာရော၊ render လုပ်တဲ့အခါမှာပါ တစ်ထပ်တည်း သက်ရောက်မယ်။</div>
+        <div class="row">
+          <label>အလင်း (brightness): <span class="val" id="vBriVal">0</span></label>
+          <input type="range" id="vBri" min="-0.5" max="0.5" step="0.05" value="0">
+        </div>
+        <div class="row">
+          <label>Contrast: <span class="val" id="vConVal">1.0</span></label>
+          <input type="range" id="vCon" min="0.5" max="1.5" step="0.05" value="1">
+        </div>
+        <div class="row">
+          <label>အရောင် ရင့်မှု (saturation): <span class="val" id="vSatVal">1.0</span></label>
+          <input type="range" id="vSat" min="0" max="2" step="0.05" value="1">
+        </div>
+        <div class="row">
+          <button class="btn small ghost" id="btnResetVideo">မူရင်းအတိုင်း ပြန်ထားမည်</button>
+        </div>
+      </div>
+
+      <!-- FONT -->
+      <div class="tabpage" id="tab-font">
+        <div class="row">
+          <label>ဖောင့် စာရင်း</label>
+          <ul id="fontList"></ul>
+        </div>
+        <div class="row">
+          <label>TTF ဖောင့် အသစ် တင်မည်</label>
+          <input type="file" id="fontFile" accept=".ttf,.otf">
+          <div style="margin-top:8px"><button class="btn small" id="btnFontUp">တင်မည်</button></div>
+        </div>
+        <div class="hint">စာတန်းထိုးမှာ သုံးမယ့်ဖောင့်ကို "စာတန်း" tab ထဲက ရွေးပါ။</div>
+      </div>
+
+      <div class="actions">
+        <button class="btn" id="btnSave">သိမ်းမည်</button>
+        <button class="btn ghost" id="btnRender">10s Preview ထုတ်မည်</button>
+      </div>
+      <div id="status"></div>
+    </aside>
+  </div>
+</main>
+
+<div id="modal">
+  <div id="modalBox">
+    <video id="clipVid" controls playsinline></video>
+    <div id="modalNote">preview အတိုင်း ထွက်မထွက် တိုက်ကြည့်ပါ</div>
+    <button class="btn small ghost" id="btnCloseModal">ပိတ်မည်</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   Cinesip Recap — WYSIWYG overlay editor
+   All overlay coordinates are PERCENTAGES (0-100) of video size,
+   computed from the overlay layer's bounding box, so the preview
+   matches the backend ffmpeg render exactly.
+   ============================================================ */
+
+const $ = id => document.getElementById(id);
+const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
+const COLOR_CSS = {White:"#ffffff", Yellow:"#ffe135", Green:"#39d353", Cyan:"#39c5cf", Red:"#ff5a5a"};
+
+/* ---------- state ---------- */
+function defaultOverlays(){
+  return {
+    blur: [],
+    logo: {enabled:true, x:3, y:3, w:12, opacity:0.9, logo_path:""},
+    watermark: {enabled:false, text:"Cinesip", x:50, y:95, size:4, opacity:0.5, color:"White"},
+    sub: {cx:50, cy:88, size:4.5, maxw:88, color:"Yellow", text:"ဒါက နမူနာ စာတန်းထိုးပါ", font:""},
+    video: {brightness:0, contrast:1.0, saturation:1.0}
+  };
+}
+const S = {
+  videoId: null, vw: 0, vh: 0, dur: 0,
+  ov: defaultOverlays(),
+  selBlur: -1,
+  fonts: [],
+  logoPath: ""
+};
+
+/* ---------- helpers ---------- */
+function setStatus(msg, kind){
+  const el = $("status");
+  el.textContent = msg || "";
+  el.className = kind || "";
+}
+function needVideo(){
+  if(!S.videoId){ setStatus("အရင် ဗီဒီယို တင်ပါ", "err"); return false; }
+  return true;
+}
+function layerRect(){ return $("olayer").getBoundingClientRect(); }
+async function apiJSON(url, opts){
+  const r = await fetch(url, opts);
+  if(!r.ok) throw new Error("HTTP " + r.status);
+  return r.json();
+}
+
+/* ---------- tabs ---------- */
+$("tabs").addEventListener("click", e=>{
+  const b = e.target.closest("button[data-tab]");
+  if(!b) return;
+  document.querySelectorAll("#tabs button").forEach(x=>x.classList.remove("active"));
+  document.querySelectorAll(".tabpage").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active");
+  $("tab-"+b.dataset.tab).classList.add("active");
+});
+
+/* ---------- generic drag (percent coordinates) ---------- */
+/* onDown(e) may return false to cancel. move(xPct,yPct) receives pointer pos in %. */
+function pointerDrag(el, onDown, move){
+  el.addEventListener("pointerdown", e=>{
+    if(e.target.dataset.handle) return;               // resize handle has its own handler
+    if(onDown && onDown(e) === false) return;
+    e.preventDefault();
+    const r = layerRect(), er = el.getBoundingClientRect();
+    const ox = (e.clientX - er.left)/r.width*100;      // grab offset in %
+    const oy = (e.clientY - er.top)/r.height*100;
+    el.setPointerCapture(e.pointerId);
+    const mv = ev=>{
+      const rr = layerRect();
+      const x = (ev.clientX - rr.left)/rr.width*100 - ox;
+      const y = (ev.clientY - rr.top)/rr.height*100 - oy;
+      move(x, y);
+    };
+    const up = ()=>{
+      el.removeEventListener("pointermove", mv);
+      el.removeEventListener("pointerup", up);
+      el.removeEventListener("pointercancel", up);
+    };
+    el.addEventListener("pointermove", mv);
+    el.addEventListener("pointerup", up);
+    el.addEventListener("pointercancel", up);
+  });
+}
+/* center-based drag (subtitle): pointer position = center */
+function pointerDragCenter(el, move){
+  el.addEventListener("pointerdown", e=>{
+    e.preventDefault();
+    el.setPointerCapture(e.pointerId);
+    const mv = ev=>{
+      const r = layerRect();
+      move((ev.clientX-r.left)/r.width*100, (ev.clientY-r.top)/r.height*100);
+    };
+    const up = ()=>{
+      el.removeEventListener("pointermove", mv);
+      el.removeEventListener("pointerup", up);
+      el.removeEventListener("pointercancel", up);
+    };
+    el.addEventListener("pointermove", mv);
+    el.addEventListener("pointerup", up);
+    el.addEventListener("pointercancel", up);
+  });
+}
+
+/* ============================================================
+   RENDER overlay layer from state
+   ============================================================ */
+function clearLayer(){ $("olayer").innerHTML = ""; }
+
+function renderBlur(){
+  const layer = $("olayer");
+  layer.querySelectorAll(".blur-region").forEach(n=>n.remove());
+  S.ov.blur.forEach((b,i)=>{
+    const d = document.createElement("div");
+    d.className = "blur-region" + (i===S.selBlur ? " sel" : "");
+    d.style.left = b.x+"%"; d.style.top = b.y+"%";
+    d.style.width = b.w+"%"; d.style.height = b.h+"%";
+    d.style.backdropFilter = `blur(${(b.s/2).toFixed(1)}px)`;
+    d.style.webkitBackdropFilter = `blur(${(b.s/2).toFixed(1)}px)`;
+    d.innerHTML = `<span class="tag">Blur ${i+1}</span><span class="rh" data-handle="1"></span>`;
+    d.addEventListener("pointerdown", e=>{ e.stopPropagation(); selectBlur(i); }, true);
+    pointerDrag(d, null, (x,y)=>{
+      b.x = clamp(x, 0, 100-b.w);
+      b.y = clamp(y, 0, 100-b.h);
+      d.style.left = b.x+"%"; d.style.top = b.y+"%";
+    });
+    // resize via corner handle
+    const rh = d.querySelector(".rh");
+    rh.addEventListener("pointerdown", e=>{
+      e.stopPropagation(); e.preventDefault();
+      selectBlur(i);
+      rh.setPointerCapture(e.pointerId);
+      const sw=b.w, sh=b.h, sx=e.clientX, sy=e.clientY;
+      const mv = ev=>{
+        const r = layerRect();
+        b.w = clamp(sw + (ev.clientX-sx)/r.width*100, 2, 100-b.x);
+        b.h = clamp(sh + (ev.clientY-sy)/r.height*100, 2, 100-b.y);
+        d.style.width = b.w+"%"; d.style.height = b.h+"%";
+      };
+      const up = ()=>{
+        rh.removeEventListener("pointermove", mv);
+        rh.removeEventListener("pointerup", up);
+        rh.removeEventListener("pointercancel", up);
+      };
+      rh.addEventListener("pointermove", mv);
+      rh.addEventListener("pointerup", up);
+      rh.addEventListener("pointercancel", up);
+    });
+    layer.appendChild(d);
+  });
+  $("blurCount").textContent = `(${S.ov.blur.length}/6)`;
+  $("btnAddBlur").disabled = S.ov.blur.length >= 6;
+  $("blurSelLabel").textContent = S.selBlur>=0 ? ("Blur "+(S.selBlur+1)) : "—";
+  if(S.selBlur>=0 && S.ov.blur[S.selBlur]) $("blurS").value = S.ov.blur[S.selBlur].s;
+}
+
+function renderSub(){
+  const layer = $("olayer");
+  let el = $("subBox");
+  if(!el){
+    el = document.createElement("div");
+    el.id = "subBox";
+    layer.appendChild(el);
+    pointerDragCenter(el, (x,y)=>{
+      const s = S.ov.sub;
+      s.cx = clamp(x,0,100); s.cy = clamp(y,0,100);
+      positionSub(); updateSubPosLabel();
+    });
+  }
+  const s = S.ov.sub;
+  el.textContent = s.text || " ";
+  el.style.color = COLOR_CSS[s.color] || "#ffe135";
+  el.style.maxWidth = s.maxw + "%";
+  el.style.textShadow = "2px 2px 0 #000,-2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,0 3px 6px rgba(0,0,0,.8)";
+  if(s.font) el.style.fontFamily = '"'+s.font.replace(/\.[^.]+$/,"")+'", "Padauk", sans-serif';
+  else el.style.fontFamily = "";
+  positionSub();
+}
+function positionSub(){
+  const el = $("subBox"); if(!el) return;
+  const s = S.ov.sub, r = layerRect();
+  el.style.left = s.cx+"%"; el.style.top = s.cy+"%";
+  el.style.fontSize = (s.size/100*r.height).toFixed(1)+"px";
+}
+function updateSubPosLabel(){
+  $("subPosVal").textContent = S.ov.sub.cx.toFixed(1)+", "+S.ov.sub.cy.toFixed(1);
+}
+
+function renderLogo(){
+  const layer = $("olayer");
+  ["logoImg","logoEmpty"].forEach(id=>{ const n=$(id); if(n) n.remove(); });
+  const L = S.ov.logo;
+  if(!L.enabled) { updateLogoPosLabel(); return; }
+  if(L.logo_path || S.logoPath){
+    const img = document.createElement("img");
+    img.id = "logoImg";
+    img.src = L.logo_path || S.logoPath;
+    img.style.left = L.x+"%"; img.style.top = L.y+"%";
+    img.style.width = L.w+"%"; img.style.height = "auto";
+    img.style.opacity = L.opacity;
+    img.draggable = false;
+    layer.appendChild(img);
+    pointerDrag(img, null, (x,y)=>{
+      L.x = clamp(x,0,100); L.y = clamp(y,0,100);
+      img.style.left = L.x+"%"; img.style.top = L.y+"%";
+      updateLogoPosLabel();
+    });
+  } else {
+    const d = document.createElement("div");
+    d.id = "logoEmpty";
+    d.textContent = "လိုဂို";
+    d.style.left = L.x+"%"; d.style.top = L.y+"%";
+    d.style.width = L.w+"%"; d.style.height = "8%";
+    d.style.opacity = L.opacity;
+    layer.appendChild(d);
+    pointerDrag(d, null, (x,y)=>{
+      L.x = clamp(x,0,100); L.y = clamp(y,0,100);
+      d.style.left = L.x+"%"; d.style.top = L.y+"%";
+      updateLogoPosLabel();
+    });
+  }
+  updateLogoPosLabel();
+}
+function updateLogoPosLabel(){
+  $("logoPosVal").textContent = S.ov.logo.x.toFixed(1)+", "+S.ov.logo.y.toFixed(1);
+}
+
+function renderWm(){
+  const layer = $("olayer");
+  const old = $("wmBox"); if(old) old.remove();
+  const W = S.ov.watermark;
+  if(!W.enabled) { updateWmPosLabel(); return; }
+  const d = document.createElement("div");
+  d.id = "wmBox";
+  d.textContent = W.text || " ";
+  d.style.left = W.x+"%"; d.style.top = W.y+"%";
+  d.style.color = COLOR_CSS[W.color] || "#fff";
+  d.style.opacity = W.opacity;
+  d.style.textShadow = "1px 1px 3px rgba(0,0,0,.8)";
+  layer.appendChild(d);
+  const r = layerRect();
+  d.style.fontSize = (W.size/100*r.height).toFixed(1)+"px";
+  pointerDrag(d, null, (x,y)=>{
+    W.x = clamp(x,0,100); W.y = clamp(y,0,100);
+    d.style.left = W.x+"%"; d.style.top = W.y+"%";
+    updateWmPosLabel();
+  });
+  updateWmPosLabel();
+}
+function updateWmPosLabel(){
+  $("wmPosVal").textContent = S.ov.watermark.x.toFixed(1)+", "+S.ov.watermark.y.toFixed(1);
+}
+
+function applyVideoFilter(){
+  const v = S.ov.video;
+  /* preview CSS filter; backend maps these same numbers to ffmpeg eq filter */
+  $("vid").style.filter =
+    `brightness(${(1+v.brightness).toFixed(3)}) contrast(${v.contrast.toFixed(3)}) saturate(${v.saturation.toFixed(3)})`;
+}
+
+function renderAll(){
+  renderBlur(); renderSub(); renderLogo(); renderWm(); applyVideoFilter();
+  updateSubPosLabel();
+}
+window.addEventListener("resize", ()=>{ positionSub(); renderWm(); });
+
+/* ============================================================
+   UPLOAD
+   ============================================================ */
+$("btnUpload").addEventListener("click", async ()=>{
+  const f = $("fileInput").files[0];
+  if(!f){ setStatus("ဗီဒီယို ဖိုင် ရွေးပါ", "err"); return; }
+  setStatus("တင်နေသည်...");
+  try{
+    const fd = new FormData(); fd.append("file", f);
+    const r = await apiJSON("/api/upload", {method:"POST", body:fd});
+    S.videoId = r.video_id; S.vw = r.width; S.vh = r.height; S.dur = r.duration;
+    $("vid").src = "/api/video/" + S.videoId;
+    $("stage").style.aspectRatio = r.width + " / " + r.height;
+    $("stagePlaceholder").style.display = "none";
+    $("videoInfo").textContent = `${r.width}×${r.height} · ${Number(r.duration).toFixed(1)} စက္ကန့် · id: ${r.video_id}`;
+    $("uploadHint").textContent = f.name;
+    await loadOverlays();
+    await loadFonts();
+    setStatus("ဗီဒီယို တင်ပြီးပါပြီ", "ok");
+  }catch(err){
+    setStatus("တင်မရပါ: " + err.message, "err");
+  }
+});
+
+async function loadOverlays(){
+  S.ov = defaultOverlays(); S.selBlur = -1; S.logoPath = "";
+  try{
+    const j = await apiJSON("/api/overlays/" + S.videoId);
+    if(j && Object.keys(j).length){
+      const d = defaultOverlays();
+      S.ov = Object.assign(d, j);
+      S.ov.blur = Array.isArray(j.blur) ? j.blur.slice(0,6) : [];
+      if(j.logo && j.logo.logo_path) S.logoPath = j.logo.logo_path;
+      syncControlsFromState();
+    }
+  }catch(e){ /* no saved overlays yet */ }
+  renderAll();
+}
+
+/* push state values into the control panel (after loading saved JSON) */
+function syncControlsFromState(){
+  const o = S.ov;
+  $("subText").value = o.sub.text;
+  $("subSize").value = o.sub.size; $("subSizeVal").textContent = o.sub.size;
+  $("subMaxw").value = o.sub.maxw; $("subMaxwVal").textContent = o.sub.maxw;
+  $("subColor").value = o.sub.color;
+  $("logoEnabled").checked = !!o.logo.enabled;
+  $("logoW").value = o.logo.w; $("logoWVal").textContent = o.logo.w;
+  $("logoOp").value = o.logo.opacity; $("logoOpVal").textContent = o.logo.opacity;
+  $("wmEnabled").checked = !!o.watermark.enabled;
+  $("wmText").value = o.watermark.text;
+  $("wmSize").value = o.watermark.size; $("wmSizeVal").textContent = o.watermark.size;
+  $("wmOp").value = o.watermark.opacity; $("wmOpVal").textContent = o.watermark.opacity;
+  $("wmColor").value = o.watermark.color;
+  $("vBri").value = o.video.brightness; $("vBriVal").textContent = o.video.brightness;
+  $("vCon").value = o.video.contrast; $("vConVal").textContent = o.video.contrast;
+  $("vSat").value = o.video.saturation; $("vSatVal").textContent = o.video.saturation;
+  if(o.sub.font) $("subFont").value = o.sub.font;
+}
+
+/* ============================================================
+   BLUR tab
+   ============================================================ */
+function selectBlur(i){
+  S.selBlur = i;
+  renderBlur();
+  if(i>=0 && S.ov.blur[i]){
+    $("blurS").value = S.ov.blur[i].s;
+    $("blurSVal").textContent = S.ov.blur[i].s;
+  }
+}
+$("btnAddBlur").addEventListener("click", ()=>{
+  if(!needVideo()) return;
+  if(S.ov.blur.length >= 6) return;
+  S.ov.blur.push({x:10, y:70, w:30, h:20, s:25});
+  selectBlur(S.ov.blur.length-1);
+});
+$("blurS").addEventListener("input", e=>{
+  const b = S.ov.blur[S.selBlur];
+  if(!b) return;
+  b.s = Number(e.target.value);
+  $("blurSVal").textContent = b.s;
+  renderBlur();
+});
+$("btnDelBlur").addEventListener("click", ()=>{
+  if(S.selBlur<0) return;
+  S.ov.blur.splice(S.selBlur,1);
+  selectBlur(-1);
+});
+$("olayer").addEventListener("pointerdown", e=>{
+  if(e.target === $("olayer")) selectBlur(-1);   // click empty area deselects
+});
+
+/* ============================================================
+   SUBTITLE tab
+   ============================================================ */
+$("subText").addEventListener("input", e=>{ S.ov.sub.text = e.target.value; renderSub(); });
+$("subSize").addEventListener("input", e=>{
+  S.ov.sub.size = Number(e.target.value);
+  $("subSizeVal").textContent = S.ov.sub.size; positionSub();
+});
+$("subMaxw").addEventListener("input", e=>{
+  S.ov.sub.maxw = Number(e.target.value);
+  $("subMaxwVal").textContent = S.ov.sub.maxw; renderSub();
+});
+$("subColor").addEventListener("change", e=>{ S.ov.sub.color = e.target.value; renderSub(); });
+$("subFont").addEventListener("change", e=>{ S.ov.sub.font = e.target.value; renderSub(); });
+
+/* ============================================================
+   LOGO tab
+   ============================================================ */
+$("logoEnabled").addEventListener("change", e=>{ S.ov.logo.enabled = e.target.checked; renderLogo(); });
+$("logoW").addEventListener("input", e=>{
+  S.ov.logo.w = Number(e.target.value);
+  $("logoWVal").textContent = S.ov.logo.w; renderLogo();
+});
+$("logoOp").addEventListener("input", e=>{
+  S.ov.logo.opacity = Number(e.target.value);
+  $("logoOpVal").textContent = S.ov.logo.opacity; renderLogo();
+});
+$("logoFile").addEventListener("change", async e=>{
+  const f = e.target.files[0];
+  if(!f) return;
+  if(!needVideo()){ e.target.value=""; return; }
+  $("logoUpHint").textContent = "ပို့နေသည်...";
+  try{
+    const fd = new FormData(); fd.append("file", f);
+    const r = await apiJSON("/api/logo/" + S.videoId, {method:"POST", body:fd});
+    S.logoPath = r.path || r.logo_path || "";
+    S.ov.logo.logo_path = S.logoPath;
+    $("logoUpHint").textContent = "ဖိုင် ပို့ပြီးပါပြီ — သိမ်းရန်နှိပ်မှ ဗီဒီယိုမှာ ပါဝင်မည်";
+    renderLogo();
+  }catch(err){
+    $("logoUpHint").textContent = "ပို့မရပါ: " + err.message;
+  }
+});
+
+/* ============================================================
+   WATERMARK tab
+   ============================================================ */
+$("wmEnabled").addEventListener("change", e=>{ S.ov.watermark.enabled = e.target.checked; renderWm(); });
+$("wmText").addEventListener("input", e=>{ S.ov.watermark.text = e.target.value; renderWm(); });
+$("wmSize").addEventListener("input", e=>{
+  S.ov.watermark.size = Number(e.target.value);
+  $("wmSizeVal").textContent = S.ov.watermark.size; renderWm();
+});
+$("wmOp").addEventListener("input", e=>{
+  S.ov.watermark.opacity = Number(e.target.value);
+  $("wmOpVal").textContent = S.ov.watermark.opacity; renderWm();
+});
+$("wmColor").addEventListener("change", e=>{ S.ov.watermark.color = e.target.value; renderWm(); });
+
+/* ============================================================
+   VIDEO tab
+   ============================================================ */
+$("vBri").addEventListener("input", e=>{
+  S.ov.video.brightness = Number(e.target.value);
+  $("vBriVal").textContent = S.ov.video.brightness; applyVideoFilter();
+});
+$("vCon").addEventListener("input", e=>{
+  S.ov.video.contrast = Number(e.target.value);
+  $("vConVal").textContent = S.ov.video.contrast; applyVideoFilter();
+});
+$("vSat").addEventListener("input", e=>{
+  S.ov.video.saturation = Number(e.target.value);
+  $("vSatVal").textContent = S.ov.video.saturation; applyVideoFilter();
+});
+$("btnResetVideo").addEventListener("click", ()=>{
+  S.ov.video = {brightness:0, contrast:1.0, saturation:1.0};
+  syncControlsFromState(); applyVideoFilter();
+});
+
+/* ============================================================
+   FONT tab
+   ============================================================ */
+async function loadFonts(){
+  try{
+    const j = await apiJSON("/api/fonts");
+    S.fonts = j.fonts || [];
+  }catch(e){ S.fonts = []; }
+  const ul = $("fontList"); ul.innerHTML = "";
+  const sel = $("subFont");
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">(မူရင်း)</option>';
+  S.fonts.forEach(f=>{
+    const li = document.createElement("li");
+    li.innerHTML = `<span></span><span class="hint"></span>`;
+    li.firstChild.textContent = f;
+    li.lastChild.textContent = (S.ov.sub.font===f) ? "✓ သုံးနေသည်" : "";
+    if(S.ov.sub.font===f) li.classList.add("cur");
+    ul.appendChild(li);
+    const op = document.createElement("option");
+    op.value = f; op.textContent = f;
+    sel.appendChild(op);
+  });
+  if(cur) sel.value = cur;
+  if(S.ov.sub.font && S.fonts.includes(S.ov.sub.font)) sel.value = S.ov.sub.font;
+}
+$("btnFontUp").addEventListener("click", async ()=>{
+  const f = $("fontFile").files[0];
+  if(!f){ setStatus("TTF ဖိုင် ရွေးပါ", "err"); return; }
+  setStatus("ဖောင့် တင်နေသည်...");
+  try{
+    const fd = new FormData(); fd.append("file", f);
+    await apiJSON("/api/fonts", {method:"POST", body:fd});
+    $("fontFile").value = "";
+    await loadFonts();
+    setStatus("ဖောင့် တင်ပြီးပါပြီ", "ok");
+  }catch(err){
+    setStatus("ဖောင့် တင်မရပါ: " + err.message, "err");
+  }
+});
+
+/* ============================================================
+   SAVE + RENDER
+   ============================================================ */
+function buildPayload(){
+  const p = JSON.parse(JSON.stringify(S.ov));
+  if(S.logoPath) p.logo.logo_path = S.logoPath;
+  p.blur = p.blur.map(b=>({x:+b.x.toFixed(2), y:+b.y.toFixed(2), w:+b.w.toFixed(2), h:+b.h.toFixed(2), s:+b.s}));
+  return p;
+}
+async function saveOverlays(){
+  if(!needVideo()) throw new Error("no video");
+  const r = await apiJSON("/api/overlays/" + S.videoId, {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(buildPayload())
+  });
+  if(!r.ok) throw new Error("save failed");
+  return r;
+}
+$("btnSave").addEventListener("click", async ()=>{
+  setStatus("သိမ်းနေသည်...");
+  try{ await saveOverlays(); setStatus("သိမ်းပြီးပါပြီ", "ok"); }
+  catch(err){ setStatus("သိမ်းမရပါ: " + err.message, "err"); }
+});
+$("btnRender").addEventListener("click", async ()=>{
+  if(!needVideo()) return;
+  setStatus("သိမ်းပြီး 10s preview ထုတ်နေသည်...");
+  try{
+    await saveOverlays();
+    const r = await apiJSON("/api/render-preview/" + S.videoId, {method:"POST"});
+    if(!r.ok || !r.clip_url) throw new Error("render failed");
+    $("clipVid").src = r.clip_url;
+    $("modal").classList.add("open");
+    setStatus("preview ထုတ်ပြီးပါပြီ", "ok");
+  }catch(err){
+    setStatus("preview ထုတ်မရပါ: " + err.message, "err");
+  }
+});
+$("btnCloseModal").addEventListener("click", ()=>{
+  $("modal").classList.remove("open");
+  $("clipVid").pause(); $("clipVid").removeAttribute("src"); $("clipVid").load();
+});
+$("modal").addEventListener("click", e=>{
+  if(e.target === $("modal")) $("btnCloseModal").click();
+});
+
+/* ---------- init ---------- */
+loadFonts();
+renderAll();
+</script>
+</body>
+</html>

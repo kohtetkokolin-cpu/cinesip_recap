@@ -1,0 +1,7 @@
+# Cinesip Recap — Phase 1 requirements (light: runs on 4GB RAM Windows laptop)
+fastapi
+uvicorn[standard]
+python-multipart
+edge-tts
+Pillow
+httpx

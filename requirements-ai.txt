@@ -1,0 +1,9 @@
+# Cinesip Recap — Phase 2+ AI pipeline requirements (install when needed)
+# faster-whisper uses CTranslate2 (no PyTorch) — OK on 4GB RAM with tiny/base + int8
+-r requirements.txt
+faster-whisper
+scenedetect[opencv]
+google-genai
+yt-dlp
+pyyaml
+apscheduler
