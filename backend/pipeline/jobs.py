@@ -1,0 +1,271 @@
+"""Cinesip Recap — job orchestrator.
+
+Pipeline: analyze → script → [SCRIPT REVIEW GATE] → voice → render →
+shorts → metadata → done.
+
+Jobs run in background threads; state persists to data/jobs/{id}.json so a
+restart doesn't lose history. The review gate pauses after script writing:
+the user reads/edits beats in the UI, then approves to continue.
+"""
+import json
+import os
+import threading
+import time
+import traceback
+import uuid
+
+from .. import config
+from .quota import QuotaManager
+from . import analyze as az
+from . import script as sc
+from . import voice as vc
+from . import fairuse as fu
+from . import render as rd
+
+JOB_DIR = os.path.join(config.DATA_DIR, "jobs")
+os.makedirs(JOB_DIR, exist_ok=True)
+
+STAGES = ["queued", "analyze", "script", "awaiting_script",
+          "voice", "render", "shorts", "metadata", "done", "error"]
+
+_jobs: dict[str, dict] = {}
+_lock = threading.Lock()
+
+
+def _path(job_id: str) -> str:
+    return os.path.join(JOB_DIR, f"{job_id}.json")
+
+
+def _save(job: dict):
+    tmp = _path(job["id"]) + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump({k: v for k, v in job.items() if k != "_thread"}, f,
+                  ensure_ascii=False, default=str)
+    os.replace(tmp, _path(job["id"]))
+
+
+def get_job(job_id: str) -> dict | None:
+    with _lock:
+        if job_id in _jobs:
+            return _jobs[job_id]
+    p = _path(job_id)
+    if os.path.isfile(p):
+        with open(p, encoding="utf-8") as f:
+            j = json.load(f)
+        with _lock:
+            _jobs[job_id] = j
+        return j
+    return None
+
+
+def log(job: dict, msg: str):
+    job["log"].append(f"[{time.strftime('%H:%M:%S')}] {msg}")
+    job["log"] = job["log"][-300:]
+    _save(job)
+
+
+def set_stage(job: dict, stage: str, pct: float = 0, detail: str = ""):
+    job["stage"] = stage
+    job["progress"] = round(pct, 1)
+    if detail:
+        job["stage_detail"] = detail
+    _save(job)
+
+
+def create_job(video_id: str, video_path: str, mode: str = "long",
+               target_minutes: float = 60, style: str = "recap",
+               voice_provider: str = "gemini") -> dict:
+    job_id = uuid.uuid4().hex[:12]
+    job = {"id": job_id, "video_id": video_id, "video_path": video_path,
+           "mode": mode, "target_minutes": target_minutes, "style": style,
+           "voice_provider": voice_provider,
+           "stage": "queued", "progress": 0, "stage_detail": "",
+           "log": [], "created": time.time(), "script": None, "result": None,
+           "error": None}
+    with _lock:
+        _jobs[job_id] = job
+    _save(job)
+    return job
+
+
+# ---------------------------------------------------------------- runner
+def _progress(job, stage):
+    def cb(name, i, n):
+        pct = {"analyze": (0, 25), "script": (25, 45), "voice": (45, 65),
+               "render": (65, 90), "shorts": (90, 95), "metadata": (95, 100)
+               }.get(stage, (0, 100))
+        p = pct[0] + (pct[1] - pct[0]) * (i / max(1, n))
+        set_stage(job, stage, p, f"{name} {i}/{n}")
+    return cb
+
+
+def run_job(job_id: str):
+    job = get_job(job_id)
+    if not job:
+        return
+    try:
+        _run(job)
+    except Exception as e:
+        job["error"] = str(e)[:500]
+        set_stage(job, "error", job.get("progress", 0))
+        log(job, f"❌ {e}")
+        traceback.print_exc()
+
+
+def _run(job: dict):
+    from . import shorts as sh
+    from . import metadata as md
+
+    quota = QuotaManager()
+    client = sc.GeminiClient(quota)
+    video_path = job["video_path"]
+
+    # ---- quota gate ----
+    import subprocess as _sp, json as _js
+    dur = float(_sp.check_output(
+        [config.FFPROBE, "-v", "error", "-show_entries", "format=duration",
+         "-of", "default=noprint_wrappers=1:nokey=1", video_path], text=True).strip())
+    st = _sp.check_output(
+        [config.FFPROBE, "-v", "error", "-select_streams", "v:0",
+         "-show_entries", "stream=width,height", "-of", "json", video_path], text=True)
+    sj = _js.loads(st)["streams"][0]
+    W, H = int(sj["width"]), int(sj["height"])
+    job["src_duration"] = dur; job["src_w"] = W; job["src_h"] = H
+
+    budget = quota.check_budget(dur / 60, job["target_minutes"])
+    if not budget["ok"]:
+        raise RuntimeError(budget["hint"] or "Gemini quota မလုံလောက်ပါ။")
+    log(job, f"Quota OK — လိုအပ် ~{budget['need']}, ကျန် {budget['have']}")
+
+    # ---- 1. analyze ----
+    set_stage(job, "analyze", 2, "transcribing")
+    log(job, "🔍 Analysis စတင်သည် (local, free)")
+    ev = az.build_evidence(job["video_id"], video_path,
+                           progress_cb=lambda n, i, t: _progress(job, "analyze")(n, i, t))
+    job["evidence"] = {"duration": ev["duration"], "n_scenes": ev["n_scenes"],
+                       "n_segments": ev["n_segments"], "cached": ev["cached"]}
+    log(job, f"✅ Analysis ပြီးပြီ — scenes {ev['n_scenes']}, transcript {ev['n_segments']} segs"
+             + (" (cached)" if ev["cached"] else ""))
+    _save(job)
+
+    # ---- 2. script ----
+    set_stage(job, "script", 26, "writing bible")
+    log(job, "✍️ Script ရေးနေသည် (Gemini)")
+    script = sc.build_script(client, ev, job["target_minutes"],
+                             progress_cb=lambda n, i, t: _progress(job, "script")(n, i, t))
+    # commentary flags for the reviewer
+    for b in script["beats"]:
+        b["commentary_score"] = round(fu.commentary_score(b.get("narration", "")), 2)
+        b["flag"] = "low_commentary" if fu.needs_commentary_rewrite(b.get("narration", "")) else ""
+    job["script"] = script
+    _save(job)
+    set_stage(job, "awaiting_script", 45, "review needed")
+    log(job, f"📝 Script ပြီးပြီ — {len(script['beats'])} beats. Review လုပ်ပြီး Approve နှိပ်ပါ.")
+    return  # ← REVIEW GATE: resume via approve_job()
+
+
+def resume_after_approval(job_id: str):
+    job = get_job(job_id)
+    if not job or job["stage"] != "awaiting_script":
+        raise RuntimeError("job is not awaiting approval")
+    t = threading.Thread(target=_run_after_approval, args=(job_id,), daemon=True)
+    t.start()
+
+
+def _run_after_approval(job_id: str):
+    job = get_job(job_id)
+    try:
+        quota = QuotaManager()
+        client = sc.GeminiClient(quota)
+        beats = job["script"]["beats"]
+        ev = az.build_evidence(job["video_id"], job["video_path"])  # cached
+        scenes = [(a, b) for a, b in ev["scenes"]]
+        W, H = job["src_w"], job["src_h"]
+        workdir = os.path.join(rd.RENDER_DIR, job_id, "beats")
+        os.makedirs(workdir, exist_ok=True)
+        max_clip = 5.0
+
+        # ---- 3. voice ----
+        log(job, "🎙️ Voiceover ထုတ်နေသည်")
+        for i, b in enumerate(beats):
+            set_stage(job, "voice", 45 + 20 * i / max(1, len(beats)), f"beat {i+1}/{len(beats)}")
+            nar = (b.get("narration") or "").strip()
+            if not nar:
+                b.update({"wav": "", "vo_dur": 0, "words": [], "provider": "none"})
+                continue
+            wav = os.path.join(workdir, f"vo_{b['idx']:03d}.wav")
+            r = vc.synthesize(nar, b.get("voice", "narrator"), wav, quota,
+                              prefer=job.get("voice_provider", "gemini"))
+            if not r.get("ok"):
+                raise RuntimeError(f"TTS failed (beat {b['idx']}): {r.get('error')}")
+            # cap: VO must not exceed 2.5x footage window + 30s
+            fw = max(10.0, b["footage_end"] - b["footage_start"])
+            max_vo = fw * 2.5 + 30
+            if vc.wav_duration(wav) > max_vo:
+                log(job, f"✂️ beat {b['idx']} အသံရှည်လွန်းလို့ ပြန်ချုံ့မည်")
+                nar2 = sc.rewrite_shorter(client, nar, int(max_vo * 2.2))
+                b["narration"] = nar2
+                r = vc.synthesize(nar2, b.get("voice", "narrator"), wav, quota,
+                                  prefer=job.get("voice_provider", "gemini"))
+                if not r.get("ok"):
+                    raise RuntimeError(f"TTS retry failed (beat {b['idx']})")
+            wav, dur = vc.fit_beat_wav(wav, max_vo)
+            b.update({"wav": wav, "vo_dur": round(dur, 2),
+                      "words": r.get("words", []), "provider": r.get("provider")})
+            _save(job)
+        log(job, "✅ Voiceover ပြီးပြီ")
+        _save(job)
+
+        # ---- 4. render ----
+        from . import overlays as _ov
+        log(job, "🎬 Render လုပ်နေသည် (fair-use transforms + sync)")
+        # load user overlays saved in preview editor
+        ov_path = os.path.join(config.DATA_DIR, "overlays", f"{job['video_id']}.json")
+        overlay_cfg = {}
+        if os.path.isfile(ov_path):
+            with open(ov_path, encoding="utf-8") as f:
+                overlay_cfg = json.load(f)
+        logo_cands = [os.path.join(config.DATA_DIR, "overlays", f"{job['video_id']}_logo{e}")
+                      for e in (".png", ".jpg", ".jpeg", ".webp")]
+        logo_path = next((c for c in logo_cands if os.path.isfile(c)), None)
+
+        beat_files = []
+        for i, b in enumerate(beats):
+            if not b.get("wav"):
+                continue
+            set_stage(job, "render", 65 + 25 * i / max(1, len(beats)), f"beat {b['idx']}")
+            bf = rd.render_beat(job_id, b, job["video_path"], b["wav"],
+                                scenes, W, H, max_clip, workdir)
+            beat_files.append(bf)
+        voiced = [b for b in beats if b.get("wav")]
+        res = rd.assemble_final(job_id, beat_files, voiced, W, H,
+                                overlay_cfg, logo_path,
+                                progress_cb=lambda n, i, t: None)
+        set_stage(job, "render", 90, "assembled")
+        log(job, f"✅ Render ပြီးပြီ — {res['duration']/60:.1f} min")
+        job["result"] = {"video": res["video"], "srt": res["srt"],
+                         "duration": round(res["duration"], 1)}
+        _save(job)
+
+        # ---- 5. shorts ----
+        if job["mode"] in ("long", "both"):
+            from . import shorts as sh
+            log(job, "📱 Shorts ဖြတ်နေသည်")
+            job["result"]["shorts"] = sh.make_shorts(
+                job_id, res["video"], voiced, W, H, n_shorts=4,
+                progress_cb=lambda n, i, t: set_stage(job, "shorts", 90 + 5 * i / max(1, t), n))
+            _save(job)
+
+        # ---- 6. metadata ----
+        from . import metadata as md
+        log(job, "🏷️ Upload metadata ထုတ်နေသည်")
+        job["result"]["meta"] = md.generate_metadata(client, job["script"]["bible"])
+        _save(job)
+
+        set_stage(job, "done", 100, "complete")
+        log(job, "🎉 ပြီးပြီ!")
+    except Exception as e:
+        job["error"] = str(e)[:500]
+        set_stage(job, "error", job.get("progress", 0))
+        log(job, f"❌ {e}")
+        traceback.print_exc()

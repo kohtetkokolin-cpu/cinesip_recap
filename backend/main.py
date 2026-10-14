@@ -233,3 +233,156 @@ def serve_clip(name: str):
     if not os.path.isfile(p):
         raise HTTPException(404, "clip not found")
     return FileResponse(p, media_type="video/mp4")
+
+
+# ================= PHASE 2: recap jobs =================
+from .pipeline import jobs as _jobs
+from .pipeline.quota import QuotaManager as _QM
+import threading as _th
+
+
+@app.post("/api/jobs")
+async def create_job(body: dict):
+    video_id = body.get("video_id", "")
+    src = _video_path(video_id)
+    mode = body.get("mode", "long")  # long | short | both
+    target = float(body.get("target_minutes") or (60 if mode != "short" else 5))
+    job = _jobs.create_job(video_id, src, mode=mode, target_minutes=target,
+                           style=body.get("style", "recap"),
+                           voice_provider=body.get("voice_provider", "gemini"))
+    # quota pre-check before burning any work
+    import subprocess as _sp
+    dur = float(_sp.check_output(
+        [config.FFPROBE, "-v", "error", "-show_entries", "format=duration",
+         "-of", "default=noprint_wrappers=1:nokey=1", src], text=True).strip())
+    chk = _QM().check_budget(dur / 60, target)
+    if not chk["ok"]:
+        return {"ok": False, "error": chk["hint"] or "quota မလုံလောက်ပါ",
+                "budget": chk, "job_id": job["id"]}
+    t = _th.Thread(target=_jobs.run_job, args=(job["id"],), daemon=True)
+    t.start()
+    return {"ok": True, "job_id": job["id"], "budget": chk}
+
+
+@app.get("/api/jobs")
+def list_jobs():
+    import glob as _g
+    out = []
+    for p in sorted(_g.glob(os.path.join(config.DATA_DIR, "jobs", "*.json")),
+                    key=os.path.getmtime, reverse=True)[:20]:
+        with open(p, encoding="utf-8") as f:
+            j = json.load(f)
+        out.append({"id": j["id"], "stage": j["stage"], "progress": j.get("progress", 0),
+                    "mode": j.get("mode"), "created": j.get("created"),
+                    "video_id": j.get("video_id"),
+                    "voice_provider": j.get("voice_provider")})
+    return {"jobs": out}
+
+
+@app.get("/api/jobs/{job_id}")
+def job_status(job_id: str):
+    j = _jobs.get_job(job_id)
+    if not j:
+        raise HTTPException(404, "job not found")
+    return {"id": j["id"], "stage": j["stage"], "progress": j.get("progress", 0),
+            "stage_detail": j.get("stage_detail", ""), "log": j.get("log", [])[-60:],
+            "error": j.get("error"), "evidence": j.get("evidence"),
+            "video_id": j.get("video_id"), "mode": j.get("mode"),
+            "voice_provider": j.get("voice_provider"),
+            "n_beats": len((j.get("script") or {}).get("beats", []))}
+
+
+@app.get("/api/jobs/{job_id}/script")
+def job_script(job_id: str):
+    j = _jobs.get_job(job_id)
+    if not j or not j.get("script"):
+        raise HTTPException(404, "script not ready")
+    return {"bible": j["script"]["bible"], "beats": j["script"]["beats"]}
+
+
+@app.post("/api/jobs/{job_id}/script")
+async def save_script(job_id: str, body: dict):
+    j = _jobs.get_job(job_id)
+    if not j or j["stage"] != "awaiting_script":
+        raise HTTPException(400, "job is not awaiting script review")
+    beats = body.get("beats") or []
+    # keep only editable fields, preserve the rest
+    cur = {b["idx"]: b for b in j["script"]["beats"]}
+    for nb in beats:
+        idx = nb.get("idx")
+        if idx in cur:
+            for k in ("narration", "voice", "hook_line", "payoff", "goal"):
+                if k in nb:
+                    cur[idx][k] = nb[k]
+            # re-score commentary after edit
+            from .pipeline import fairuse as _fu
+            cur[idx]["commentary_score"] = round(_fu.commentary_score(cur[idx].get("narration", "")), 2)
+            cur[idx]["flag"] = "low_commentary" if _fu.needs_commentary_rewrite(cur[idx].get("narration", "")) else ""
+    _jobs._save(j)
+    return {"ok": True}
+
+
+@app.post("/api/jobs/{job_id}/approve")
+def approve_job(job_id: str):
+    _jobs.resume_after_approval(job_id)
+    return {"ok": True}
+
+
+@app.post("/api/jobs/{job_id}/voice-preview")
+async def voice_preview(job_id: str, body: dict):
+    """Synthesize one beat's narration for preview (does not advance the job)."""
+    j = _jobs.get_job(job_id)
+    if not j or not j.get("script"):
+        raise HTTPException(404, "script not ready")
+    idx = int(body.get("beat_idx", 1))
+    beat = next((b for b in j["script"]["beats"] if b["idx"] == idx), None)
+    if not beat or not beat.get("narration"):
+        raise HTTPException(404, "beat not found")
+    from .pipeline import voice as _vc
+    out = os.path.join(config.DATA_DIR, "jobs", f"{job_id}_pv_{idx}.wav")
+    r = _vc.synthesize(beat["narration"][:600], beat.get("voice", "narrator"), out,
+                       prefer=j.get("voice_provider", "gemini"))
+    if not r.get("ok"):
+        raise HTTPException(500, r.get("error"))
+    return {"ok": True, "audio_url": f"/api/jobs/{job_id}/voice-file/pv_{idx}.wav",
+            "provider": r.get("provider")}
+
+
+@app.get("/api/jobs/{job_id}/voice-file/{name}")
+def voice_file(job_id: str, name: str):
+    p = os.path.join(config.DATA_DIR, "jobs", f"{job_id}_{os.path.basename(name)}")
+    if not os.path.isfile(p):
+        raise HTTPException(404, "not found")
+    return FileResponse(p, media_type="audio/wav")
+
+
+@app.get("/api/jobs/{job_id}/result")
+def job_result(job_id: str):
+    j = _jobs.get_job(job_id)
+    if not j or j["stage"] != "done":
+        raise HTTPException(404, "result not ready")
+    r = j["result"] or {}
+    base = f"/api/jobs/{job_id}/file"
+    out = {"video_url": f"{base}/final.mp4", "srt_url": f"{base}/final.srt",
+           "duration": r.get("duration"), "meta": r.get("meta"),
+           "shorts": [{"url": f"{base}/shorts/{os.path.basename(s['mp4'])}",
+                       "title_hint": s.get("title_hint"), "duration": s.get("duration")}
+                      for s in (r.get("shorts") or [])]}
+    return out
+
+
+@app.get("/api/jobs/{job_id}/file/{name}")
+def result_file(job_id: str, name: str):
+    p = os.path.join(config.DATA_DIR, "renders", job_id, os.path.basename(name))
+    if not os.path.isfile(p):
+        raise HTTPException(404, "not found")
+    mt = "video/mp4" if name.endswith(".mp4") else "text/plain; charset=utf-8"
+    return FileResponse(p, media_type=mt)
+
+
+@app.get("/api/jobs/{job_id}/file/shorts/{name}")
+def result_short(job_id: str, name: str):
+    p = os.path.join(config.DATA_DIR, "renders", job_id, "shorts", os.path.basename(name))
+    if not os.path.isfile(p):
+        raise HTTPException(404, "not found")
+    return FileResponse(p, media_type="video/mp4")

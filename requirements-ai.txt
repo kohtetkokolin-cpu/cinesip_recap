@@ -4,6 +4,7 @@
 faster-whisper
 scenedetect[opencv]
 google-genai
+edge-tts
 yt-dlp
 pyyaml
 apscheduler

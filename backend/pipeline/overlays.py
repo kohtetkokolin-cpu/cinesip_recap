@@ -44,8 +44,18 @@ def resolve_font(font_dir: str, name: str | None) -> str | None:
 
 
 def sanitize_overlays(raw: dict | None) -> dict:
-    """Clamp/validate overlay JSON from the client. Returns a clean dict."""
+    """Clamp/validate overlay JSON from the client. Returns a clean dict.
+    Accepts both the Phase-1 schema (wm/eq, logo.path) and the Studio UI
+    schema (watermark/video, logo.logo_path)."""
     d = raw if isinstance(raw, dict) else {}
+    # --- schema aliases (Studio UI) ---
+    if "watermark" in d and "wm" not in d:
+        d["wm"] = d["watermark"]
+    if "video" in d and "eq" not in d:
+        d["eq"] = d["video"]
+    if isinstance(d.get("logo"), dict) and "logo_path" in d["logo"] \
+            and "path" not in d["logo"]:
+        d["logo"]["path"] = d["logo"].pop("logo_path")
     blur = []
     for r in (d.get("blur") or [])[:6]:
         if not isinstance(r, dict):
