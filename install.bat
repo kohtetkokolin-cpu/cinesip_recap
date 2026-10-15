@@ -41,11 +41,22 @@ rem ---------- 2. portable ffmpeg (local folder, no admin) ----------
 if exist "ffmpeg\bin\ffmpeg.exe" (
   echo  [OK] ffmpeg already present ^(portable^)
 ) else (
-  echo  [*] Downloading portable ffmpeg ^(~80MB^)...
-  powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip' -OutFile 'ffmpeg_dl.zip'"
+  echo  [*] Downloading portable ffmpeg ^(~80MB, may take a while on slow internet^)...
+  del /q ffmpeg_dl.zip 2>nul
+  rem curl.exe is built into Windows 10+ and handles slow connections far better
+  rem than PowerShell Invoke-WebRequest (which often stalls).
+  where curl >nul 2>nul
+  if not errorlevel 1 (
+    curl -L --retry 3 --retry-delay 5 -o ffmpeg_dl.zip "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
+  ) else (
+    powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip' -OutFile 'ffmpeg_dl.zip'"
+  )
   if errorlevel 1 (
-    echo  [X] Download failed. Install ffmpeg manually from https://www.gyan.dev/ffmpeg/builds/
-    echo      and add its bin folder to PATH, then re-run install.bat
+    echo  [X] Download failed or was interrupted.
+    echo      Manual fix: download with your browser from
+    echo        https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip
+    echo      unzip it, then copy its "bin" folder to "%CD%\ffmpeg\bin"
+    echo      ^(so that ffmpeg\bin\ffmpeg.exe exists^), then re-run install.bat
     pause
     exit /b 1
   )
