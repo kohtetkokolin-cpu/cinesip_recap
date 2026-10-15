@@ -265,10 +265,14 @@ label.f .val{color:var(--gold);font-weight:700}
   color:var(--muted);font-size:15px;text-align:center;padding:20px}
 #videoInfo{margin-top:8px;color:var(--muted);font-size:13px}
 .blur-region{position:absolute;border:1px dashed rgba(245,185,66,.85);background:rgba(245,185,66,.06);
-  cursor:move;min-width:14px;min-height:14px;border-radius:4px}
+  cursor:move;min-width:14px;min-height:14px;border-radius:4px;touch-action:none;user-select:none}
 .blur-region.sel{border:2px solid var(--gold);background:rgba(245,185,66,.12)}
 .blur-region .tag{position:absolute;top:-20px;left:0;font-size:11px;color:var(--gold);
   background:rgba(0,0,0,.6);padding:1px 6px;border-radius:4px;white-space:nowrap}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.swatch{width:34px;height:34px;border-radius:10px;cursor:pointer;border:2px solid transparent;box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
+.swatch.sel{border-color:var(--gold);transform:scale(1.12)}
+#borderBox{position:absolute;inset:0;pointer-events:none;border-radius:4px}
 .blur-region .rh{position:absolute;right:-8px;bottom:-8px;width:16px;height:16px;border-radius:50%;
   background:var(--gold);cursor:nwse-resize;border:2px solid #000}
 #subBox{position:absolute;transform:translate(-50%,-50%);cursor:move;text-align:center;
@@ -472,6 +476,7 @@ label.f .val{color:var(--gold);font-weight:700}
               <button data-tab="logo">Logo</button>
               <button data-tab="wm">Watermark</button>
               <button data-tab="video">Video</button>
+              <button data-tab="border">🖼️ ဘောင်</button>
               <button data-tab="font">Font</button>
             </div>
             <div class="stab active" id="stab-blur">
@@ -544,6 +549,14 @@ label.f .val{color:var(--gold);font-weight:700}
               <div class="row"><label class="f">အရောင် ရင့်မှု (saturation): <span class="val" id="vSatVal">1.0</span></label>
                 <input type="range" id="vSat" min="0" max="2" step="0.05" value="1"></div>
               <div class="row"><button class="btn small ghost" id="btnResetVideo">မူရင်းအတိုင်း ပြန်ထားမည်</button></div>
+            </div>
+            <div class="stab" id="stab-border">
+              <div class="chk"><input type="checkbox" id="bdEnabled"><label for="bdEnabled" style="margin:0">ဗီဒီယို ဘောင်ခတ်မည်</label></div>
+              <div class="row"><label class="f">အရောင် (၁၀ မျိုး)</label>
+                <div class="swatches" id="bdColors"></div></div>
+              <div class="row"><label class="f">အထူ (%): <span class="val" id="bdSizeVal">2</span></label>
+                <input type="range" id="bdSize" min="0.5" max="8" step="0.5" value="2"></div>
+              <div class="hint">ဘောင်က preview မှာရော၊ အပြီးသတ် video မှာပါ တစ်ထပ်တည်း ပေါ်မယ်။</div>
             </div>
             <div class="stab" id="stab-font">
               <div class="row"><label class="f">ဖောင့် စာရင်း</label><ul id="fontList"></ul></div>
@@ -699,8 +712,8 @@ function showView(name, param){
 }
 document.querySelectorAll(".nav-item").forEach(n=>
   n.addEventListener("click", ()=>showView(n.dataset.view)));
-$("btnTopNew").addEventListener("click", ()=>{ App.wiz = {step:1,video:null,mode:"long",minutes:20,style:"cold_open",voice:"thiha",vopts:{speed:1.0,pitch:0,volume:100},ratio:"16:9",resolution:"720p",budget:null,jobId:null}; showView("wizard"); });
-$("btnDashNew").addEventListener("click", ()=>{ App.wiz = {step:1,video:null,mode:"long",minutes:20,style:"cold_open",voice:"thiha",vopts:{speed:1.0,pitch:0,volume:100},ratio:"16:9",resolution:"720p",budget:null,jobId:null}; showView("wizard"); });
+$("btnTopNew").addEventListener("click", ()=>{ App.wiz = {step:1,video:null,mode:"long",minutes:20,style:"cold_open",voice:"thiha",vopts:{speed:1.0,pitch:0,volume:100},ratio:"16:9",resolution:"720p",fillMode:"blur",fillColor:"#1a1a2e",budget:null,jobId:null}; showView("wizard"); });
+$("btnDashNew").addEventListener("click", ()=>{ App.wiz = {step:1,video:null,mode:"long",minutes:20,style:"cold_open",voice:"thiha",vopts:{speed:1.0,pitch:0,volume:100},ratio:"16:9",resolution:"720p",fillMode:"blur",fillColor:"#1a1a2e",budget:null,jobId:null}; showView("wizard"); });
 
 /* ============================================================
    DASHBOARD
@@ -923,7 +936,20 @@ function settingsHtml(w){
           <option value="720p" ${w.resolution==="720p"?"selected":""}>720p — အလယ်</option>
           <option value="480p" ${w.resolution==="480p"?"selected":""}>480p — မြန် (ဖိုင်သေး)</option>
         </select>
-        <div class="hint" style="margin-top:6px">9:16 ရွေးရင် အလယ်ပိုင်းကို ဖြတ်ယူမယ် · 16:9/မူရင်း ဆို ဘောင်အနက်ထည့်မယ် (ဖြတ်မထုတ်ဘူး)</div></div>`;
+        <div class="hint" style="margin-top:6px">9:16 ရွေးရင် အလယ်ပိုင်းကို ဖြတ်ယူမယ် · 16:9/မူရင်း ဆို ဘောင်အနက်ထည့်မယ် (ဖြတ်မထုတ်ဘူး)</div></div>
+      <div class="row" id="fillRow" style="${w.ratio==="9:16"?"":"display:none"}"><label class="f">📱 9:16 အလွတ် နေရာ ဖြည့်နည်း</label>
+        <div class="mode-cards">
+          <div class="mode-card ${w.fillMode==="blur"?"sel":""}" data-f="blur">
+            <div class="t">🌀 Blur ဖြည့်</div><div class="d">ဗီဒီယိုကို blur လုပ်ပြီး နောက်ခံ</div></div>
+          <div class="mode-card ${w.fillMode==="color"?"sel":""}" data-f="color">
+            <div class="t">🎨 အရောင် ဖြည့်</div><div class="d">တစ်ရောင်တည်း နောက်ခံ</div></div>
+          <div class="mode-card ${w.fillMode==="crop"?"sel":""}" data-f="crop">
+            <div class="t">🔪 ဖြတ် (Crop)</div><div class="d">ဘေးတွေ ဖြတ်ထုတ်</div></div>
+        </div>
+        <div id="fillColorRow" style="margin-top:8px;${w.fillMode==="color"?"":"display:none"}">
+          <label class="f">နောက်ခံ အရောင်</label>
+          <input type="color" id="fillColor" value="${esc(w.fillColor||"#1a1a2e")}" style="width:60px;height:36px;padding:2px">
+        </div></div>`;
 }
 function wireSettings(w){
   const b = $("wizBody");
@@ -938,6 +964,12 @@ function wireSettings(w){
     }));
     const wr = $("wizRes");
     if(wr) wr.addEventListener("change", e=>{ w.resolution = e.target.value; });
+    b.querySelectorAll(".mode-card[data-f]").forEach(c=>c.addEventListener("click", ()=>{
+      w.fillMode = c.dataset.f;
+      renderWizard();
+    }));
+    const fc = $("fillColor");
+    if(fc) fc.addEventListener("input", e=>{ w.fillColor = e.target.value; });
     $("wizMin").addEventListener("input", e=>{ w.minutes = Number(e.target.value); $("wizMinVal").textContent = w.minutes+" မိနစ်"; });
     b.querySelectorAll(".style-card").forEach(c=>c.addEventListener("click", ()=>{
       w.style = c.dataset.s; renderWizard();
@@ -985,7 +1017,7 @@ async function wizEstimate(){
   const w = App.wiz, box = $("quotaBox");
   if(!w.video){ box.innerHTML = `<div class="err-box">ဗီဒီယို မတင်ရသေးပါ</div>`; return; }
   const sig = [w.video.video_id, w.mode, w.minutes, w.style, w.voice,
-               w.vopts.speed, w.vopts.pitch, w.vopts.volume, w.ratio, w.resolution].join("|");
+               w.vopts.speed, w.vopts.pitch, w.vopts.volume, w.ratio, w.resolution, w.fillMode, w.fillColor].join("|");
   if(w.estSig === sig && w.estResp){ renderQuotaBox(w.estResp); return; }  // reuse, don't spawn duplicate jobs
   try{
     const r = await api("/api/jobs", {method:"POST",
@@ -993,7 +1025,8 @@ async function wizEstimate(){
       body: JSON.stringify({video_id:w.video.video_id, mode:w.mode,
         target_minutes:w.minutes, style:w.style, voice_preset:w.voice, voice_opts:w.vopts,
         ratio:w.ratio, resolution:w.resolution,
-        source_title:w.sourceTitle||""})});
+        source_title:w.sourceTitle||"",
+        fill_mode:w.fillMode, fill_color:w.fillColor})});
     w.estSig = sig; w.estResp = r;
     renderQuotaBox(r);
   }catch(e){
@@ -1343,7 +1376,8 @@ function defaultOverlays(){
     logo: {enabled:true, x:3, y:3, w:12, opacity:0.9, logo_path:""},
     watermark: {enabled:false, text:"Cinesip", x:50, y:95, size:4, opacity:0.5, color:"White"},
     sub: {cx:50, cy:88, size:4.5, maxw:88, color:"Yellow", text:"ဒါက နမူနာ စာတန်းထိုးပါ", font:""},
-    video: {brightness:0, contrast:1.0, saturation:1.0}
+    video: {brightness:0, contrast:1.0, saturation:1.0},
+    border: {enabled:false, color:"gold", size:2}
   };
 }
 const ST = {
@@ -1411,25 +1445,25 @@ function renderBlur(){
     d.style.backdropFilter=`blur(${(b.s/2).toFixed(1)}px)`;
     d.style.webkitBackdropFilter=`blur(${(b.s/2).toFixed(1)}px)`;
     d.innerHTML=`<span class="tag">Blur ${i+1}</span><span class="rh" data-handle="1"></span>`;
-    // NOTE: do NOT re-render on select — renderBlur() destroys this very element
-    // mid-press, which kills the drag (pointer capture dies with the element).
-    // Toggle the .sel class in place instead.
-    d.addEventListener("pointerdown", e=>{
-      e.stopPropagation();
+    // Select on press (in place — NEVER re-render mid-press: renderBlur()
+    // destroys this element and kills pointer capture). Selection is folded
+    // into pointerDrag's onDown so one bubble-phase listener owns the press;
+    // no stopPropagation, so child-element presses (.tag) still start drags.
+    const selInPlace = ()=>{
       if(ST.selBlur!==i){
         ST.selBlur=i;
         layer.querySelectorAll(".blur-region").forEach((n,k)=>n.classList.toggle("sel", k===i));
         if(b){ $("blurS").value=b.s; $("blurSVal").textContent=b.s; }
         $("blurSelLabel").textContent="Blur "+(i+1);
       }
-    }, true);
-    pointerDrag(d, null, (x,y)=>{
+    };
+    pointerDrag(d, selInPlace, (x,y)=>{
       b.x=clamp(x,0,100-b.w); b.y=clamp(y,0,100-b.h);
       d.style.left=b.x+"%"; d.style.top=b.y+"%";
     });
     const rh = d.querySelector(".rh");
     rh.addEventListener("pointerdown", e=>{
-      e.stopPropagation(); e.preventDefault(); selectBlur(i);
+      e.stopPropagation(); e.preventDefault(); selInPlace();
       rh.setPointerCapture(e.pointerId);
       const sw=b.w,sh=b.h,sx=e.clientX,sy=e.clientY;
       const mv = ev=>{
@@ -1529,8 +1563,21 @@ function applyVideoFilter(){
   const v=ST.ov.video;
   $("vid").style.filter=`brightness(${(1+v.brightness).toFixed(3)}) contrast(${v.contrast.toFixed(3)}) saturate(${v.saturation.toFixed(3)})`;
 }
-function renderAllOv(){ renderBlur(); renderSub(); renderLogo(); renderWm(); applyVideoFilter(); }
-window.addEventListener("resize", ()=>{ positionSub(); renderWm(); });
+const BORDER_CSS = {white:"#FFFFFF",black:"#000000",red:"#FF3B30",gold:"#F5B942",orange:"#FF9500",
+  yellow:"#FFCC00",green:"#34C759",cyan:"#32ADE6",blue:"#0A84FF",purple:"#BF5AF2"};
+function renderBorder(){
+  const layer=$("olayer");
+  let el=$("borderBox");
+  const b=ST.ov.border||{};
+  if(!b.enabled){ if(el) el.remove(); return; }
+  if(!el){ el=document.createElement("div"); el.id="borderBox"; layer.appendChild(el); }
+  // % of stage min-dimension -> px, matching backend min(w,h)*size/100
+  const r=layerRect(), m=Math.min(r.width,r.height);
+  const px=Math.max(2, m*(b.size||2)/100);
+  el.style.border=`${px}px solid ${BORDER_CSS[b.color]||"#F5B942"}`;
+}
+function renderAllOv(){ renderBlur(); renderSub(); renderLogo(); renderWm(); renderBorder(); applyVideoFilter(); }
+window.addEventListener("resize", ()=>{ positionSub(); renderWm(); renderBorder(); });
 
 /* ---------- studio video load ---------- */
 function studioLoadVideo(v){
@@ -1574,6 +1621,11 @@ function syncOvControls(){
   $("vCon").value=o.video.contrast; $("vConVal").textContent=o.video.contrast;
   $("vSat").value=o.video.saturation; $("vSatVal").textContent=o.video.saturation;
   if(o.sub.font) $("subFont").value=o.sub.font;
+  const bd=o.border||{enabled:false,color:"gold",size:2};
+  $("bdEnabled").checked=!!bd.enabled;
+  $("bdSize").value=bd.size; $("bdSizeVal").textContent=bd.size;
+  document.querySelectorAll("#bdColors .swatch").forEach(sw=>
+    sw.classList.toggle("sel", sw.dataset.c===bd.color));
   $("subPosVal").textContent=o.sub.cx.toFixed(1)+", "+o.sub.cy.toFixed(1);
 }
 $("stBtnUpload").addEventListener("click", async ()=>{
@@ -1645,6 +1697,24 @@ $("wmText").addEventListener("input", e=>{ ST.ov.watermark.text=e.target.value; 
 $("wmSize").addEventListener("input", e=>{ ST.ov.watermark.size=Number(e.target.value); $("wmSizeVal").textContent=ST.ov.watermark.size; renderWm(); });
 $("wmOp").addEventListener("input", e=>{ ST.ov.watermark.opacity=Number(e.target.value); $("wmOpVal").textContent=ST.ov.watermark.opacity; renderWm(); });
 $("wmColor").addEventListener("change", e=>{ ST.ov.watermark.color=e.target.value; renderWm(); });
+
+/* ---------- border tab ---------- */
+(function initBorderSwatches(){
+  const box=$("bdColors");
+  Object.entries(BORDER_CSS).forEach(([name,css])=>{
+    const sw=document.createElement("div");
+    sw.className="swatch"; sw.dataset.c=name; sw.title=name;
+    sw.style.background=css;
+    sw.addEventListener("click", ()=>{
+      ST.ov.border.color=name;
+      box.querySelectorAll(".swatch").forEach(x=>x.classList.toggle("sel", x===sw));
+      renderBorder();
+    });
+    box.appendChild(sw);
+  });
+})();
+$("bdEnabled").addEventListener("change", e=>{ ST.ov.border.enabled=e.target.checked; renderBorder(); });
+$("bdSize").addEventListener("input", e=>{ ST.ov.border.size=Number(e.target.value); $("bdSizeVal").textContent=ST.ov.border.size; renderBorder(); });
 
 /* ---------- video tab ---------- */
 $("vBri").addEventListener("input", e=>{ ST.ov.video.brightness=Number(e.target.value); $("vBriVal").textContent=ST.ov.video.brightness; applyVideoFilter(); });
@@ -1794,6 +1864,7 @@ async function finderOpen(tmdb_id, media){
       $("finderModal").style.display = "none";
       App.wiz = {step:1,video:null,mode:"long",minutes:20,style:"cold_open",voice:"thiha",
         vopts:{speed:1.0,pitch:0,volume:100},ratio:"16:9",resolution:"720p",
+        fillMode:"blur",fillColor:"#1a1a2e",
         budget:null,jobId:null,sourceTitle:d.title,tmdbId:d.tmdb_id};
       showView("wizard");
       toast("🎬 "+d.title+" — ဖိုင် upload တင်ပြီး ဆက်လုပ်ပါ","ok");
