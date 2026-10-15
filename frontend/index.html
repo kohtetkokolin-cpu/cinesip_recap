@@ -170,6 +170,14 @@ label.f .val{color:var(--gold);font-weight:700}
 .mode-card.sel{border-color:var(--gold);background:#1d1a10}
 .mode-card .t{font-weight:700;font-size:15.5px;margin-bottom:4px}
 .mode-card .d{font-size:12.5px;color:var(--muted)}
+.style-cards{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.style-card{background:var(--surface2);border:2px solid var(--border2);border-radius:12px;
+  padding:10px 12px;cursor:pointer;transition:border-color .15s}
+.style-card:hover{border-color:var(--faint)}
+.style-card.sel{border-color:var(--gold);background:#1d1a10}
+.style-card .t{font-weight:700;font-size:14.5px;margin-bottom:3px}
+.style-card .d{font-size:12px;color:var(--muted)}
+@media(max-width:560px){.style-cards{grid-template-columns:1fr}}
 .wiz-nav{display:flex;gap:10px;margin-top:20px}
 .wiz-nav .spacer{flex:1}
 .kv{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);font-size:14.5px}
@@ -516,7 +524,7 @@ const App = {
   pollTimer: null,
   logLen: 0,
   lastVideo: null,          // {video_id,width,height,duration}
-  wiz: { step:1, video:null, mode:"long", minutes:20, style:"recap", voice:"gemini", budget:null, jobId:null },
+  wiz: { step:1, video:null, mode:"long", minutes:20, style:"cold_open", voice:"gemini", budget:null, jobId:null },
   scriptCache: null,
   resultCache: null,
 };
@@ -616,15 +624,15 @@ function showView(name, param){
     n.classList.toggle("active", n.dataset.view===name || (name==="job"&&n.dataset.view==="dashboard")));
   $("viewTitle").textContent = name==="job" ? "Job အသေးစိတ်" : VIEW_TITLES[name];
   window.scrollTo(0,0);
-  if(name==="dashboard") loadDashboard();
+  if(name==="dashboard"){ loadStyles(); loadDashboard(); }
   if(name==="wizard") renderWizard();
   if(name==="job" && param) openJob(param);
   if(name==="studio") studioOnShow();
 }
 document.querySelectorAll(".nav-item").forEach(n=>
   n.addEventListener("click", ()=>showView(n.dataset.view)));
-$("btnTopNew").addEventListener("click", ()=>{ App.wiz = {step:1,video:null,mode:"long",minutes:20,style:"recap",voice:"gemini",budget:null,jobId:null}; showView("wizard"); });
-$("btnDashNew").addEventListener("click", ()=>{ App.wiz = {step:1,video:null,mode:"long",minutes:20,style:"recap",voice:"gemini",budget:null,jobId:null}; showView("wizard"); });
+$("btnTopNew").addEventListener("click", ()=>{ App.wiz = {step:1,video:null,mode:"long",minutes:20,style:"cold_open",voice:"gemini",budget:null,jobId:null}; showView("wizard"); });
+$("btnDashNew").addEventListener("click", ()=>{ App.wiz = {step:1,video:null,mode:"long",minutes:20,style:"cold_open",voice:"gemini",budget:null,jobId:null}; showView("wizard"); });
 
 /* ============================================================
    DASHBOARD
@@ -687,12 +695,24 @@ $("btnRefresh").addEventListener("click", loadDashboard);
    NEW RECAP WIZARD
    ============================================================ */
 const STYLES = [
-  {id:"recap", t:"မြန်ဆန်သော Recap", d:"တတ်တတ်ကြွကြွ၊ hook နဲ့ စတင်"},
-  {id:"radio_drama", t:"ရေဒီယိုဒရာမာ", d:"Narrator + ဇာတ်ကောင်အသံများ"},
-  {id:"pov", t:"ပထမပုဂ္ဂိုလ်", d:"ဇာတ်ကောင်ကိုယ်တိုင် ပြန်ပြောပြ"},
-  {id:"case_file", t:"စုံထောက် အမှုဖိုင်", d:"တည်ငြိမ်ပြီး စိတ်ဝင်စားဖွယ်"},
-  {id:"two_hosts", t:"နှစ်ယောက်ပြောပြ", d:"သူငယ်ချင်းနှစ်ယောက် ဆွေးနွေးသလို"},
+  {id:"cold_open", t:"⚡ အထွတ်အထိပ်နဲ့စ", d:"Burmese Top Movie စတိုင် — အထွတ်အထိပ်ခန်းနဲ့စ၊ ပြီးမှ နောက်ကြောင်းပြန်"},
+  {id:"open_loop", t:"❓ မေးခွန်းနဲ့စ", d:"TV Myanmar စတိုင် — ဇာတ်ကောင်မိတ်ဆက် → အခက်အခဲ → 'ဘာဆက်ဖြစ်မလဲ'"},
+  {id:"host_kwee", t:"🎙️ Host စတိုင်", d:"\"ကွီး\" စတိုင် — ပထမပုဂ္ဂိုလ်၊ ဟာသ၊ 10/10 rating"},
+  {id:"series_host", t:"📺 စီးရီး Host", d:"\"ကိုအံ့\" စတိုင် — အပိုင်းလိုက်၊ အရင်အပိုင်း အကျဉ်း + အခန်းသစ်"},
+  {id:"horror", t:"👻 သရဲ/Thriller", d:"Horror channel စတိုင် — လန့်စရာတည်ဆောက်မှု၊ ဖြည်းဖြည်းချင်း"},
+  {id:"comedy", t:"😂 ဟာသ", d:"ဟာသဦးစားပေး — ဇာတ်ကောင်တွေကို စနောက်၊ ပေါ့ပေါ့ပါးပါး"},
+  {id:"moral", t:"📖 သင်ခန်းစာ", d:"အသိအမြင်ဦးစားပေး — သင်ခန်းစာ၊ moral, နက်နက်တွေးစရာ"},
+  {id:"docu", t:"🗓️ Year/Place အဖွင့်", d:"Million Recap စတိုင် — ခုနှစ်+နေရာ + ပုံမှန်ဘဝ + အပြောင်းအလဲ"},
+  {id:"neutral", t:"📰 ရိုးရိုး Recap", d:"ရိုးရိုးရှင်းရှင်း — တတိယပုဂ္ဂိုလ်၊ ရှင်းလင်းတဲ့ ဇာတ်လမ်းပြောပြချက်"},
+  {id:"binge", t:"🎬 အစဆုံး Compilation", d:"Shine/LIGHT စတိုင် — 1-3 နာရီ အစဆုံး၊ အခန်းလိုက် ပြောပြချက်"},
 ];
+// refresh from backend (single source of truth); hardcoded list is the fallback
+async function loadStyles(){
+  try{
+    const r = await api("/api/styles");
+    if(r.styles && r.styles.length) { STYLES.length = 0; r.styles.forEach(s=>STYLES.push(s)); }
+  }catch(e){}
+}
 function wizSetStep(n){
   App.wiz.step = n;
   document.querySelectorAll("#wizSteps .step").forEach(s=>{
@@ -741,8 +761,11 @@ function renderWizard(){
         </div></div>
       <div class="row"><label class="f">ပစ်မှတ် ကြာချိန်: <span class="val" id="wizMinVal">${w.minutes} မိနစ်</span></label>
         <input type="range" id="wizMin" min="${w.mode==="short"?1:10}" max="${w.mode==="short"?10:120}" step="1" value="${w.minutes}"></div>
-      <div class="row"><label class="f">ဇာတ်လမ်း စတိုင်</label>
-        <select id="wizStyle">${STYLES.map(s=>`<option value="${s.id}" ${w.style===s.id?"selected":""}>${esc(s.t)} — ${esc(s.d)}</option>`).join("")}</select></div>
+      <div class="row"><label class="f">Recap စတိုင် ရွေးပါ <span class="hint" style="display:inline">— သုတေသနအခြေပြု ၁၀ မျိုး</span></label>
+        <div class="style-cards">
+          ${STYLES.map(s=>`<div class="style-card ${w.style===s.id?"sel":""}" data-s="${s.id}">
+            <div class="t">${esc(s.t)}</div><div class="d">${esc(s.d)}</div></div>`).join("")}
+        </div></div>
       <div class="row"><label class="f">အသံ (Voice provider)</label>
         <select id="wizVoice">
           <option value="gemini" ${w.voice==="gemini"?"selected":""}>Gemini — အသံ ၃၀ (အကြံပြု)</option>
@@ -755,7 +778,9 @@ function renderWizard(){
       renderWizard();
     }));
     $("wizMin").addEventListener("input", e=>{ w.minutes = Number(e.target.value); $("wizMinVal").textContent = w.minutes+" မိနစ်"; });
-    $("wizStyle").addEventListener("change", e=>{ w.style = e.target.value; });
+    b.querySelectorAll(".style-card").forEach(c=>c.addEventListener("click", ()=>{
+      w.style = c.dataset.s; renderWizard();
+    }));
     $("wizVoice").addEventListener("change", e=>{ w.voice = e.target.value; });
   }
   else if(w.step===3){
@@ -1497,6 +1522,7 @@ $("btnRenderOv").addEventListener("click", async ()=>{
 });
 
 /* ---------- init ---------- */
+loadStyles();
 loadDashboard();
 </script>
 </body>
