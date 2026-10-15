@@ -68,6 +68,12 @@ SCRIPT QUALITY RULES (must follow):
 8. FULL STORY: spoilers allowed — the recap covers the whole movie including the ending.
 9. FACTS ONLY from the transcript/scenes given. Never invent plot points.
 10. Pacing: ~150 words per minute of narration.
+11. NO BOREDOM — the viewer must FEEL the movie, not just hear its plot. Every beat must carry EMOTION:
+    what the character wants, fears, or hides. Replace abstract summary ("he was sad", "they fought") with
+    concrete sensory moments ("his hands shake on the door handle", "she laughs but her eyes don't").
+    NEVER chain "and then... and then..." — each beat needs a turning point, a surprise, or a feeling.
+12. RHYTHM: vary sentence length. Action = short punchy sentences. Emotion = longer flowing ones.
+    Read each beat aloud in your head — if it drones, rewrite it.
 """.strip()
 
 BIBLE_PROMPT = """You are a movie analyst. Read this transcript+scene evidence and write a story bible as JSON.
@@ -165,10 +171,21 @@ STORY CONTEXT: {bible}
 
 Return ONLY valid JSON list: [{{"idx": <n>, "narration": "<full Burmese narration>",
 "voice": "narrator"|"female"|"male"}}, ...]
-{rules}
+{dub_line}{rules}
 """
 
-# 10 selectable recap styles — grounded in the 2026-10-15 Myanmar recap channel
+DUB_INSTRUCTION = """
+DUB MODE (dialogue + narration hybrid):
+- DIALOGUE SCENES: write the characters' ACTUAL lines translated into natural, emotional,
+  SPOKEN Burmese \u2014 as if dubbing the film. Sound like talking, not writing: interruptions,
+  short reactions, emotion. Set "voice" to "male" or "female" matching the speaker.
+- NON-DIALOGUE SCENES (action, montage, silent tension, transitions): write gripping
+  third-person narration that carries the story ("voice": "narrator").
+- One beat = one mode: if a beat mixes both, lead with whichever dominates the footage.
+- NEVER narrate over dialogue ("he says...") \u2014 just give the dubbed line directly.
+"""
+
+# 14 selectable recap styles — grounded in the 2026-10-15 Myanmar recap channel
 # research (R1–R12). Each style drives the outline hook, the narration voice,
 # the commentary flavor, and the title hint. Personas: first-person "ကျွန်တော်"
 # is allowed ONLY for host styles (R5).
@@ -280,12 +297,60 @@ RECAP_STYLES = {
         "persona": None,
         "title_hint": "Binge title with \"[ အစဆုံး ]\" marker + Burmese hook.",
     },
+    "full_story": {
+        "name": "🎞️ ဇာတ်ကားတစ်ကားလုံး ကြည့်ပြီးသလို",
+        "desc": "မကြည့်ဘူးတဲ့လူ ဇာတ်ကားတစ်ကားလုံး ကြည့်ပြီးသလို ခံစားရအောင် — အစကနေ အဆုံးထိ စွဲဆောင်မှုရှိရှိ",
+        "hook": ("Promise the FULL journey within 20 seconds: the viewer will feel they have lived this entire movie. "
+                 "Cold open on the most EMOTIONALLY powerful moment — not just shocking, but a moment that makes "
+                 "the viewer FEEL something."),
+        "voice": ("Cinematic immersion: no plot holes — every major twist, betrayal, sacrifice, and revelation is "
+                  "covered so a first-time viewer understands everything. Concrete sensory language, never abstract "
+                  "summary (not \"he was sad\" but what his hands do, what her eyes hide). Character motivations "
+                  "always clear: say WHY they act, not just what they do. Vary rhythm with the story's pulse."),
+        "commentary": "Emotional insight 25%: why this moment hits hard, what the character truly feels. The story's emotions are the star.",
+        "persona": None,
+        "title_hint": "Burmese title promising the complete experience: \"[ အစဆုံး ]\" + emotional hook.",
+    },
+    "dub_dialog": {
+        "name": "🎭 ဒိုင်ယာလော့ + ဇာတ်ပြော",
+        "desc": "ဇာတ်ကောင်ပြောတဲ့အတိုင်း မြန်မာလို dub, စကားမပြောတဲ့အခန်း narration",
+        "hook": ("Open mid-conversation: a striking line of dialogue, dubbed into Burmese, drops the viewer straight "
+                 "into the drama within 20 seconds — then the narrator catches them up on who is speaking."),
+        "voice": ("Hybrid dub + narration (see DUB MODE). Dialogue in the character's voice, story carried by narration. "
+                  "Translated lines must feel alive — the way people really talk."),
+        "commentary": "Light 15%: brief context between dramatic moments; never talk over the drama.",
+        "persona": None,
+        "dub": True,
+        "title_hint": "Burmese title with a memorable quoted line from the film.",
+    },
+    "mystery": {
+        "name": "🔍 လျှို့ဝှက်ချက်",
+        "desc": "Twist/လျှို့ဝှက်ဇာတ်ကားတွေအတွက် — သဲလွန်စတွေချ၊ twist ကို သိမ်းထား",
+        "hook": ("Open with the impossible question at the heart of the film — the thing that makes no sense YET. "
+                 "Promise the answer is coming, within 20 seconds."),
+        "voice": ("Detective-storytelling: plant clues visibly, withhold the reveal, revisit clues before the twist "
+                  "lands. Let the viewer theorize with you."),
+        "commentary": "25%: clue-spotting, theories, \"did you catch it?\" moments; explain the twist's logic after the reveal.",
+        "persona": None,
+        "title_hint": "Burmese mystery-hook title ending with \"?\".",
+    },
+    "speedrun": {
+        "name": "⏩ အမြန်ဇာတ်လမ်း",
+        "desc": "ဇာတ်လမ်းချည်းပဲ အမြန်ဆုံး — အတိုချုပ် သိချင်သူတွေအတွက်",
+        "hook": "Maximum velocity: premise + stakes + first twist inside 20 seconds. No throat-clearing, ever.",
+        "voice": ("Relentless plot density. One event per sentence. Cut every word that is not story. "
+                  "Still complete — just fast."),
+        "commentary": "Minimal 10%: only the sharpest one-liners; plot is everything.",
+        "persona": None,
+        "title_hint": "Punchy short Burmese title.",
+    },
 }
 
-STYLE_ORDER = ["cold_open", "open_loop", "host_kwee", "series_host", "horror",
-               "comedy", "moral", "docu", "neutral", "binge"]
+STYLE_ORDER = ["full_story", "cold_open", "dub_dialog", "open_loop", "mystery",
+               "host_kwee", "series_host", "horror", "comedy", "speedrun",
+               "moral", "docu", "neutral", "binge"]
 
-DEFAULT_STYLE = "cold_open"
+DEFAULT_STYLE = "full_story"
 
 
 def get_styles() -> list:
@@ -319,6 +384,7 @@ def write_beats(client: GeminiClient, bible: dict, beats: list,
     st = _style_block(style)
     # style's persona wins; explicit persona arg is the fallback (back-compat)
     persona_line = _persona_line(st.get("persona") or persona)
+    dub_line = (DUB_INSTRUCTION if st.get("dub") else "")
 
     def _one(batch):
         slim = [{k: b.get(k) for k in ("idx", "goal", "hook_line", "payoff", "target_words")}
@@ -327,7 +393,8 @@ def write_beats(client: GeminiClient, bible: dict, beats: list,
             beats_json=json.dumps(slim, ensure_ascii=False),
             bible=bible_s, rules=QUALITY_RULES, persona_line=persona_line,
             style_name=st["name"], style_desc=st["desc"],
-            style_voice=st["voice"], style_commentary=st["commentary"]))
+            style_voice=st["voice"], style_commentary=st["commentary"],
+            dub_line=dub_line))
         return {r["idx"]: r for r in _extract_json(out)}
 
     merged: dict = {}

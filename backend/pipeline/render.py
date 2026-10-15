@@ -99,9 +99,17 @@ def render_beat(job_id: str, beat: dict, src_video: str, vo_wav: str,
                src_w: int = 0, src_h: int = 0,
                fill: str = "crop", fill_color: str = "black") -> dict:
     """Render one beat: video exactly == VO duration. Returns {mp4, dur}.
+
     w/h are the TARGET output dims; ratio controls fit vs crop.
     src_w/src_h (source dims) are used for fair-use transforms so the
-    transforms work at native resolution before the ratio fit."""
+    transforms work at native resolution before the ratio fit.
+
+    Chunked rendering: a beat can have hundreds of ≤5s clips, and putting
+    them all in ONE ffmpeg command exceeds Windows' 32,767-char command
+    line limit → [WinError 206]. So clips are rendered in small chunks
+    (source dims, transforms only), then chunks are concatenated and the
+    ratio conversion + exact-duration trim + VO mux happen once.
+    """
     from .voice import wav_duration
     dur = wav_duration(vo_wav)
     plan = beat_video_plan(beat, scenes, src_w or w, src_h or h,
@@ -112,36 +120,79 @@ def render_beat(job_id: str, beat: dict, src_video: str, vo_wav: str,
                   "end": min(beat["footage_end"], beat["footage_start"] + 2),
                   "transform": "plain", "filter": "null"}]
 
-    n = len(clips)
-    fc = []
-    inputs = []
-    rf = ratio_filter(ratio, w, h, fill=fill, fill_color=fill_color)
-    for i, c in enumerate(clips):
-        inputs += ["-ss", str(c["start"]), "-t", str(round(c["end"] - c["start"], 2)),
-                   "-i", src_video]
-        fc.append(f"[{i}:v]{c['filter']},setpts=PTS-STARTPTS,"
-                  f"fps=30,{rf}[v{i}]")
-    vcat = "".join(f"[v{i}]" for i in range(n))
-    # extend with frozen last frame OR trim — to EXACTLY dur
-    fc.append(f"{vcat}concat=n={n}:v=1:a=0,"
-              f"tpad=stop_mode=clone:stop_duration=60,"
-              f"trim=duration={dur:.3f},setpts=PTS-STARTPTS[vcat]")
-    # VO exactly dur (pad tiny gaps, trim overruns)
+    # --- pass 1: render clip chunks (transforms at source dims) ---
+    chunk_files = []
+    for j in range(0, len(clips), _CHUNK_CLIPS):
+        chunk = clips[j:j + _CHUNK_CLIPS]
+        cf = os.path.join(workdir, f"beat_{beat['idx']:03d}_c{j//_CHUNK_CLIPS:02d}.mp4")
+        _render_chunk(chunk, src_video, cf)
+        chunk_files.append(cf)
+
+    # --- pass 2: concat chunks -> ratio fit -> exact dur -> mux VO ---
+    n = len(chunk_files)
+    inputs, vmaps = [], []
+    for i, cf in enumerate(chunk_files):
+        inputs += ["-i", cf]
+        vmaps.append(f"[{i}:v]")
     inputs += ["-i", vo_wav]
-    fc.append(f"[{n}:a]atrim=duration={dur:.3f},apad=whole_dur={dur:.3f},"
-              f"atrim=duration={dur:.3f},asetpts=PTS-STARTPTS[aout]")
+    vcat = "".join(vmaps)
+
+    # ratio conversion AFTER concat (once, not per clip)
+    tail_sync = (f"tpad=stop_mode=clone:stop_duration=60,"
+                 f"trim=duration={dur:.3f},setpts=PTS-STARTPTS[vcat]")
+    if ratio == "9:16" and fill == "blur":
+        fc = (f"{vcat}concat=n={n}:v=1:a=0[cc];"
+              f"[cc]split=2[bs1][bs2];"
+              f"[bs1]scale={w}:{h}:force_original_aspect_ratio=increase,"
+              f"crop={w}:{h},gblur=sigma=50[bg];"
+              f"[bs2]scale={w}:-2:flags=lanczos[fg];"
+              f"[bg][fg]overlay=(W-w)/2:(H-h)/2,setsar=1,{tail_sync}")
+    else:
+        rf = ratio_filter(ratio, w, h, fill=fill, fill_color=fill_color)
+        # (blur handled in the branch above; crop/color rf are single-chain)
+        fc = f"{vcat}concat=n={n}:v=1:a=0,{rf},{tail_sync}"
+    # VO exactly dur (pad tiny gaps, trim overruns)
+    fc_a = (f"[{n}:a]atrim=duration={dur:.3f},apad=whole_dur={dur:.3f},"
+            f"atrim=duration={dur:.3f},asetpts=PTS-STARTPTS[aout]")
 
     out = os.path.join(workdir, f"beat_{beat['idx']:03d}.mp4")
     # -threads capped: beat renders now run in parallel workers (see jobs.py),
     # so each ffmpeg must not grab all CPU cores (default is auto = all cores).
     cmd = [config.FFMPEG, "-y", "-v", "error", "-threads", str(config.RENDER_THREADS)] + inputs + \
-        ["-an", "-filter_complex", ";".join(fc),
+        ["-filter_complex", fc + ";" + fc_a,
          "-map", "[vcat]", "-map", "[aout]",
          "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
          "-c:a", "aac", "-shortest", out]
-    # note: -an drops source audio from the -ss inputs; VO mapped explicitly
     _run(cmd)
+    # clean up chunk files (keep workdir tidy)
+    for cf in chunk_files:
+        try:
+            os.remove(cf)
+        except OSError:
+            pass
     return {"mp4": out, "dur": dur, "beat_idx": beat["idx"]}
+
+
+# max clips per ffmpeg invocation — keeps the command line far below
+# Windows' 32,767-char CreateProcess limit (see render_beat).
+_CHUNK_CLIPS = 15
+
+
+def _render_chunk(clips: list, src_video: str, out: str) -> None:
+    """Render a small group of clips to an intermediate MP4 (source dims,
+    fair-use transforms only, no audio)."""
+    inputs, fc = [], []
+    for i, c in enumerate(clips):
+        inputs += ["-ss", str(c["start"]), "-t", str(round(c["end"] - c["start"], 2)),
+                   "-i", src_video]
+        fc.append(f"[{i}:v]{c['filter']},setpts=PTS-STARTPTS,fps=30[v{i}]")
+    vcat = "".join(f"[v{i}]" for i in range(len(clips)))
+    fc.append(f"{vcat}concat=n={len(clips)}:v=1:a=0[vout]")
+    cmd = [config.FFMPEG, "-y", "-v", "error", "-threads", str(config.RENDER_THREADS)] + inputs + \
+        ["-an", "-filter_complex", ";".join(fc),
+         "-map", "[vout]", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+         out]
+    _run(cmd)
 
 
 def write_karaoke_ass(ass_path: str, w: int, h: int, beats: list,
