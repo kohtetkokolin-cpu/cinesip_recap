@@ -22,6 +22,11 @@ for d in (DATA_DIR, UPLOAD_DIR, OVERLAY_DIR, CLIP_DIR):
     os.makedirs(d, exist_ok=True)
 os.makedirs(FONT_DIR, exist_ok=True)
 
+# TMDB API key (free) — Movie Finder: trending/search/details/trailers.
+# Get one free at https://www.themoviedb.org/settings/api (no card).
+# Attribution required in-app (see finder view footer).
+TMDB_API_KEY = os.environ.get("TMDB_API_KEY", "").strip()
+
 # Gemini (Phase 2: script writing). Free tier: ~50 req/day per key.
 # Comma-separated keys rotate automatically.
 GOOGLE_API_KEYS = [k.strip() for k in os.environ.get("GOOGLE_API_KEYS", "").split(",") if k.strip()]

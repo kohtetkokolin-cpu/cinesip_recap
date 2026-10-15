@@ -39,6 +39,66 @@ def list_styles():
     return {"styles": _sc.get_styles(), "default": _sc.DEFAULT_STYLE}
 
 
+# ---------------- Movie Finder ----------------
+@app.get("/api/finder/status")
+def finder_status():
+    """Whether the Finder can run (needs TMDB key; AI picks need Gemini too)."""
+    from . import config as _cfg
+    tmdb = bool((_cfg.TMDB_API_KEY or "").strip())
+    gem = len(_cfg.GOOGLE_API_KEYS) > 0
+    return {"ok": tmdb, "tmdb_ready": tmdb, "gemini_ready": gem,
+            "msg": "အဆင်သင့်" if tmdb else
+                   "TMDB_API_KEY မရှိသေးပါ — .env မှာ ထည့်ပါ (free: themoviedb.org/settings/api)"}
+
+
+@app.get("/api/finder/trending")
+def finder_trending(media: str = "movie", window: str = "week"):
+    from .pipeline import finder as _fd
+    try:
+        return {"ok": True, "items": _fd.trending(media, window)}
+    except RuntimeError as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:
+        raise HTTPException(502, f"TMDB ဆက်သွယ်မရပါ: {e}")
+
+
+@app.get("/api/finder/search")
+def finder_search(q: str = ""):
+    from .pipeline import finder as _fd
+    try:
+        return {"ok": True, "items": _fd.search(q)}
+    except RuntimeError as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:
+        raise HTTPException(502, f"TMDB ဆက်သွယ်မရပါ: {e}")
+
+
+@app.get("/api/finder/details/{tmdb_id}")
+def finder_details(tmdb_id: int, media: str = "movie"):
+    from .pipeline import finder as _fd
+    try:
+        return {"ok": True, "item": _fd.details(tmdb_id, media)}
+    except RuntimeError as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:
+        raise HTTPException(502, f"TMDB ဆက်သွယ်မရပါ: {e}")
+
+
+@app.post("/api/finder/suggest")
+def finder_suggest(body: dict):
+    """Gemini AI picks: what should this channel recap this week? (~1 call)"""
+    from .pipeline import finder as _fd
+    from .pipeline.quota import QuotaManager as _QM
+    n = max(4, min(12, int(body.get("n", 8) or 8)))
+    try:
+        client = _sc.GeminiClient(_QM())
+        return {"ok": True, "items": _fd.suggest(client, n)}
+    except RuntimeError as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:
+        raise HTTPException(502, f"AI suggestion မရပါ: {e}")
+
+
 @app.get("/api/voices")
 def list_voices():
     """The 10 named recap voices for the wizard picker."""
@@ -320,7 +380,8 @@ def create_job(body: dict):
                            voice_preset=voice_preset,
                            voice_opts=voice_opts,
                            ratio=body.get("ratio") or "16:9",
-                           resolution=body.get("resolution") or "720p")
+                           resolution=body.get("resolution") or "720p",
+                           source_title=body.get("source_title") or "")
     # quota pre-check before burning any work
     import subprocess as _sp
     dur = float(_sp.check_output(

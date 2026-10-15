@@ -113,7 +113,8 @@ def create_job(video_id: str, video_path: str, mode: str = "long",
                voice_provider: str = "gemini", persona: str | None = None,
                voice_preset: str | None = None,
                voice_opts: dict | None = None,
-               ratio: str = "16:9", resolution: str = "720p") -> dict:
+               ratio: str = "16:9", resolution: str = "720p",
+               source_title: str = "") -> dict:
     job_id = uuid.uuid4().hex[:12]
     job = {"id": job_id, "video_id": video_id, "video_path": video_path,
            "mode": mode, "target_minutes": target_minutes, "style": style,
@@ -121,6 +122,7 @@ def create_job(video_id: str, video_path: str, mode: str = "long",
            "voice_preset": voice_preset, "voice_opts": voice_opts or {},
            "ratio": ratio if ratio in ("16:9", "9:16", "original") else "16:9",
            "resolution": resolution if resolution in ("1080p", "720p", "480p") else "720p",
+           "source_title": (source_title or "")[:200],
            "stage": "queued", "progress": 0, "stage_detail": "",
            "log": [], "created": time.time(), "script": None, "result": None,
            "error": None}
