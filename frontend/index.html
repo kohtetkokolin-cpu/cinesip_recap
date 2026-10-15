@@ -123,6 +123,23 @@ label.f .val{color:var(--gold);font-weight:700}
 .modal-box video{width:100%;border-radius:10px;background:#000;max-height:70vh}
 .modal-note{margin:12px 0;color:var(--gold);font-size:14px}
 
+/* ============ movie finder ============ */
+.poster-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:12px}
+.pcard{background:var(--surface2);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:transform .15s,border-color .15s}
+.pcard:hover{transform:translateY(-3px);border-color:var(--gold)}
+.pcard .pp{aspect-ratio:2/3;background:#0a0c10;display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:28px}
+.pcard .pp img{width:100%;height:100%;object-fit:cover;display:block}
+.pcard .pb{padding:8px 9px}
+.pcard .pt{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pcard .pm{font-size:11.5px;color:var(--muted);margin-top:2px}
+.pcard .why{font-size:11.5px;color:var(--gold);margin-top:4px;line-height:1.4}
+.seg{display:inline-flex;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:3px;gap:2px}
+.seg button{background:transparent;border:0;color:var(--muted);padding:6px 12px;border-radius:8px;cursor:pointer;font-size:13.5px}
+.seg button.sel{background:var(--gold);color:var(--gold-ink);font-weight:700}
+.prov-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.prov{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:12.5px}
+.prov img{width:20px;height:20px;border-radius:4px}
+
 /* ============ dashboard ============ */
 .dash-head{display:flex;align-items:center;gap:14px;margin-bottom:18px;flex-wrap:wrap}
 .dash-head .spacer{flex:1}
@@ -295,6 +312,7 @@ label.f .val{color:var(--gold);font-weight:700}
       <div class="nav-item active" data-view="dashboard"><span class="ic">▦</span>ပင်မ <span style="font-size:12px;color:var(--faint)">Dashboard</span></div>
       <div class="nav-item" data-view="wizard"><span class="ic">＋</span>Recap အသစ်</div>
       <div class="nav-item" data-view="studio"><span class="ic">◐</span>Overlay Studio</div>
+      <div class="nav-item" data-view="finder"><span class="ic">🔍</span>Movie Finder</div>
     </nav>
     <div id="sideFoot">v2 · Phase 1<br>Gemini free quota</div>
   </aside>
@@ -310,6 +328,7 @@ label.f .val{color:var(--gold);font-weight:700}
       <div class="nav-item active" data-view="dashboard"><span class="ic">▦</span>ပင်မ</div>
       <div class="nav-item" data-view="wizard"><span class="ic">＋</span>အသစ်</div>
       <div class="nav-item" data-view="studio"><span class="ic">◐</span>Overlay</div>
+      <div class="nav-item" data-view="finder"><span class="ic">🔍</span>Finder</div>
     </nav>
 
     <div id="content">
@@ -382,6 +401,42 @@ label.f .val{color:var(--gold);font-weight:700}
         <div class="card stage-panel">
           <h3>Log</h3>
           <div class="console" id="jobLog"><div class="hint">—</div></div>
+        </div>
+      </section>
+
+      <!-- ======== VIEW: movie finder ======== -->
+      <section class="view" id="view-finder">
+        <div id="finderStatus"></div>
+        <div class="card" style="margin-bottom:14px">
+          <h3 style="margin-bottom:4px">🤖 AI အကြံပြုချက်</h3>
+          <div class="hint" style="margin-bottom:10px">ခု ခေတ်စားနေတာတွေထဲက ဒီ channel အတွက် recap လုပ်သင့်တာကို AI ရွေးပေးမယ် (~1 Gemini call)</div>
+          <button class="btn" id="btnAiSuggest">✨ ဒီအပတ် ဘာကို recap လုပ်ရမလဲ?</button>
+          <span class="hint" id="aiSugStatus" style="margin-left:8px"></span>
+          <div id="aiSugGrid" class="poster-grid" style="margin-top:12px"></div>
+        </div>
+        <div class="card">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+            <h3 style="margin:0">🔥 Trending</h3>
+            <div class="seg" id="finderSeg">
+              <button data-fm="movie" data-fw="week" class="sel">🎬 ကား</button>
+              <button data-fm="tv" data-fw="week">📺 ဇာတ်လမ်းတွဲ</button>
+            </div>
+            <div class="spacer"></div>
+            <input id="finderQ" placeholder="ရှာမယ်... (ဥပမာ Nezha)" style="max-width:220px">
+            <button class="btn small" id="btnFinderSearch">ရှာမယ်</button>
+          </div>
+          <div id="finderGrid" class="poster-grid"><div class="hint">တင်နေသည်...</div></div>
+          <div class="hint" style="margin-top:14px;font-size:12px;opacity:.75">
+            This product uses TMDB and the TMDB APIs but is not endorsed, certified, or otherwise approved by TMDB.
+          </div>
+        </div>
+        <div id="finderModal" class="modal" style="display:none">
+          <div class="modal-box" style="max-width:640px">
+            <div id="finderDetail"></div>
+            <div style="text-align:right;margin-top:12px">
+              <button class="btn ghost" id="finderClose">ပိတ်မယ်</button>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -626,7 +681,7 @@ function progressRing(pct){
 }
 
 /* ---------- router ---------- */
-const VIEW_TITLES = {dashboard:"ပင်မ", wizard:"Recap အသစ်", job:"Job အသေးစိတ်", studio:"Preview Studio"};
+const VIEW_TITLES = {dashboard:"ပင်မ", wizard:"Recap အသစ်", job:"Job အသေးစိတ်", studio:"Preview Studio", finder:"Movie Finder"};
 function showView(name, param){
   App.view = name;
   stopJobPoll();
@@ -640,6 +695,7 @@ function showView(name, param){
   if(name==="wizard"){ loadVoices(); renderWizard(); }
   if(name==="job" && param) openJob(param);
   if(name==="studio") studioOnShow();
+  if(name==="finder") finderOnShow();
 }
 document.querySelectorAll(".nav-item").forEach(n=>
   n.addEventListener("click", ()=>showView(n.dataset.view)));
@@ -789,6 +845,7 @@ function renderWizard(){
   if(w.step===1){
     const v = w.video;
     b.innerHTML = `
+      ${w.sourceTitle?`<div class="ok-box" style="margin-bottom:12px">🎬 <b>${esc(w.sourceTitle)}</b> <span class="hint">— Finder က ရွေးထားတယ် · ဖိုင်ကို upload တင်ပါ</span></div>`:""}
       <div class="dropzone" id="dz">
         <div class="big">⭳</div>
         <div style="font-weight:700;font-size:16px">ဗီဒီယို ဖိုင်ကို ဒီမှာ ချပါ</div>
@@ -935,7 +992,8 @@ async function wizEstimate(){
       headers:{"Content-Type":"application/json"},
       body: JSON.stringify({video_id:w.video.video_id, mode:w.mode,
         target_minutes:w.minutes, style:w.style, voice_preset:w.voice, voice_opts:w.vopts,
-        ratio:w.ratio, resolution:w.resolution})});
+        ratio:w.ratio, resolution:w.resolution,
+        source_title:w.sourceTitle||""})});
     w.estSig = sig; w.estResp = r;
     renderQuotaBox(r);
   }catch(e){
@@ -1654,6 +1712,134 @@ $("btnRenderOv").addEventListener("click", async ()=>{
     openVideoModal(r.clip_url, "preview အတိုင်း ထွက်မထွက် တိုက်ကြည့်ပါ");
     stStatus("preview ထုတ်ပြီးပါပြီ","ok");
   }catch(e){ stStatus("preview ထုတ်မရပါ: "+e.message,"err"); }
+});
+
+/* ============================================================
+   MOVIE FINDER — trend discovery + AI picks (no downloading)
+   ============================================================ */
+const FD = {media:"movie", window:"week", items:[]};
+function pcardHtml(c){
+  const poster = c.poster ? `<img src="${esc(c.poster)}" alt="" loading="lazy">` : "🎬";
+  return `<div class="pcard" data-tid="${c.tmdb_id}" data-mt="${esc(c.media_type)}">
+    <div class="pp">${poster}</div>
+    <div class="pb"><div class="pt">${esc(c.title)}</div>
+      <div class="pm">${esc(c.year||"")} ${c.rating?("★ "+c.rating):""}</div>
+      ${c.why_hot?`<div class="why">🔥 ${esc(c.why_hot)}</div>`:""}
+    </div></div>`;
+}
+function finderCards(items){
+  FD.items = items;
+  const g = $("finderGrid");
+  g.innerHTML = items.length ? items.map(pcardHtml).join("")
+    : '<div class="hint">မတွေ့ပါ — တခြားစာလုံးနဲ့ ရှာကြည့်ပါ</div>';
+  g.querySelectorAll(".pcard").forEach(el=>
+    el.addEventListener("click", ()=>finderOpen(Number(el.dataset.tid), el.dataset.mt)));
+}
+async function finderOnShow(){
+  // status banner
+  try{
+    const s = await api("/api/finder/status");
+    $("finderStatus").innerHTML = s.tmdb_ready ? "" :
+      `<div class="err-box" style="margin-bottom:14px">⚠️ ${esc(s.msg)}<br>
+       <span class="hint">themoviedb.org → Settings → API → API Key (v3) ကို copy ပြီး .env မှာ <b>TMDB_API_KEY=...</b> လို့�ည့်၊ run.bat ပြန်ဖွင့်</span></div>`;
+  }catch(e){ /* ignore */ }
+  finderLoadTrending();
+}
+async function finderLoadTrending(){
+  const g = $("finderGrid");
+  g.innerHTML = '<div class="hint"><span class="spin"></span> တင်နေသည်...</div>';
+  try{
+    const r = await api(`/api/finder/trending?media=${FD.media}&window=${FD.window}`);
+    finderCards(r.items || []);
+  }catch(e){
+    g.innerHTML = `<div class="err-box">${esc(e.message)}</div>`;
+  }
+}
+async function finderOpen(tmdb_id, media){
+  const box = $("finderDetail");
+  $("finderModal").style.display = "flex";
+  box.innerHTML = '<div class="hint"><span class="spin"></span> တင်နေသည်...</div>';
+  try{
+    const r = await api(`/api/finder/details/${tmdb_id}?media=${encodeURIComponent(media)}`);
+    const d = r.item;
+    const prov = d.providers || {};
+    const provHtml = (label, list)=> list && list.length ?
+      `<div><label class="f">${label}</label><div class="prov-row">${list.map(p=>
+        `<span class="prov">${p.logo?`<img src="${esc(p.logo)}" alt="">`:""}${esc(p.name)}</span>`).join("")}</div></div>` : "";
+    box.innerHTML = `
+      <div style="display:grid;grid-template-columns:150px 1fr;gap:14px">
+        <div>${d.poster?`<img src="${esc(d.poster)}" style="width:100%;border-radius:10px">`:'<div style="font-size:44px">🎬</div>'}</div>
+        <div>
+          <h3 style="margin:0 0 4px">${esc(d.title)} ${d.year?`<span class="hint">(${esc(d.year)})</span>`:""}</h3>
+          <div class="hint" style="margin-bottom:8px">${d.rating?("★ "+d.rating+" · "):""}${esc((d.genres||[]).join(" · "))}</div>
+          <div style="font-size:13.5px;line-height:1.6;max-height:120px;overflow:auto">${esc(d.overview||"အကျဉ်း မရှိပါ")}</div>
+        </div>
+      </div>
+      ${d.trailer_key?`<div style="margin-top:12px"><label class="f">🎬 Trailer — နှိပ်ကြည့်လို့ရတယ်</label>
+        <div style="position:relative;padding-top:56.25%;border-radius:10px;overflow:hidden;background:#000">
+          <iframe src="https://www.youtube.com/embed/${esc(d.trailer_key)}" style="position:absolute;inset:0;width:100%;height:100%;border:0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        </div></div>`:'<div class="hint" style="margin-top:12px">Trailer မရှိပါ</div>'}
+      <div style="margin-top:12px">
+        ${provHtml("📺 ကြည့်လို့ရတဲ့နေရာ (တရားဝင် streaming)", prov.flatrate)}
+        ${provHtml("🆓 အခမဲ့ (ads နဲ့)", prov.ads)}
+        ${provHtml("🆓 အခမဲ့", prov.free)}
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+        <button class="btn" id="fdRecap">⚡ Recap လုပ်မယ်</button>
+        ${d.tmdb_url?`<a class="btn ghost" href="${esc(d.tmdb_url)}" target="_blank" rel="noopener" style="text-decoration:none">TMDB ↗</a>`:""}
+      </div>
+      <div class="hint" style="margin-top:10px">📌 ဖိုင်ကို ကိုယ်တိုင် အပြင်မှာ ရှာပြီး wizard မှာ upload တင်ပါ — app က download မလုပ်ပေးပါ</div>`;
+    $("fdRecap").addEventListener("click", ()=>{
+      $("finderModal").style.display = "none";
+      App.wiz = {step:1,video:null,mode:"long",minutes:20,style:"cold_open",voice:"thiha",
+        vopts:{speed:1.0,pitch:0,volume:100},ratio:"16:9",resolution:"720p",
+        budget:null,jobId:null,sourceTitle:d.title,tmdbId:d.tmdb_id};
+      showView("wizard");
+      toast("🎬 "+d.title+" — ဖိုင် upload တင်ပြီး ဆက်လုပ်ပါ","ok");
+    });
+  }catch(e){
+    box.innerHTML = `<div class="err-box">${esc(e.message)}</div>`;
+  }
+}
+
+/* finder controls */
+document.querySelectorAll("#finderSeg button").forEach(b=>
+  b.addEventListener("click", ()=>{
+    document.querySelectorAll("#finderSeg button").forEach(x=>x.classList.remove("sel"));
+    b.classList.add("sel");
+    FD.media = b.dataset.fm; FD.window = b.dataset.fw;
+    finderLoadTrending();
+  }));
+async function finderDoSearch(){
+  const q = $("finderQ").value.trim();
+  if(!q) return;
+  const g = $("finderGrid");
+  g.innerHTML = '<div class="hint"><span class="spin"></span> ရှာနေသည်...</div>';
+  try{
+    const r = await api("/api/finder/search?q="+encodeURIComponent(q));
+    finderCards(r.items || []);
+  }catch(e){
+    g.innerHTML = `<div class="err-box">${esc(e.message)}</div>`;
+  }
+}
+$("btnFinderSearch").addEventListener("click", finderDoSearch);
+$("finderQ").addEventListener("keydown", e=>{ if(e.key==="Enter") finderDoSearch(); });
+$("finderClose").addEventListener("click", ()=>{ $("finderModal").style.display="none"; });
+$("finderModal").addEventListener("click", e=>{ if(e.target.id==="finderModal") $("finderModal").style.display="none"; });
+$("btnAiSuggest").addEventListener("click", async ()=>{
+  const st = $("aiSugStatus"), g = $("aiSugGrid");
+  st.textContent = "AI ရွေးနေသည်..."; g.innerHTML = "";
+  try{
+    const r = await api("/api/finder/suggest", {method:"POST",
+      headers:{"Content-Type":"application/json"}, body:JSON.stringify({n:8})});
+    const items = r.items || [];
+    g.innerHTML = items.length ? items.map(pcardHtml).join("")
+      : '<div class="hint">အကြံပြုချက် မရပါ</div>';
+    g.querySelectorAll(".pcard").forEach(el=>
+      el.addEventListener("click", ()=>finderOpen(Number(el.dataset.tid), el.dataset.mt)));
+    st.textContent = items.length ? `✓ ${items.length} ခု` : "";
+  }catch(e){ st.textContent = "မရပါ: "+e.message; }
 });
 
 /* ---------- init ---------- */
