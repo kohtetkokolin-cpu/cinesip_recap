@@ -37,7 +37,8 @@ def _vreframe_916(src: str, dst: str, w: int, h: int, t0: float, dur: float,
     if ass_path:
         ap = ass_path.replace("\\", "/").replace(":", "\\:")
         vf += f",subtitles='{ap}'"
-    subprocess.run([config.FFMPEG, "-y", "-v", "error", "-ss", str(t0),
+    subprocess.run([config.FFMPEG, "-y", "-v", "error", "-threads", str(config.RENDER_THREADS),
+                    "-ss", str(t0),
                     "-t", str(dur), "-i", src, "-vf", vf,
                     "-c:v", "libx264", "-preset", "veryfast", "-crf", "21",
                     "-c:a", "aac", dst], check=True)
@@ -58,8 +59,10 @@ def make_shorts(job_id: str, final_mp4: str, beats: list, w: int, h: int,
 
     shorts = []
     used = set()
+    # plan all shorts first (sequential, fast), then render in parallel
+    plans = []
     for b in ranked:
-        if len(shorts) >= n_shorts or b["idx"] in used:
+        if len(plans) >= n_shorts or b["idx"] in used:
             continue
         # take this beat + next beats until 60-90s
         seq, dur = [], 0.0
@@ -76,10 +79,23 @@ def make_shorts(job_id: str, final_mp4: str, beats: list, w: int, h: int,
         for bb in seq:
             used.add(bb["idx"])
         t0 = starts[seq[0]["idx"]]
-        out = os.path.join(workdir, f"short_{len(shorts)+1:02d}.mp4")
+        out = os.path.join(workdir, f"short_{len(plans)+1:02d}.mp4")
+        plans.append((out, t0, dur, (seq[0].get("hook_line") or "")[:80]))
+
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    def _one(plan):
+        out, t0, dur, hint = plan
         _vreframe_916(final_mp4, out, w, h, t0, dur)
-        shorts.append({"mp4": out, "title_hint": (seq[0].get("hook_line") or "")[:80],
-                       "duration": round(dur, 1)})
-        if progress_cb:
-            progress_cb("shorts", len(shorts), n_shorts)
+        return {"mp4": out, "title_hint": hint, "duration": round(dur, 1)}
+
+    with ThreadPoolExecutor(max_workers=max(1, config.RENDER_WORKERS)) as ex:
+        futs = {ex.submit(_one, p): i for i, p in enumerate(plans)}
+        done = 0
+        results = {}
+        for fut in as_completed(futs):
+            results[futs[fut]] = fut.result()
+            done += 1
+            if progress_cb:
+                progress_cb("shorts", done, len(plans))
+    shorts = [results[i] for i in sorted(results)]
     return shorts

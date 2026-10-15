@@ -73,7 +73,9 @@ def render_beat(job_id: str, beat: dict, src_video: str, vo_wav: str,
               f"atrim=duration={dur:.3f},asetpts=PTS-STARTPTS[aout]")
 
     out = os.path.join(workdir, f"beat_{beat['idx']:03d}.mp4")
-    cmd = [config.FFMPEG, "-y", "-v", "error"] + inputs + \
+    # -threads capped: beat renders now run in parallel workers (see jobs.py),
+    # so each ffmpeg must not grab all CPU cores (default is auto = all cores).
+    cmd = [config.FFMPEG, "-y", "-v", "error", "-threads", str(config.RENDER_THREADS)] + inputs + \
         ["-an", "-filter_complex", ";".join(fc),
          "-map", "[vcat]", "-map", "[aout]",
          "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",

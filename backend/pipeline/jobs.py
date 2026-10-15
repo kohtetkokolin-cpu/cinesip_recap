@@ -237,14 +237,16 @@ def _run_after_approval(job_id: str):
         os.makedirs(workdir, exist_ok=True)
         max_clip = 5.0
 
-        # ---- 3. voice ----
+        # ---- 3. voice (PARALLEL — TTS is network-bound) ----
         log(job, "🎙️ Voiceover ထုတ်နေသည်")
-        for i, b in enumerate(beats):
-            set_stage(job, "voice", 45 + 20 * i / max(1, len(beats)), f"beat {i+1}/{len(beats)}")
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        def _voice_one(b):
+            """Synthesize one beat. Runs in worker threads — each beat writes
+            its own wav file; quota manager is thread-safe."""
             nar = (b.get("narration") or "").strip()
             if not nar:
-                b.update({"wav": "", "vo_dur": 0, "words": [], "provider": "none"})
-                continue
+                return (b["idx"], {"wav": "", "vo_dur": 0, "words": [], "provider": "none"})
             wav = os.path.join(workdir, f"vo_{b['idx']:03d}.wav")
             r = vc.synthesize(nar, b.get("voice", "narrator"), wav, quota,
                               prefer=job.get("voice_provider", "gemini"),
@@ -256,7 +258,6 @@ def _run_after_approval(job_id: str):
             fw = max(10.0, b["footage_end"] - b["footage_start"])
             max_vo = fw * 2.5 + 30
             if vc.wav_duration(wav) > max_vo:
-                log(job, f"✂️ beat {b['idx']} အသံရှည်လွန်းလို့ ပြန်ချုံ့မည်")
                 nar2 = sc.rewrite_shorter(client, nar, int(max_vo * 2.2))
                 b["narration"] = nar2
                 r = vc.synthesize(nar2, b.get("voice", "narrator"), wav, quota,
@@ -266,9 +267,20 @@ def _run_after_approval(job_id: str):
                 if not r.get("ok"):
                     raise RuntimeError(f"TTS retry failed (beat {b['idx']})")
             wav, dur = vc.fit_beat_wav(wav, max_vo)
-            b.update({"wav": wav, "vo_dur": round(dur, 2),
-                      "words": r.get("words", []), "provider": r.get("provider")})
-            _save(job)
+            return (b["idx"], {"wav": wav, "vo_dur": round(dur, 2),
+                               "words": r.get("words", []), "provider": r.get("provider")})
+
+        by_idx = {b["idx"]: b for b in beats}
+        n_workers = max(1, config.VOICE_WORKERS)
+        with ThreadPoolExecutor(max_workers=n_workers) as ex:
+            futs = {ex.submit(_voice_one, b): b["idx"] for b in beats}
+            done = 0
+            for fut in as_completed(futs):
+                idx, res = fut.result()  # raises → outer handler marks job error
+                by_idx[idx].update(res)
+                done += 1
+                set_stage(job, "voice", 45 + 20 * done / max(1, len(beats)),
+                          f"beat {done}/{len(beats)} ({n_workers} parallel)")
         log(job, "✅ Voiceover ပြီးပြီ")
         _save(job)
 
@@ -286,13 +298,29 @@ def _run_after_approval(job_id: str):
         logo_path = next((c for c in logo_cands if os.path.isfile(c)), None)
 
         beat_files = []
-        for i, b in enumerate(beats):
+        # PARALLEL beat renders — ffmpeg is CPU-bound, so only 2 workers on a
+        # weak laptop; each ffmpeg is capped to RENDER_THREADS (see render.py)
+        rw = max(1, config.RENDER_WORKERS)
+        def _render_one(b):
             if not b.get("wav"):
-                continue
-            set_stage(job, "render", 65 + 25 * i / max(1, len(beats)), f"beat {b['idx']}")
-            bf = rd.render_beat(job_id, b, job["video_path"], b["wav"],
-                                scenes, W, H, max_clip, workdir)
-            beat_files.append(bf)
+                return None
+            return rd.render_beat(job_id, b, job["video_path"], b["wav"],
+                                  scenes, W, H, max_clip, workdir)
+        voiced_beats = [b for b in beats if b.get("wav")]
+        with ThreadPoolExecutor(max_workers=rw) as ex:
+            futs = {ex.submit(_render_one, b): b["idx"] for b in voiced_beats}
+            done = 0
+            results = {}
+            for fut in as_completed(futs):
+                idx = futs[fut]
+                bf = fut.result()
+                if bf:
+                    results[idx] = bf
+                done += 1
+                set_stage(job, "render", 65 + 25 * done / max(1, len(beats)),
+                          f"beat {done}/{len(voiced_beats)} ({rw} parallel)")
+        # keep original beat order for concat
+        beat_files = [results[i] for i in sorted(results)]
         voiced = [b for b in beats if b.get("wav")]
         res = rd.assemble_final(job_id, beat_files, voiced, W, H,
                                 overlay_cfg, logo_path,

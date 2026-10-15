@@ -14,6 +14,7 @@ import base64
 import os
 import struct
 import subprocess
+import time
 import wave
 
 from .. import config
@@ -125,39 +126,62 @@ def synth_gemini(text: str, voice_name: str, out_wav: str,
     if not key:
         return {"ok": False, "error": "quota exhausted"}
     last_err = None
-    for model in config.GEMINI_TTS_MODELS or ["gemini-2.5-flash-preview-tts"]:
-        try:
-            client = genai.Client(api_key=key)
-            contents = (style_hint + "\n" + text) if style_hint else text
-            resp = client.models.generate_content(
-                model=model, contents=contents,
-                config={"response_modalities": ["AUDIO"],
-                        "speech_config": {"voice_config": {
-                            "prebuilt_voice_config": {"voice_name": voice_name}}}})
-            quota.record(key)
-            # find inline audio bytes
-            for cand in (resp.candidates or []):
-                for part in (cand.content.parts or []):
-                    blob = getattr(part, "inline_data", None)
-                    if blob and blob.data:
-                        raw = blob.data if isinstance(blob.data, bytes) else base64.b64decode(blob.data)
-                        _write_wav_pcm16(out_wav, raw)
-                        return {"ok": True, "provider": "gemini", "wav": out_wav, "words": []}
-            last_err = "no audio in response"
-        except Exception as e:
-            last_err = e
-            if "429" in str(e) or "503" in str(e):
-                continue
-            break
+    models = config.GEMINI_TTS_MODELS or ["gemini-2.5-flash-preview-tts"]
+    for model in models:
+        # retry w/ backoff on rate-limit/overload — needed now that beats
+        # synthesize in parallel threads (thundering herd on free tier)
+        for attempt in range(3):
+            try:
+                client = genai.Client(api_key=key)
+                contents = (style_hint + "\n" + text) if style_hint else text
+                resp = client.models.generate_content(
+                    model=model, contents=contents,
+                    config={"response_modalities": ["AUDIO"],
+                            "speech_config": {"voice_config": {
+                                "prebuilt_voice_config": {"voice_name": voice_name}}}})
+                quota.record(key)
+                # find inline audio bytes
+                for cand in (resp.candidates or []):
+                    for part in (cand.content.parts or []):
+                        blob = getattr(part, "inline_data", None)
+                        if blob and blob.data:
+                            raw = blob.data if isinstance(blob.data, bytes) else base64.b64decode(blob.data)
+                            _write_wav_pcm16(out_wav, raw)
+                            return {"ok": True, "provider": "gemini", "wav": out_wav, "words": []}
+                last_err = "no audio in response"
+                break  # don't retry empty responses
+            except Exception as e:
+                last_err = e
+                msg = str(e)
+                if ("429" in msg or "503" in msg or "overloaded" in msg.lower()) and attempt < 2:
+                    time.sleep(2 ** attempt + 1)
+                    continue
+                break
     return {"ok": False, "error": str(last_err)}
 
 
 # ---------- provider 2: edge-tts ----------
-async def _edge_synth(text: str, voice: str, out_mp3: str,
-                      rate: str = "+0%", pitch: str = "+0Hz", volume: str = "+0%"):
+async def _edge_stream(text: str, voice: str, out_mp3: str,
+                       rate: str = "+0%", pitch: str = "+0Hz", volume: str = "+0%"):
+    """Single network pass: save audio AND collect word boundaries.
+    (Previously this took 2 passes — synth + a separate timing stream.)"""
     import edge_tts
+    from edge_tts import SubMaker
     comm = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch, volume=volume)
-    await comm.save(out_mp3)
+    sub = SubMaker()
+    with open(out_mp3, "wb") as f:
+        async for chunk in comm.stream():
+            t = chunk.get("type")
+            if t == "audio":
+                f.write(chunk["data"])
+            elif t == "WordBoundary":
+                sub.feed(chunk)
+    return sub.cues
+
+
+def _cues_to_words(cues) -> list:
+    return [{"w": c.content, "start": round(c.start.total_seconds(), 2),
+             "end": round(c.end.total_seconds(), 2)} for c in cues]
 
 
 def _edge_params(voice_opts: dict | None) -> tuple[str, str, str]:
@@ -187,43 +211,21 @@ def synth_edge(text: str, voice: str, out_wav: str,
     import asyncio
     rate, pitch, volume = _edge_params(voice_opts)
     mp3 = out_wav + ".mp3"
-    asyncio.run(_edge_synth(text, voice, mp3, rate, pitch, volume))
+    # one pass: audio + word timings together (was: 2 separate network streams)
+    cues = asyncio.run(_edge_stream(text, voice, mp3, rate, pitch, volume))
     # convert to wav 24k mono
     subprocess.run([config.FFMPEG, "-y", "-v", "error", "-i", mp3,
                     "-ac", "1", "-ar", "24000", out_wav], check=True)
-    words = _edge_word_timings(text, voice, rate, pitch, volume)
     try:
         os.remove(mp3)
     except OSError:
         pass
-    return {"ok": True, "provider": "edge", "wav": out_wav, "words": words}
+    return {"ok": True, "provider": "edge", "wav": out_wav,
+            "words": _cues_to_words(cues)}
 
 
-def _edge_word_timings(text: str, voice: str, rate: str = "+0%",
-                       pitch: str = "+0Hz", volume: str = "+0%") -> list:
-    """Word-level timings via edge-tts submaker. Best-effort; [] on failure.
-    Must use the same rate/pitch/volume as synthesis so timings match."""
-    import asyncio
-    try:
-        import edge_tts
-        from edge_tts import SubMaker
-    except Exception:
-        return []
-
-    async def _run():
-        comm = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch, volume=volume)
-        sub = SubMaker()
-        async for chunk in comm.stream():
-            if chunk["type"] == "WordBoundary":
-                sub.feed(chunk)
-        return sub.cues  # [Subtitle(index, start: timedelta, end: timedelta, content)]
-
-    try:
-        cues = asyncio.run(_run())
-        return [{"w": c.content, "start": round(c.start.total_seconds(), 2),
-                 "end": round(c.end.total_seconds(), 2)} for c in cues]
-    except Exception:
-        return []
+# NOTE: word timings now come from the single-pass _edge_stream above.
+# _edge_word_timings removed (it did a wasteful 2nd network pass).
 
 
 # ---------- provider 3: Piper (offline stub) ----------

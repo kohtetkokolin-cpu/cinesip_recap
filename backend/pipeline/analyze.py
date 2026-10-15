@@ -66,7 +66,7 @@ def _transcribe_chunk(args) -> list:
         pass
     from faster_whisper import WhisperModel
     model = WhisperModel(model_name, device="cpu", compute_type="int8")
-    segments, _ = model.transcribe(wav_path, beam_size=5, vad_filter=True,
+    segments, _ = model.transcribe(wav_path, beam_size=config.WHISPER_BEAM, vad_filter=True,
                                    vad_parameters={"min_silence_duration_ms": 500})
     out = []
     for s in segments:

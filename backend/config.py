@@ -34,6 +34,18 @@ GEMINI_TTS_MODELS = [m.strip() for m in os.environ.get(
     "GEMINI_TTS_MODELS", "gemini-2.5-flash-preview-tts"
 ).split(",") if m.strip()]
 
+# ---- speed tuning (env-overridable) ----
+# Voice: TTS is network-bound → parallel workers give ~3-4x speedup.
+# 4 is safe for edge-tts (unlimited); Gemini TTS has 429 backoff built in.
+VOICE_WORKERS = int(os.environ.get("VOICE_WORKERS", "4") or 4)
+# Render: ffmpeg is CPU-bound → 2 workers max on a weak laptop, and each
+# ffmpeg is capped to 2 threads so they don't oversubscribe the CPU.
+RENDER_WORKERS = int(os.environ.get("RENDER_WORKERS", "2") or 2)
+RENDER_THREADS = int(os.environ.get("RENDER_THREADS", "2") or 2)
+# Whisper: beam_size=1 (greedy) is ~1.5-2x faster than 5 on tiny model,
+# quality loss is negligible for transcription-evidence purposes.
+WHISPER_BEAM = int(os.environ.get("WHISPER_BEAM", "1") or 1)
+
 # Whisper model for transcription (Phase 2). On 4GB RAM use "tiny" or "base".
 # faster-whisper uses CTranslate2 (no PyTorch needed) with int8 quantization.
 WHISPER_MODEL = os.environ.get("WHISPER_MODEL", "tiny").strip() or "tiny"
