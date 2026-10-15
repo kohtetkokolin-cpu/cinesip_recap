@@ -921,13 +921,25 @@ async function renderStagePanel(j){
     renderResultPanel();
   }else if(st==="error"){
     p.innerHTML = `<div class="err-box"><b>အမှား:</b> ${esc(j.error||"unknown")}</div>
-      <div class="hint" style="margin-top:8px">Log ကို အောက်မှာ ကြည့်ပါ။ ပြင်ပြီး job အသစ်နဲ့ ထပ်စမ်းနိုင်သည်။</div>`;
+      <div style="margin-top:10px"><button class="btn gold" id="btnRetry">🔄 ပြန်စမယ်</button></div>
+      <div class="hint" style="margin-top:8px">Log ကို အောက်မှာ ကြည့်ပါ။</div>`;
+    $("btnRetry").onclick = async ()=>{
+      if(!confirm("Job ကို ပြန်လည်စတင်မလား?")) return;
+      const r = await api("/api/jobs/"+App.jobId+"/retry",{method:"POST"});
+      if(!r.ok) toast("ပြန်မရပါ: "+(r.error||""),"err"); else toast("ပြန်စတင်ပြီ","ok");
+    };
   }else{
     const icons = {queued:"…",analyze:"◐",script:"✎",voice:"♪",render:"🎬",shorts:"⚡",metadata:"🏷"};
+    const stuck = st==="queued" && j.created && (Date.now()/1000 - j.created > 300);
     p.innerHTML = `<div class="hint"><span class="spin"></span>
       <b style="color:var(--gold)">${esc(STAGE_LABEL[st]||st)}</b> လုပ်ဆောင်နေသည် —
       ${esc(j.stage_detail||"")} ${icons[st]||""}</div>
-      ${st==="awaiting_script"||st==="done"?"":'<div class="hint" style="margin-top:8px">ဇာတ်လမ်း စစ်ဆေးရန် အဆင့်ရောက်ရင် ဒီမှာ ပြင်ဆင်နိုင်မယ်။</div>'}`;
+      ${st==="awaiting_script"||st==="done"?"":'<div class="hint" style="margin-top:8px">ဇာတ်လမ်း စစ်ဆေးရန် အဆင့်ရောက်ရင် ဒီမှာ ပြင်ဆင်နိုင်မယ်။</div>'}
+      ${stuck?'<div style="margin-top:10px"><button class="btn" id="btnRetry2">🔄 ရပ်နေသလို ခံစားရရင် နှိပ်ပါ</button></div>':""}`;
+    if(stuck) $("btnRetry2").onclick = async ()=>{
+      const r = await api("/api/jobs/"+App.jobId+"/retry",{method:"POST"});
+      if(!r.ok) toast("ပြန်မရပါ: "+(r.error||"already running"),"err"); else toast("ပြန်စတင်ပြီ","ok");
+    };
   }
 }
 

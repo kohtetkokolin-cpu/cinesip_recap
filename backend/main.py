@@ -33,6 +33,16 @@ def _check_bins():
 @app.on_event("startup")
 def _startup():
     _check_bins()
+    # resume jobs orphaned by a server restart — a "queued" job must never
+    # sit forever just because the worker thread died with the old process
+    try:
+        for jid in _jobs.orphaned_jobs():
+            try:
+                _jobs.resume_job(jid)
+            except Exception:
+                pass
+    except Exception:
+        pass
 
 
 # ---------- auth (optional token gate) ----------
@@ -257,9 +267,14 @@ async def create_job(body: dict):
          "-of", "default=noprint_wrappers=1:nokey=1", src], text=True).strip())
     chk = _QM().check_budget(dur / 60, target)
     if not chk["ok"]:
-        return {"ok": False, "error": chk["hint"] or "quota မလုံလောက်ပါ",
-                "budget": chk, "job_id": job["id"]}
+        # mark it errored, not "queued" — a queued job with no worker looks stuck
+        msg = chk["hint"] or "Gemini quota မလုံလောက်ပါ။"
+        job["error"] = msg
+        _jobs.set_stage(job, "error", 0)
+        _jobs.log(job, f"❌ {msg}")
+        return {"ok": False, "error": msg, "budget": chk, "job_id": job["id"]}
     t = _th.Thread(target=_jobs.run_job, args=(job["id"],), daemon=True)
+    job["_thread"] = t
     t.start()
     return {"ok": True, "job_id": job["id"], "budget": chk}
 
@@ -288,7 +303,7 @@ def job_status(job_id: str):
             "stage_detail": j.get("stage_detail", ""), "log": j.get("log", [])[-60:],
             "error": j.get("error"), "evidence": j.get("evidence"),
             "video_id": j.get("video_id"), "mode": j.get("mode"),
-            "voice_provider": j.get("voice_provider"),
+            "voice_provider": j.get("voice_provider"), "created": j.get("created"),
             "n_beats": len((j.get("script") or {}).get("beats", []))}
 
 
@@ -325,6 +340,16 @@ async def save_script(job_id: str, body: dict):
 @app.post("/api/jobs/{job_id}/approve")
 def approve_job(job_id: str):
     _jobs.resume_after_approval(job_id)
+    return {"ok": True}
+
+
+@app.post("/api/jobs/{job_id}/retry")
+def retry_job(job_id: str):
+    """Manually re-queue a stuck or failed job."""
+    try:
+        _jobs.resume_job(job_id)
+    except RuntimeError as e:
+        raise HTTPException(400, str(e))
     return {"ok": True}
 
 

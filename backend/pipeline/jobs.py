@@ -58,6 +58,42 @@ def get_job(job_id: str) -> dict | None:
     return None
 
 
+# jobs that can be safely resumed after an interruption (server restart etc.)
+# "awaiting_script" needs the user, "done" needs nothing, "error" is manual retry.
+RESUMABLE_STAGES = {"queued", "analyze", "script", "voice", "render", "shorts", "metadata"}
+
+
+def orphaned_jobs() -> list:
+    """Ids of jobs stuck mid-pipeline (e.g. server was restarted)."""
+    import glob
+    out = []
+    for p in glob.glob(os.path.join(JOB_DIR, "*.json")):
+        try:
+            with open(p, encoding="utf-8") as f:
+                j = json.load(f)
+            if j.get("stage") in RESUMABLE_STAGES:
+                out.append(j["id"])
+        except Exception:
+            pass
+    return out
+
+
+def resume_job(job_id: str):
+    """Re-queue an interrupted job, continuing from the right stage."""
+    job = get_job(job_id)
+    if not job:
+        raise RuntimeError("job not found")
+    stage = job.get("stage")
+    if stage in ("done", "awaiting_script"):
+        raise RuntimeError("job needs no resume")
+    log(job, "🔄 ပြန်လည်စတင်သည်")
+    if stage in ("voice", "render", "shorts", "metadata") and job.get("script"):
+        _launch(job_id, _run_after_approval)
+    else:
+        # queued / analyze / script / error → full run (pauses again at review gate)
+        _launch(job_id, run_job)
+
+
 def log(job: dict, msg: str):
     job["log"].append(f"[{time.strftime('%H:%M:%S')}] {msg}")
     job["log"] = job["log"][-300:]
@@ -164,12 +200,23 @@ def _run(job: dict):
     return  # ← REVIEW GATE: resume via approve_job()
 
 
+def _launch(job_id: str, target):
+    """Start a worker thread for a job, refusing if one is already alive."""
+    job = get_job(job_id)
+    th = job.get("_thread") if job else None
+    if th is not None and th.is_alive():
+        raise RuntimeError("job already running")
+    t = threading.Thread(target=target, args=(job_id,), daemon=True)
+    if job is not None:
+        job["_thread"] = t
+    t.start()
+
+
 def resume_after_approval(job_id: str):
     job = get_job(job_id)
     if not job or job["stage"] != "awaiting_script":
         raise RuntimeError("job is not awaiting approval")
-    t = threading.Thread(target=_run_after_approval, args=(job_id,), daemon=True)
-    t.start()
+    _launch(job_id, _run_after_approval)
 
 
 def _run_after_approval(job_id: str):
