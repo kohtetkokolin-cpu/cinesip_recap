@@ -341,15 +341,10 @@ label.f .val{color:var(--gold);font-weight:700}
       <section class="view" id="view-wizard">
         <div class="card" style="max-width:760px;margin:0 auto">
           <h3 style="font-size:18px">Recap အသစ်</h3>
-          <div class="hint" style="margin-bottom:10px">📋 အဆင့်များ: <b>ဗီဒီယိုတင်</b> → <b>စတိုင်+အသံရွေး</b> → <b>စတင်</b> → ဇာတ်လမ်းစစ်ဆေး → ဗီဒီယိုအပြီးသတ် ရမယ်</div>
+          <div class="hint" style="margin-bottom:10px">📋 အဆင့်များ: <b>ဗီဒီယိုတင် + ရွေးချယ်မှုများ</b> → <b>စတင်</b> → ဇာတ်လမ်းစစ်ဆေး → ဗီဒီယို+SRT ရမယ်</div>
           <div class="steps" id="wizSteps">
-            <div class="step cur" data-n="1" data-s="1">၁။ ဗီဒီယိုတင်</div>
-            <div class="step" data-n="2" data-s="2">၂။ စတိုင်+အသံရွေး</div>
-            <div class="step" data-n="3" data-s="3">၃။ စတင်ရန်</div>
-          </div>
-            <div class="step cur" data-n="1" data-s="1">ဗီဒီယို</div>
-            <div class="step" data-n="2" data-s="2">ရွေးချယ်မှုများ</div>
-            <div class="step" data-n="3" data-s="3">Quota & စတင်ရန်</div>
+            <div class="step cur" data-n="1" data-s="1">၁။ ဗီဒီယို + ရွေးချယ်မှုများ</div>
+            <div class="step" data-n="2" data-s="2">၂။ Quota & စတင်ရန်</div>
           </div>
           <div id="wizBody"></div>
           <div class="wiz-nav">
@@ -648,8 +643,8 @@ function showView(name, param){
 }
 document.querySelectorAll(".nav-item").forEach(n=>
   n.addEventListener("click", ()=>showView(n.dataset.view)));
-$("btnTopNew").addEventListener("click", ()=>{ App.wiz = {step:1,video:null,mode:"long",minutes:20,style:"cold_open",voice:"thiha",vopts:{speed:1.0,pitch:0,volume:100},budget:null,jobId:null}; showView("wizard"); });
-$("btnDashNew").addEventListener("click", ()=>{ App.wiz = {step:1,video:null,mode:"long",minutes:20,style:"cold_open",voice:"thiha",vopts:{speed:1.0,pitch:0,volume:100},budget:null,jobId:null}; showView("wizard"); });
+$("btnTopNew").addEventListener("click", ()=>{ App.wiz = {step:1,video:null,mode:"long",minutes:20,style:"cold_open",voice:"thiha",vopts:{speed:1.0,pitch:0,volume:100},ratio:"16:9",resolution:"720p",budget:null,jobId:null}; showView("wizard"); });
+$("btnDashNew").addEventListener("click", ()=>{ App.wiz = {step:1,video:null,mode:"long",minutes:20,style:"cold_open",voice:"thiha",vopts:{speed:1.0,pitch:0,volume:100},ratio:"16:9",resolution:"720p",budget:null,jobId:null}; showView("wizard"); });
 
 /* ============================================================
    DASHBOARD
@@ -781,7 +776,7 @@ function wizSetStep(n){
     s.classList.toggle("done", k<n);
   });
   $("wizBack").style.visibility = n===1 ? "hidden" : "visible";
-  $("wizNext").textContent = n===3 ? "✓ စတင်မည်" : "ရှေ့သို့ →";
+  $("wizNext").textContent = n===2 ? "✓ စတင်မည်" : "ရှေ့သို့ →";
   renderWizard();
 }
 function renderWizard(){
@@ -800,16 +795,31 @@ function renderWizard(){
         <div class="hint">သို့မဟုတ် နှိပ်၍ ရွေးပါ (mp4/mkv/mov)</div>
         <input type="file" id="wizFile" accept="video/mp4,video/*" style="display:none">
       </div>
-      <div id="wizVidInfo" style="margin-top:12px">${v?vidInfoHtml(v):""}</div>`;
+      <div id="wizVidInfo" style="margin-top:12px">${v?vidInfoHtml(v):""}</div>
+      ${v?`<div style="margin:12px 0">
+        <label class="f">🎬 ဗီဒီယို Preview</label>
+        <video src="/api/video/${v.video_id}" controls playsinline preload="metadata"
+          style="width:100%;max-height:300px;border-radius:12px;background:#000"></video>
+      </div>`:""}
+      <div id="wizSettings" style="margin-top:18px;${v?"":"opacity:.45;pointer-events:none"}">
+        <h3 style="margin-bottom:12px">⚙️ ရွေးချယ်မှုများ ${v?"":'<span class="hint">— ဗီဒီယိုတင်ပြီးမှ ရွေးလို့ရမယ်</span>'}</h3>
+        ${settingsHtml(w)}
+      </div>`;
     const dz = $("dz");
     dz.addEventListener("click", ()=>$("wizFile").click());
     $("wizFile").addEventListener("change", e=>{ if(e.target.files[0]) wizUpload(e.target.files[0]); });
     ["dragover","dragenter"].forEach(ev=>dz.addEventListener(ev, e=>{e.preventDefault();dz.classList.add("over");}));
     ["dragleave","drop"].forEach(ev=>dz.addEventListener(ev, e=>{e.preventDefault();dz.classList.remove("over");}));
     dz.addEventListener("drop", e=>{ const f=e.dataTransfer.files[0]; if(f) wizUpload(f); });
+    wireSettings(w);
   }
   else if(w.step===2){
-    b.innerHTML = `
+    b.innerHTML = `<div id="quotaBox"><div class="hint"><span class="spin"></span> quota တွက်ချက်နေသည်...</div></div>`;
+    wizEstimate();
+  }
+}
+function settingsHtml(w){
+  return `
       <div class="row"><label class="f">Mode ရွေးပါ</label>
         <div class="mode-cards">
           <div class="mode-card ${w.mode==="long"?"sel":""}" data-m="long">
@@ -840,12 +850,37 @@ function renderWizard(){
         </div>
         <div style="margin-top:8px"><button class="btn small ghost" id="voPreview">▶ အသံစမ်းကြည့်မည်</button>
           <span class="hint" id="voPrevStatus"></span></div>
-      </div>`;
-    b.querySelectorAll(".mode-card").forEach(c=>c.addEventListener("click", ()=>{
+      </div>
+      <div class="row"><label class="f">📐 Output Ratio ရွေးပါ</label>
+        <div class="mode-cards">
+          <div class="mode-card ${w.ratio==="16:9"?"sel":""}" data-r="16:9">
+            <div class="t">🖥️ 16:9</div><div class="d">YouTube landscape</div></div>
+          <div class="mode-card ${w.ratio==="9:16"?"sel":""}" data-r="9:16">
+            <div class="t">📱 9:16</div><div class="d">Shorts / TikTok</div></div>
+          <div class="mode-card ${w.ratio==="original"?"sel":""}" data-r="original">
+            <div class="t">🎞️ မူရင်း</div><div class="d">ဗီဒီယိုအတိုင်း</div></div>
+        </div></div>
+      <div class="row"><label class="f">🎞️ Resolution</label>
+        <select id="wizRes">
+          <option value="1080p" ${w.resolution==="1080p"?"selected":""}>1080p — အကြည်ဆုံး (ဖိုင်ကြီး)</option>
+          <option value="720p" ${w.resolution==="720p"?"selected":""}>720p — အလယ်</option>
+          <option value="480p" ${w.resolution==="480p"?"selected":""}>480p — မြန် (ဖိုင်သေး)</option>
+        </select>
+        <div class="hint" style="margin-top:6px">9:16 ရွေးရင် အလယ်ပိုင်းကို ဖြတ်ယူမယ် · 16:9/မူရင်း ဆို ဘောင်အနက်ထည့်မယ် (ဖြတ်မထုတ်ဘူး)</div></div>`;
+}
+function wireSettings(w){
+  const b = $("wizBody");
+    b.querySelectorAll(".mode-card[data-m]").forEach(c=>c.addEventListener("click", ()=>{
       w.mode = c.dataset.m;
       w.minutes = w.mode==="short" ? 3 : (w.mode==="long" ? 20 : 20);
       renderWizard();
     }));
+    b.querySelectorAll(".mode-card[data-r]").forEach(c=>c.addEventListener("click", ()=>{
+      w.ratio = c.dataset.r;
+      renderWizard();
+    }));
+    const wr = $("wizRes");
+    if(wr) wr.addEventListener("change", e=>{ w.resolution = e.target.value; });
     $("wizMin").addEventListener("input", e=>{ w.minutes = Number(e.target.value); $("wizMinVal").textContent = w.minutes+" မိနစ်"; });
     b.querySelectorAll(".style-card").forEach(c=>c.addEventListener("click", ()=>{
       w.style = c.dataset.s; renderWizard();
@@ -869,11 +904,6 @@ function renderWizard(){
         st.textContent="✓";
       }catch(e){ st.textContent="မရပါ: "+e.message; }
     });
-  }
-  else if(w.step===3){
-    b.innerHTML = `<div id="quotaBox"><div class="hint"><span class="spin"></span> quota တွက်ချက်နေသည်...</div></div>`;
-    wizEstimate();
-  }
 }
 function vidInfoHtml(v){
   return `<div class="ok-box">✓ <b>${esc(v.name||"video")}</b> · ${v.width}×${v.height} · ${fmtDur(v.duration)} (${Math.round(v.duration/60)} မိနစ်)</div>`;
@@ -898,13 +928,14 @@ async function wizEstimate(){
   const w = App.wiz, box = $("quotaBox");
   if(!w.video){ box.innerHTML = `<div class="err-box">ဗီဒီယို မတင်ရသေးပါ</div>`; return; }
   const sig = [w.video.video_id, w.mode, w.minutes, w.style, w.voice,
-               w.vopts.speed, w.vopts.pitch, w.vopts.volume].join("|");
+               w.vopts.speed, w.vopts.pitch, w.vopts.volume, w.ratio, w.resolution].join("|");
   if(w.estSig === sig && w.estResp){ renderQuotaBox(w.estResp); return; }  // reuse, don't spawn duplicate jobs
   try{
     const r = await api("/api/jobs", {method:"POST",
       headers:{"Content-Type":"application/json"},
       body: JSON.stringify({video_id:w.video.video_id, mode:w.mode,
-        target_minutes:w.minutes, style:w.style, voice_preset:w.voice, voice_opts:w.vopts})});
+        target_minutes:w.minutes, style:w.style, voice_preset:w.voice, voice_opts:w.vopts,
+        ratio:w.ratio, resolution:w.resolution})});
     w.estSig = sig; w.estResp = r;
     renderQuotaBox(r);
   }catch(e){
@@ -940,8 +971,6 @@ $("wizNext").addEventListener("click", ()=>{
     if(!w.video){ toast("ဗီဒီယို အရင် တင်ပါ","err"); return; }
     wizSetStep(2);
   }else if(w.step===2){
-    wizSetStep(3);
-  }else if(w.step===3){
     if(!w.jobId){ toast("Job မဖန်တီးရသေးပါ","err"); return; }
     showView("job", w.jobId);
   }
@@ -1193,8 +1222,8 @@ function renderResultPanel(){
         ${r.video_url?`<video src="${esc(r.video_url)}" controls playsinline style="width:100%;border-radius:12px;background:#000"></video>`
           :'<div class="err-box">ဗီဒီယို URL မရှိပါ</div>'}
         <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-          ${r.srt_url?`<a class="btn small ghost" href="${esc(r.srt_url)}" download style="text-decoration:none">⭳ SRT ဒေါင်းလုဒ်</a>`:""}
-          ${r.video_url?`<button class="btn small ghost" id="btnDlVideo">⭳ ဗီဒီယို ဒေါင်းလုဒ်</button>`:""}
+          ${r.video_url?`<button class="btn" id="btnDlVideo">⭳ ဗီဒီယို ဒေါင်းလုဒ် (MP4)</button>`:""}
+          ${r.srt_url?`<a class="btn ghost" href="${esc(r.srt_url)}" download style="text-decoration:none">⭳ SRT ဒေါင်းလုဒ်</a>`:""}
           <span class="hint">${r.duration?("ကြာချိန် "+fmtDur(r.duration)):""}</span>
         </div>
       </div>
