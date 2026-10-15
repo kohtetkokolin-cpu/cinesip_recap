@@ -1780,7 +1780,8 @@ $("btnRenderOv").addEventListener("click", async ()=>{
     const r=await api("/api/render-preview/"+ST.videoId,{method:"POST"});
     if(!r.ok||!r.clip_url) throw new Error("render failed");
     openVideoModal(r.clip_url, "preview အတိုင်း ထွက်မထွက် တိုက်ကြည့်ပါ");
-    stStatus("preview ထုတ်ပြီးပါပြီ","ok");
+    if(r.warning){ stStatus(r.warning,"err"); toast(r.warning,"err"); }
+    else stStatus("preview ထုတ်ပြီးပါပြီ","ok");
   }catch(e){ stStatus("preview ထုတ်မရပါ: "+e.message,"err"); }
 });
 
