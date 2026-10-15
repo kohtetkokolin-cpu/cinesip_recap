@@ -17,9 +17,15 @@ from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
 from fastapi.responses import FileResponse, JSONResponse
 
 from . import config
-from .pipeline import overlays as ov
+from .pipeline import script as _sc
 
 app = FastAPI(title="Cinesip Recap")
+
+
+@app.get("/api/styles")
+def list_styles():
+    """The 10 research-based recap styles for the wizard picker."""
+    return {"styles": _sc.get_styles(), "default": _sc.DEFAULT_STYLE}
 
 
 def _check_bins():
@@ -257,9 +263,13 @@ async def create_job(body: dict):
     src = _video_path(video_id)
     mode = body.get("mode", "long")  # long | short | both
     target = float(body.get("target_minutes") or (60 if mode != "short" else 5))
+    style = body.get("style") or _sc.DEFAULT_STYLE
+    if style not in _sc.RECAP_STYLES:
+        style = _sc.DEFAULT_STYLE
     job = _jobs.create_job(video_id, src, mode=mode, target_minutes=target,
-                           style=body.get("style", "recap"),
-                           voice_provider=body.get("voice_provider", "gemini"))
+                           style=style,
+                           voice_provider=body.get("voice_provider", "gemini"),
+                           persona=body.get("persona"))
     # quota pre-check before burning any work
     import subprocess as _sp
     dur = float(_sp.check_output(

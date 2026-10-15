@@ -110,11 +110,11 @@ def set_stage(job: dict, stage: str, pct: float = 0, detail: str = ""):
 
 def create_job(video_id: str, video_path: str, mode: str = "long",
                target_minutes: float = 60, style: str = "recap",
-               voice_provider: str = "gemini") -> dict:
+               voice_provider: str = "gemini", persona: str | None = None) -> dict:
     job_id = uuid.uuid4().hex[:12]
     job = {"id": job_id, "video_id": video_id, "video_path": video_path,
            "mode": mode, "target_minutes": target_minutes, "style": style,
-           "voice_provider": voice_provider,
+           "voice_provider": voice_provider, "persona": persona,
            "stage": "queued", "progress": 0, "stage_detail": "",
            "log": [], "created": time.time(), "script": None, "result": None,
            "error": None}
@@ -188,7 +188,9 @@ def _run(job: dict):
     set_stage(job, "script", 26, "writing bible")
     log(job, "✍️ Script ရေးနေသည် (Gemini)")
     script = sc.build_script(client, ev, job["target_minutes"],
-                             progress_cb=lambda n, i, t: _progress(job, "script")(n, i, t))
+                             progress_cb=lambda n, i, t: _progress(job, "script")(n, i, t),
+                             persona=job.get("persona"),
+                             style=job.get("style") or sc.DEFAULT_STYLE)
     # commentary flags for the reviewer
     for b in script["beats"]:
         b["commentary_score"] = round(fu.commentary_score(b.get("narration", "")), 2)
@@ -306,7 +308,11 @@ def _run_after_approval(job_id: str):
         # ---- 6. metadata ----
         from . import metadata as md
         log(job, "🏷️ Upload metadata ထုတ်နေသည်")
-        job["result"]["meta"] = md.generate_metadata(client, job["script"]["bible"])
+        _beats0 = (job.get("script") or {}).get("beats") or []
+        _opening = _beats0[0].get("narration", "") if _beats0 else ""
+        job["result"]["meta"] = md.generate_metadata(
+            client, job["script"]["bible"], opening_narration=_opening,
+            style=job.get("style"))
         _save(job)
 
         set_stage(job, "done", 100, "complete")
