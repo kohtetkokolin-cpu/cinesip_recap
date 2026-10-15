@@ -294,7 +294,7 @@ label.f .val{color:var(--gold);font-weight:700}
     <nav id="nav">
       <div class="nav-item active" data-view="dashboard"><span class="ic">▦</span>ပင်မ <span style="font-size:12px;color:var(--faint)">Dashboard</span></div>
       <div class="nav-item" data-view="wizard"><span class="ic">＋</span>Recap အသစ်</div>
-      <div class="nav-item" data-view="studio"><span class="ic">◐</span>Preview Studio</div>
+      <div class="nav-item" data-view="studio"><span class="ic">◐</span>Overlay Studio</div>
     </nav>
     <div id="sideFoot">v2 · Phase 1<br>Gemini free quota</div>
   </aside>
@@ -309,7 +309,7 @@ label.f .val{color:var(--gold);font-weight:700}
     <nav id="mnav">
       <div class="nav-item active" data-view="dashboard"><span class="ic">▦</span>ပင်မ</div>
       <div class="nav-item" data-view="wizard"><span class="ic">＋</span>အသစ်</div>
-      <div class="nav-item" data-view="studio"><span class="ic">◐</span>Studio</div>
+      <div class="nav-item" data-view="studio"><span class="ic">◐</span>Overlay</div>
     </nav>
 
     <div id="content">
@@ -325,13 +325,27 @@ label.f .val{color:var(--gold);font-weight:700}
           <button class="btn ghost small" id="btnRefresh">↻ ပြန်စစ်မည်</button>
         </div>
         <div class="job-grid" id="jobGrid"></div>
+        <div class="card" style="margin-top:16px">
+          <h3 style="font-size:16px;margin:0 0 8px">📋 ဘယ်လိုသုံးမလဲ</h3>
+          <div class="hint" style="line-height:2">
+            <b>၁.</b> <b>Recap အသစ်</b> နှိပ် → ဗီဒီယိုတင် → စတိုင် ၁၀ မျိုး + အသံ ၁၀ မျိုး ရွေး → စတင်မည်<br>
+            <b>၂.</b> Job လည်နေတုန်း စောင့် → <b>ဇာတ်လမ်း စစ်ဆေးရန်</b> ပေါ်လာရင် ဖတ်/ပြင်/အသံနားထောင် → အတည်ပြုမည်<br>
+            <b>၃.</b> ပြီးရင် <b>ဗီဒီယိုအပြီးသတ် + Shorts + တင်ရန်အချက်အလက်</b> ရမယ်<br>
+            <b>၄.</b> <b>Overlay Studio</b> (အောက်က menu) က စာတန်း/blur/logo ပြင်ဖို့ သီးသန့်နေရာ — ဒီမှာပြင်ထားတာ recap အပြီးသတ် video မှာ အလိုအလျောက်ပါမယ်
+          </div>
+        </div>
       </section>
 
       <!-- ======== VIEW: new recap wizard ======== -->
       <section class="view" id="view-wizard">
         <div class="card" style="max-width:760px;margin:0 auto">
           <h3 style="font-size:18px">Recap အသစ်</h3>
+          <div class="hint" style="margin-bottom:10px">📋 အဆင့်များ: <b>ဗီဒီယိုတင်</b> → <b>စတိုင်+အသံရွေး</b> → <b>စတင်</b> → ဇာတ်လမ်းစစ်ဆေး → ဗီဒီယိုအပြီးသတ် ရမယ်</div>
           <div class="steps" id="wizSteps">
+            <div class="step cur" data-n="1" data-s="1">၁။ ဗီဒီယိုတင်</div>
+            <div class="step" data-n="2" data-s="2">၂။ စတိုင်+အသံရွေး</div>
+            <div class="step" data-n="3" data-s="3">၃။ စတင်ရန်</div>
+          </div>
             <div class="step cur" data-n="1" data-s="1">ဗီဒီယို</div>
             <div class="step" data-n="2" data-s="2">ရွေးချယ်မှုများ</div>
             <div class="step" data-n="3" data-s="3">Quota & စတင်ရန်</div>
@@ -354,6 +368,7 @@ label.f .val{color:var(--gold);font-weight:700}
             <div class="hint" id="jobSub"></div>
           </div>
           <div class="spacer"></div>
+          <button class="btn ghost small" id="btnJobOverlay" title="ဒီ video ရဲ့ စာတန်း/blur/logo ကို Overlay Studio မှာ ပြင်မယ်">🎨 Overlay ပြင်ရန်</button>
           <span id="jobStageBadge"></span>
           <div class="ring" id="jobRing"></div>
         </div>
@@ -386,6 +401,7 @@ label.f .val{color:var(--gold);font-weight:700}
             <span class="hint" id="stHint"></span>
           </div>
           <div class="hint">မြင်တဲ့အတိုင်း ထွက်မယ် — blur / စာတန်း / logo / watermark / video ကို preview ပေါ်မှာ တိုက်ရိုက်ပြင်ပါ။</div>
+          <div class="hint" style="margin-top:6px">ℹ️ ဒီနေရာက <b>recap job နဲ့ သက်သက်စီ</b> — ဗီဒီယိုတစ်ပုဒ်ရဲ့ overlay တွေကို အသေးစိတ်ပြင်ဖို့။ ဒီမှာ <b>သိမ်း</b> ထားတဲ့ overlay တွေက အဲ့ video ရဲ့ recap job အပြီးသတ် video မှာ အလိုအလျောက်ပါမယ်။</div>
         </div>
         <div class="studio-layout">
           <section>
@@ -524,7 +540,7 @@ const App = {
   pollTimer: null,
   logLen: 0,
   lastVideo: null,          // {video_id,width,height,duration}
-  wiz: { step:1, video:null, mode:"long", minutes:20, style:"cold_open", voice:"gemini", budget:null, jobId:null },
+  wiz: { step:1, video:null, mode:"long", minutes:20, style:"cold_open", voice:"thiha", vopts:{speed:1.0,pitch:0,volume:100}, budget:null, jobId:null },
   scriptCache: null,
   resultCache: null,
 };
@@ -631,8 +647,8 @@ function showView(name, param){
 }
 document.querySelectorAll(".nav-item").forEach(n=>
   n.addEventListener("click", ()=>showView(n.dataset.view)));
-$("btnTopNew").addEventListener("click", ()=>{ App.wiz = {step:1,video:null,mode:"long",minutes:20,style:"cold_open",voice:"gemini",budget:null,jobId:null}; showView("wizard"); });
-$("btnDashNew").addEventListener("click", ()=>{ App.wiz = {step:1,video:null,mode:"long",minutes:20,style:"cold_open",voice:"gemini",budget:null,jobId:null}; showView("wizard"); });
+$("btnTopNew").addEventListener("click", ()=>{ App.wiz = {step:1,video:null,mode:"long",minutes:20,style:"cold_open",voice:"thiha",vopts:{speed:1.0,pitch:0,volume:100},budget:null,jobId:null}; showView("wizard"); });
+$("btnDashNew").addEventListener("click", ()=>{ App.wiz = {step:1,video:null,mode:"long",minutes:20,style:"cold_open",voice:"thiha",vopts:{speed:1.0,pitch:0,volume:100},budget:null,jobId:null}; showView("wizard"); });
 
 /* ============================================================
    DASHBOARD
@@ -706,12 +722,43 @@ const STYLES = [
   {id:"neutral", t:"📰 ရိုးရိုး Recap", d:"ရိုးရိုးရှင်းရှင်း — တတိယပုဂ္ဂိုလ်၊ ရှင်းလင်းတဲ့ ဇာတ်လမ်းပြောပြချက်"},
   {id:"binge", t:"🎬 အစဆုံး Compilation", d:"Shine/LIGHT စတိုင် — 1-3 နာရီ အစဆုံး၊ အခန်းလိုက် ပြောပြချက်"},
 ];
-// refresh from backend (single source of truth); hardcoded list is the fallback
+// refresh from backend (single source of truth); hardcoded list is the fallback.
+// NOTE: backend returns {id,name,desc} — map to the UI's {id,t,d} shape.
 async function loadStyles(){
   try{
     const r = await api("/api/styles");
-    if(r.styles && r.styles.length) { STYLES.length = 0; r.styles.forEach(s=>STYLES.push(s)); }
+    if(r.styles && r.styles.length){
+      STYLES.length = 0;
+      r.styles.forEach(s=>STYLES.push({id:s.id, t:s.name, d:s.desc}));
+      if(!STYLES.some(s=>s.id===App.wiz.style)) App.wiz.style = r.default || "cold_open";
+    }
   }catch(e){}
+}
+// 10 named recap voices, same shape trick: backend {id,provider,name,gender,desc}
+let VOICE_PRESETS = [
+  {id:"thiha", provider:"edge", name:"ကိုသီဟ", gender:"male", desc:"နက်နဲတဲ့အသံ — recap narrator အတွက် အကောင်းဆုံး (အခမဲ့)"},
+  {id:"nilar", provider:"edge", name:"မနီလာ", gender:"female", desc:"နွေးထွေးတဲ့အသံ — မိန်းကလေး narrator (အခမဲ့)"},
+  {id:"kore", provider:"gemini", name:"ကိုအောင်", gender:"male", desc:"လူသံနဲ့အနီးစပ်ဆုံး — နက်နဲတည်ငြိမ်တဲ့ ကျားအသံ"},
+  {id:"charon", provider:"gemini", name:"ကိုကျော်", gender:"male", desc:"အားကောင်းတဲ့ ကျားအသံ — action/thriller နဲ့လိုက်"},
+  {id:"fenrir", provider:"gemini", name:"ကိုဖြိုး", gender:"male", desc:"ငယ်ရွယ်တက်ကြွတဲ့ ကျားအသံ — host စတိုင်နဲ့လိုက်"},
+  {id:"puck", provider:"gemini", name:"ကိုပိုင်", gender:"male", desc:"ပေါ့ပေါ့ပါးပါး ကျားအသံ — ဟာသနဲ့လိုက်"},
+  {id:"leda", provider:"gemini", name:"မသန်း", gender:"female", desc:"ရှင်းလင်းချိုသာတဲ့ မအသံ — narrator"},
+  {id:"aoede", provider:"gemini", name:"မအေး", gender:"female", desc:"နူးညံ့တဲ့မအသံ — drama/moral စတိုင်နဲ့လိုက်"},
+  {id:"zephyr", provider:"gemini", name:"မဇင်", gender:"female", desc:"လန်းဆန်းတဲ့မအသံ — horror/comedy နဲ့လိုက်"},
+  {id:"sulafat", provider:"gemini", name:"မဆု", gender:"female", desc:"တည်ငြိမ်တဲ့မအသံ — documentary စတိုင်နဲ့လိုက်"},
+];
+async function loadVoices(){
+  try{
+    const r = await api("/api/voices");
+    if(r.voices && r.voices.length){
+      VOICE_PRESETS = r.voices;
+      if(!VOICE_PRESETS.some(v=>v.id===App.wiz.voice)) App.wiz.voice = r.default || "thiha";
+    }
+  }catch(e){}
+}
+function voiceLabel(id){
+  const v = VOICE_PRESETS.find(x=>x.id===id);
+  return v ? `${v.name} · ${v.provider==="edge"?"အခမဲ့":"Gemini"}` : id;
 }
 function wizSetStep(n){
   App.wiz.step = n;
@@ -766,12 +813,21 @@ function renderWizard(){
           ${STYLES.map(s=>`<div class="style-card ${w.style===s.id?"sel":""}" data-s="${s.id}">
             <div class="t">${esc(s.t)}</div><div class="d">${esc(s.d)}</div></div>`).join("")}
         </div></div>
-      <div class="row"><label class="f">အသံ (Voice provider)</label>
-        <select id="wizVoice">
-          <option value="gemini" ${w.voice==="gemini"?"selected":""}>Gemini — အသံ ၃၀ (အကြံပြု)</option>
-          <option value="edge" ${w.voice==="edge"?"selected":""}>Edge — အသံ ၂ (အခမဲ့ အကန့်အသတ်မဲ့)</option>
-        </select>
-        <div class="hint" style="margin-top:6px">Gemini: အသံ ၃၀ · လူသံနဲ့ အနီးစပ်ဆုံး · free quota ထဲက သုံးမယ် &nbsp;|&nbsp; Edge: အသံ ၂ · သုံးသလောက် အခမဲ့</div></div>`;
+      <div class="row"><label class="f">🎙️ အသံ ရွေးပါ <span class="hint" style="display:inline">— recap နဲ့လိုက်တဲ့ အသံ ၁၀ မျိုး</span></label>
+        <select id="wizVoice">${VOICE_PRESETS.map(v=>`<option value="${v.id}" ${w.voice===v.id?"selected":""}>${esc(v.name)} — ${esc(v.desc)}</option>`).join("")}</select>
+        <div class="hint" style="margin-top:6px">အခမဲ့ = Edge (အကန့်အသတ်မဲ့) · Gemini = လူသံနဲ့အနီးစပ်ဆုံး (free quota ထဲက သုံးမယ်)</div></div>
+      <div class="row"><label class="f">🔊 အသံချိန်ညှိရန် <span class="hint" style="display:inline">— လူသံနဲ့ပိုနီးအောင်</span></label>
+        <div style="display:grid;gap:8px">
+          <div><div class="hint">အမြန်နှုန်း: <span class="val" id="voSpdVal">${w.vopts.speed.toFixed(2)}x</span> <span class="hint">(0.9–1.0 က လူသံနဲ့အနီးစပ်ဆုံး)</span></div>
+            <input type="range" id="voSpd" min="0.7" max="1.3" step="0.05" value="${w.vopts.speed}" style="width:100%"></div>
+          <div><div class="hint">အသံအနိမ့်အမြင့် (pitch): <span class="val" id="voPitVal">${w.vopts.pitch>0?"+":""}${w.vopts.pitch}</span> <span class="hint">(Edge အသံတွေမှာ အလုပ်ဖြစ်)</span></div>
+            <input type="range" id="voPit" min="-12" max="12" step="1" value="${w.vopts.pitch}" style="width:100%"></div>
+          <div><div class="hint">အသံကျယ်မှု: <span class="val" id="voVolVal">${w.vopts.volume}%</span></div>
+            <input type="range" id="voVol" min="50" max="150" step="5" value="${w.vopts.volume}" style="width:100%"></div>
+        </div>
+        <div style="margin-top:8px"><button class="btn small ghost" id="voPreview">▶ အသံစမ်းကြည့်မည်</button>
+          <span class="hint" id="voPrevStatus"></span></div>
+      </div>`;
     b.querySelectorAll(".mode-card").forEach(c=>c.addEventListener("click", ()=>{
       w.mode = c.dataset.m;
       w.minutes = w.mode==="short" ? 3 : (w.mode==="long" ? 20 : 20);
@@ -781,7 +837,25 @@ function renderWizard(){
     b.querySelectorAll(".style-card").forEach(c=>c.addEventListener("click", ()=>{
       w.style = c.dataset.s; renderWizard();
     }));
-    $("wizVoice").addEventListener("change", e=>{ w.voice = e.target.value; });
+    $("wizVoice").addEventListener("change", e=>{ w.voice = e.target.value; renderWizard(); });
+    const updV = ()=>{
+      w.vopts.speed=Number($("voSpd").value); w.vopts.pitch=Number($("voPit").value); w.vopts.volume=Number($("voVol").value);
+      $("voSpdVal").textContent=w.vopts.speed.toFixed(2)+"x";
+      $("voPitVal").textContent=(w.vopts.pitch>0?"+":"")+w.vopts.pitch;
+      $("voVolVal").textContent=w.vopts.volume+"%";
+    };
+    ["voSpd","voPit","voVol"].forEach(id=>$(id).addEventListener("input", updV));
+    $("voPreview").addEventListener("click", async ()=>{
+      const st=$("voPrevStatus"); st.textContent="ထုတ်နေသည်...";
+      try{
+        const r=await api("/api/voice-preview",{method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({voice_preset:w.voice, voice_opts:w.vopts,
+            text:"မင်္ဂလာပါ ပရိတ်သတ်တို့၊ ဒါက ဇာတ်ကားအကျဉ်း အသံစမ်းသပ်ချက်ပါ။"})});
+        if(!r.ok||!r.audio_url) throw new Error(r.error||"failed");
+        new Audio(r.audio_url).play();
+        st.textContent="✓";
+      }catch(e){ st.textContent="မရပါ: "+e.message; }
+    });
   }
   else if(w.step===3){
     b.innerHTML = `<div id="quotaBox"><div class="hint"><span class="spin"></span> quota တွက်ချက်နေသည်...</div></div>`;
@@ -810,13 +884,14 @@ async function wizUpload(file){
 async function wizEstimate(){
   const w = App.wiz, box = $("quotaBox");
   if(!w.video){ box.innerHTML = `<div class="err-box">ဗီဒီယို မတင်ရသေးပါ</div>`; return; }
-  const sig = [w.video.video_id, w.mode, w.minutes, w.style, w.voice].join("|");
+  const sig = [w.video.video_id, w.mode, w.minutes, w.style, w.voice,
+               w.vopts.speed, w.vopts.pitch, w.vopts.volume].join("|");
   if(w.estSig === sig && w.estResp){ renderQuotaBox(w.estResp); return; }  // reuse, don't spawn duplicate jobs
   try{
     const r = await api("/api/jobs", {method:"POST",
       headers:{"Content-Type":"application/json"},
       body: JSON.stringify({video_id:w.video.video_id, mode:w.mode,
-        target_minutes:w.minutes, style:w.style, voice_provider:w.voice})});
+        target_minutes:w.minutes, style:w.style, voice_preset:w.voice, voice_opts:w.vopts})});
     w.estSig = sig; w.estResp = r;
     renderQuotaBox(r);
   }catch(e){
@@ -879,6 +954,17 @@ function openJob(id){
   App.pollTimer = setInterval(refreshJob, 3000);
 }
 $("btnJobBack").addEventListener("click", ()=>showView("dashboard"));
+$("btnJobOverlay").addEventListener("click", ()=>{
+  const j = App.job;
+  if(!j || !j.video_id){ toast("video မရှိသေးပါ","err"); return; }
+  // jump to Overlay Studio with this job's video (dims from job_status)
+  const v = {video_id: j.video_id, width: j.video_width||1280,
+             height: j.video_height||720, duration: j.video_duration||0};
+  App.lastVideo = v;
+  studioLoadVideo(v);
+  showView("studio");
+  toast("Overlay Studio ဖွင့်ပြီးပြီ — ပြင်ပြီး သိမ်းပါ","ok");
+});
 
 async function refreshJob(){
   if(App.view!=="job" || !App.jobId) return;
@@ -981,10 +1067,9 @@ async function loadScript(){
 function renderScriptPanel(){
   const p = $("stagePanel"), s = App.scriptCache || {};
   const beats = s.beats || [];
-  // voice provider is not in the job-status payload; infer from the beat voices
-  const firstVoice = String((beats[0]||{}).voice || "");
-  const provider = firstVoice.startsWith("my-MM") ? "edge" : "gemini";
-  const voices = VOICE_OPTS[provider] || VOICE_OPTS.gemini;
+  // 10 named voice presets (backend resolves preset id / raw name / legacy role)
+  const voices = VOICE_PRESETS.length ? VOICE_PRESETS : [
+    {id:"thiha",name:"ကိုသီဟ",provider:"edge"},{id:"nilar",name:"မနီလာ",provider:"edge"}];
   p.innerHTML = `
     ${s.bible?`<div class="bible"><b style="color:var(--gold)">📖 ဇာတ်လမ်း အကျဉ်း</b><br>${esc(s.bible)}</div>`:""}
     <div class="row" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
@@ -1016,7 +1101,8 @@ function beatHtml(bt, i, voices){
   const score = bt.commentary_score;
   // always keep the beat's current voice selectable even if not in the preset list
   const opts = voices.slice();
-  if(bt.voice && !opts.includes(bt.voice)) opts.unshift(bt.voice);
+  const cur = String(bt.voice||"");
+  if(cur && !opts.some(v=>v.id===cur)) opts.unshift({id:cur, name:cur, provider:"?", desc:""});
   return `<div class="beat" id="beat-${i}">
     <div class="beat-head">
       <span class="beat-idx">#${esc(String(bt.idx!=null?bt.idx:i+1))}</span>
@@ -1029,7 +1115,7 @@ function beatHtml(bt, i, voices){
     <textarea id="narr-${i}" rows="3">${esc(bt.narration||"")}</textarea>
     <div class="beat-actions">
       <select class="voice-sel" id="voice-${i}">
-        ${opts.map(v=>`<option value="${esc(v)}" ${bt.voice===v?"selected":""}>${esc(v)}</option>`).join("")}
+        ${opts.map(v=>`<option value="${esc(v.id)}" ${cur===v.id?"selected":""}>${esc(v.name)}${v.provider&&v.provider!=="?"?` (${v.provider==="edge"?"အခမဲ့":"Gemini"})`:""}</option>`).join("")}
       </select>
       <button class="btn small ghost" id="pv-${i}">🔊 အသံနားထောင်မည်</button>
       <audio id="aud-${i}" controls style="display:none"></audio>
@@ -1229,7 +1315,18 @@ function renderBlur(){
     d.style.backdropFilter=`blur(${(b.s/2).toFixed(1)}px)`;
     d.style.webkitBackdropFilter=`blur(${(b.s/2).toFixed(1)}px)`;
     d.innerHTML=`<span class="tag">Blur ${i+1}</span><span class="rh" data-handle="1"></span>`;
-    d.addEventListener("pointerdown", e=>{ e.stopPropagation(); selectBlur(i); }, true);
+    // NOTE: do NOT re-render on select — renderBlur() destroys this very element
+    // mid-press, which kills the drag (pointer capture dies with the element).
+    // Toggle the .sel class in place instead.
+    d.addEventListener("pointerdown", e=>{
+      e.stopPropagation();
+      if(ST.selBlur!==i){
+        ST.selBlur=i;
+        layer.querySelectorAll(".blur-region").forEach((n,k)=>n.classList.toggle("sel", k===i));
+        if(b){ $("blurS").value=b.s; $("blurSVal").textContent=b.s; }
+        $("blurSelLabel").textContent="Blur "+(i+1);
+      }
+    }, true);
     pointerDrag(d, null, (x,y)=>{
       b.x=clamp(x,0,100-b.w); b.y=clamp(y,0,100-b.h);
       d.style.left=b.x+"%"; d.style.top=b.y+"%";
