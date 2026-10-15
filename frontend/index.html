@@ -315,6 +315,7 @@ label.f .val{color:var(--gold);font-weight:700}
     <div id="content">
       <!-- ======== VIEW: dashboard ======== -->
       <section class="view active" id="view-dashboard">
+        <div id="keyBanner" style="margin-bottom:14px"></div>
         <div class="dash-head">
           <div>
             <h3 style="margin:0;font-size:18px">Recap Job များ</h3>
@@ -663,6 +664,18 @@ function skeletonCards(n){
 async function loadDashboard(){
   const g = $("jobGrid");
   g.innerHTML = skeletonCards(6);
+  // Gemini key status banner — catches the "quota have:0" confusion early
+  try{
+    const h = await api("/api/health");
+    const kb = $("keyBanner");
+    if(kb){
+      if(h.gemini_ready){
+        kb.innerHTML = `<div class="ok-box">✓ Gemini key အဆင်သင့် (${h.gemini_keys} ခု) — recap လုပ်လို့ရပြီ</div>`;
+      }else{
+        kb.innerHTML = `<div class="err-box">⚠️ <b>Gemini key မရှိသေးပါ</b> — .env ဖိုင်မှာ <code>GOOGLE_API_KEY=</code> နောက်မှာ key ထည့်ပါ (AI Studio, အခမဲ့)။ Key မရှိရင် quota check မှာ <code>have:0</code> ပြပြီး job စလို့မရပါ။<br><span class="hint">run.bat / uvicorn ကို .env ပြင်ပြီးမှ ပြန် run ရမယ်။</span></div>`;
+      }
+    }
+  }catch(e){}
   try{
     const j = await api("/api/jobs");
     App.jobs = j.jobs || [];
