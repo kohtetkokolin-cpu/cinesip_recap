@@ -604,7 +604,7 @@ const App = {
   pollTimer: null,
   logLen: 0,
   lastVideo: null,          // {video_id,width,height,duration}
-  wiz: { step:1, video:null, mode:"long", minutes:20, style:"cold_open", voice:"thiha", vopts:{speed:1.0,pitch:0,volume:100}, budget:null, jobId:null },
+  wiz: { step:1, video:null, mode:"long", minutes:20, style:"full_story", voice:"thiha", vopts:{speed:1.0,pitch:0,volume:100}, budget:null, jobId:null },
   scriptCache: null,
   resultCache: null,
 };
@@ -712,8 +712,8 @@ function showView(name, param){
 }
 document.querySelectorAll(".nav-item").forEach(n=>
   n.addEventListener("click", ()=>showView(n.dataset.view)));
-$("btnTopNew").addEventListener("click", ()=>{ App.wiz = {step:1,video:null,mode:"long",minutes:20,style:"cold_open",voice:"thiha",vopts:{speed:1.0,pitch:0,volume:100},ratio:"16:9",resolution:"720p",fillMode:"blur",fillColor:"#1a1a2e",budget:null,jobId:null}; showView("wizard"); });
-$("btnDashNew").addEventListener("click", ()=>{ App.wiz = {step:1,video:null,mode:"long",minutes:20,style:"cold_open",voice:"thiha",vopts:{speed:1.0,pitch:0,volume:100},ratio:"16:9",resolution:"720p",fillMode:"blur",fillColor:"#1a1a2e",budget:null,jobId:null}; showView("wizard"); });
+$("btnTopNew").addEventListener("click", ()=>{ App.wiz = {step:1,video:null,mode:"long",minutes:20,style:"full_story",voice:"thiha",vopts:{speed:1.0,pitch:0,volume:100},ratio:"16:9",resolution:"720p",fillMode:"blur",fillColor:"#1a1a2e",budget:null,jobId:null}; showView("wizard"); });
+$("btnDashNew").addEventListener("click", ()=>{ App.wiz = {step:1,video:null,mode:"long",minutes:20,style:"full_story",voice:"thiha",vopts:{speed:1.0,pitch:0,volume:100},ratio:"16:9",resolution:"720p",fillMode:"blur",fillColor:"#1a1a2e",budget:null,jobId:null}; showView("wizard"); });
 
 /* ============================================================
    DASHBOARD
@@ -1862,7 +1862,7 @@ async function finderOpen(tmdb_id, media){
       <div class="hint" style="margin-top:10px">📌 ဖိုင်ကို ကိုယ်တိုင် အပြင်မှာ ရှာပြီး wizard မှာ upload တင်ပါ — app က download မလုပ်ပေးပါ</div>`;
     $("fdRecap").addEventListener("click", ()=>{
       $("finderModal").style.display = "none";
-      App.wiz = {step:1,video:null,mode:"long",minutes:20,style:"cold_open",voice:"thiha",
+      App.wiz = {step:1,video:null,mode:"long",minutes:20,style:"full_story",voice:"thiha",
         vopts:{speed:1.0,pitch:0,volume:100},ratio:"16:9",resolution:"720p",
         fillMode:"blur",fillColor:"#1a1a2e",
         budget:null,jobId:null,sourceTitle:d.title,tmdbId:d.tmdb_id};
