@@ -18,6 +18,40 @@ from .. import config
 from . import overlays as ov
 from .fairuse import beat_video_plan
 
+# ---------- output ratio / resolution ----------
+RATIOS = ("16:9", "9:16", "original")
+RESOLUTIONS = ("1080p", "720p", "480p")
+_RES_H = {"1080p": 1080, "720p": 720, "480p": 480}
+
+
+def _even(n: float) -> int:
+    """Round to nearest even int (x264 requires even dims)."""
+    return max(2, round(n / 2) * 2)
+
+
+def output_dims(ratio: str, resolution: str, src_w: int, src_h: int) -> tuple[int, int]:
+    """Target (w, h) for the final video — always even (x264-safe)."""
+    if ratio not in RATIOS:
+        ratio = "16:9"
+    if resolution not in _RES_H:
+        resolution = "720p"
+    if ratio == "original":
+        return _even(src_w), _even(src_h)
+    h = _RES_H[resolution]
+    w = _even(h * 9 / 16) if ratio == "9:16" else _even(h * 16 / 9)
+    return w, h
+
+
+def ratio_filter(ratio: str, tw: int, th: int) -> str:
+    """ffmpeg filter: fit source into target dims.
+    9:16 → center-crop to vertical (standard for Shorts/TikTok).
+    else → scale-to-fit + letterbox pad (never crops content)."""
+    if ratio == "9:16":
+        return (f"crop=w='min(iw,ih*9/16)':h='min(ih,iw*16/9)',"
+                f"scale={tw}:{th}:flags=lanczos,setsar=1")
+    return (f"scale={tw}:{th}:force_original_aspect_ratio=decrease,"
+            f"pad={tw}:{th}:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1")
+
 RENDER_DIR = os.path.join(config.DATA_DIR, "renders")
 os.makedirs(RENDER_DIR, exist_ok=True)
 BGM_DIR = os.path.join(config.DATA_DIR, "bgm")
@@ -43,11 +77,16 @@ def find_bgm() -> str | None:
 
 def render_beat(job_id: str, beat: dict, src_video: str, vo_wav: str,
                scenes: list, w: int, h: int, max_clip_sec: float,
-               workdir: str) -> dict:
-    """Render one beat: video exactly == VO duration. Returns {mp4, dur}."""
+               workdir: str, ratio: str = "16:9",
+               src_w: int = 0, src_h: int = 0) -> dict:
+    """Render one beat: video exactly == VO duration. Returns {mp4, dur}.
+    w/h are the TARGET output dims; ratio controls fit vs crop.
+    src_w/src_h (source dims) are used for fair-use transforms so the
+    transforms work at native resolution before the ratio fit."""
     from .voice import wav_duration
     dur = wav_duration(vo_wav)
-    plan = beat_video_plan(beat, scenes, w, h, max_clip_sec=max_clip_sec)
+    plan = beat_video_plan(beat, scenes, src_w or w, src_h or h,
+                           max_clip_sec=max_clip_sec)
     clips = plan["clips"]
     if not clips:  # degenerate: freeze first frame
         clips = [{"start": beat["footage_start"],
@@ -57,11 +96,12 @@ def render_beat(job_id: str, beat: dict, src_video: str, vo_wav: str,
     n = len(clips)
     fc = []
     inputs = []
+    rf = ratio_filter(ratio, w, h)
     for i, c in enumerate(clips):
         inputs += ["-ss", str(c["start"]), "-t", str(round(c["end"] - c["start"], 2)),
                    "-i", src_video]
         fc.append(f"[{i}:v]{c['filter']},setpts=PTS-STARTPTS,"
-                  f"fps=30,scale={w}:{h}:flags=lanczos,setsar=1[v{i}]")
+                  f"fps=30,{rf}[v{i}]")
     vcat = "".join(f"[v{i}]" for i in range(n))
     # extend with frozen last frame OR trim — to EXACTLY dur
     fc.append(f"{vcat}concat=n={n}:v=1:a=0,"

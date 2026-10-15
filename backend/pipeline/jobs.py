@@ -112,12 +112,15 @@ def create_job(video_id: str, video_path: str, mode: str = "long",
                target_minutes: float = 60, style: str = "recap",
                voice_provider: str = "gemini", persona: str | None = None,
                voice_preset: str | None = None,
-               voice_opts: dict | None = None) -> dict:
+               voice_opts: dict | None = None,
+               ratio: str = "16:9", resolution: str = "720p") -> dict:
     job_id = uuid.uuid4().hex[:12]
     job = {"id": job_id, "video_id": video_id, "video_path": video_path,
            "mode": mode, "target_minutes": target_minutes, "style": style,
            "voice_provider": voice_provider, "persona": persona,
            "voice_preset": voice_preset, "voice_opts": voice_opts or {},
+           "ratio": ratio if ratio in ("16:9", "9:16", "original") else "16:9",
+           "resolution": resolution if resolution in ("1080p", "720p", "480p") else "720p",
            "stage": "queued", "progress": 0, "stage_detail": "",
            "log": [], "created": time.time(), "script": None, "result": None,
            "error": None}
@@ -170,6 +173,11 @@ def _run(job: dict):
     sj = _js.loads(st)["streams"][0]
     W, H = int(sj["width"]), int(sj["height"])
     job["src_duration"] = dur; job["src_w"] = W; job["src_h"] = H
+    # output ratio/resolution → target dims for the final render
+    out_w, out_h = rd.output_dims(job.get("ratio", "16:9"),
+                                  job.get("resolution", "720p"), W, H)
+    job["out_w"], job["out_h"] = out_w, out_h
+    log(job, f"📐 Output {out_w}×{out_h} ({job.get('ratio')}, {job.get('resolution')})")
 
     budget = quota.check_budget(dur / 60, job["target_minutes"])
     if not budget["ok"]:
@@ -232,7 +240,9 @@ def _run_after_approval(job_id: str):
         beats = job["script"]["beats"]
         ev = az.build_evidence(job["video_id"], job["video_path"])  # cached
         scenes = [(a, b) for a, b in ev["scenes"]]
-        W, H = job["src_w"], job["src_h"]
+        # target output dims (ratio/resolution chosen by the user)
+        W, H = job.get("out_w") or job["src_w"], job.get("out_h") or job["src_h"]
+        ratio = job.get("ratio", "16:9")
         workdir = os.path.join(rd.RENDER_DIR, job_id, "beats")
         os.makedirs(workdir, exist_ok=True)
         max_clip = 5.0
@@ -305,7 +315,8 @@ def _run_after_approval(job_id: str):
             if not b.get("wav"):
                 return None
             return rd.render_beat(job_id, b, job["video_path"], b["wav"],
-                                  scenes, W, H, max_clip, workdir)
+                                  scenes, W, H, max_clip, workdir, ratio=ratio,
+                                  src_w=job["src_w"], src_h=job["src_h"])
         voiced_beats = [b for b in beats if b.get("wav")]
         with ThreadPoolExecutor(max_workers=rw) as ex:
             futs = {ex.submit(_render_one, b): b["idx"] for b in voiced_beats}

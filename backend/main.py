@@ -318,7 +318,9 @@ def create_job(body: dict):
                            voice_provider=voice_provider,
                            persona=body.get("persona"),
                            voice_preset=voice_preset,
-                           voice_opts=voice_opts)
+                           voice_opts=voice_opts,
+                           ratio=body.get("ratio") or "16:9",
+                           resolution=body.get("resolution") or "720p")
     # quota pre-check before burning any work
     import subprocess as _sp
     dur = float(_sp.check_output(
