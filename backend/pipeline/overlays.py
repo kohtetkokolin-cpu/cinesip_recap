@@ -36,11 +36,35 @@ def _esc_drawtext(s: str) -> str:
 
 
 def resolve_font(font_dir: str, name: str | None) -> str | None:
-    """Return absolute fontfile path or None if not found."""
-    if not name:
-        return None
-    p = os.path.join(font_dir, os.path.basename(name))
-    return p if os.path.isfile(p) else None
+    """Return absolute fontfile path or None if not found.
+
+    Search order: app fonts dir → Windows system fonts (Myanmar Text for
+    Burmese, Arial as last resort). Without SOME fontfile, ffmpeg drawtext
+    fails on Windows (no default font) → HTTP 500. Never let that happen.
+    """
+    candidates: list[str] = []
+    if name:
+        candidates.append(os.path.join(font_dir, os.path.basename(name)))
+    if os.name == "nt":
+        windir = os.environ.get("SystemRoot", r"C:\Windows")
+        candidates += [
+            os.path.join(windir, "Fonts", "mmrtext.ttf"),   # Myanmar Text (Win10+)
+            os.path.join(windir, "Fonts", "arial.ttf"),
+        ]
+    # Linux/macOS fallbacks (sandbox / dev machines)
+    candidates += [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansMyanmar-Regular.ttf",
+    ]
+    for p in candidates:
+        if p and os.path.isfile(p):
+            return p
+    return None
+
+
+def _ff_esc_path(p: str) -> str:
+    """Escape a filesystem path for ffmpeg filter arguments (Windows-safe)."""
+    return p.replace("\\", "/").replace(":", "\\:").replace("'", "\\'")
 
 
 def sanitize_overlays(raw: dict | None) -> dict:
@@ -92,8 +116,23 @@ def sanitize_overlays(raw: dict | None) -> dict:
     fairuse = {"max_clip_sec": _pct(fx.get("max_clip_sec"), 2, 8, 5),
                "mirror": bool(fx.get("mirror", False)),
                "grade": str(fx.get("grade") or "none")}
+    bd = d.get("border") if isinstance(d.get("border"), dict) else {}
+    bcolor = str(bd.get("color") or "gold")
+    border = {"enabled": bool(bd.get("enabled", False)),
+              "color": bcolor if bcolor in BORDER_COLORS else "gold",
+              "size": _pct(bd.get("size"), 0.5, 8, 2)}
     return {"blur": blur, "logo": logo, "watermark": watermark,
-            "sub": sub, "video": video, "fairuse": fairuse}
+            "sub": sub, "video": video, "fairuse": fairuse, "border": border}
+
+
+BORDER_COLORS = {
+    "white": "0xFFFFFF", "black": "0x000000", "red": "0xFF3B30",
+    "gold": "0xF5B942", "orange": "0xFF9500", "yellow": "0xFFCC00",
+    "green": "0x34C759", "cyan": "0x32ADE6", "blue": "0x0A84FF",
+    "purple": "0xBF5AF2",
+}
+BORDER_NAMES = ["white", "black", "red", "gold", "orange",
+                "yellow", "green", "cyan", "blue", "purple"]
 
 
 _GRADES = {
@@ -146,33 +185,45 @@ def build_filter(w: int, h: int, ov: dict, logo_path: str | None = None,
         parts.append(f"[{cur}][bl{i}]overlay=x={bx}:y={by}[vb{i}]")
         cur = f"vb{i}"
 
-    # 4. logo image
+    # 4. frame border (drawbox inside the frame edges)
+    bd = ov["border"]
+    if bd["enabled"]:
+        th = max(2, int(round(min(w, h) * bd["size"] / 100)))
+        parts.append(f"[{cur}]drawbox=x=0:y=0:w=iw:h=ih:"
+                     f"color={BORDER_COLORS[bd['color']]}:thickness={th}[vbd]")
+        cur = "vbd"
+
+    # 5. logo image
     lg = ov["logo"]
     if lg["enabled"] and logo_path and os.path.isfile(logo_path):
-        lp = logo_path.replace("\\", "/").replace(":", "\\:")
+        lp = _ff_esc_path(logo_path)
         lw = max(8, px(lg["w"], w))
         parts.append(f"movie='{lp}',scale=w={lw}:h=-1,format=rgba,"
                      f"colorchannelmixer=aa={lg['opacity']:.2f}[lg]")
         parts.append(f"[{cur}][lg]overlay=x={px(lg['x'], w)}:y={px(lg['y'], h)}[vl]")
         cur = "vl"
 
-    # 5. watermark text
+    # 6. watermark text (skip silently if no font file exists anywhere —
+    # a missing font must never 500 the render; drawtext has no fallback
+    # font on Windows portable ffmpeg)
     wm = ov["watermark"]
     if wm["enabled"] and wm["text"].strip():
         ff = resolve_font(font_dir, "Padauk.ttf")
-        font_opt = f":fontfile='{ff}'" if ff else ""
-        parts.append(
-            f"[{cur}]drawtext=text='{_esc_drawtext(wm['text'])}'"
-            f":x={px(wm['x'], w)}:y={px(wm['y'], h)}"
-            f":fontsize={max(8, px(wm['size'], h))}:fontcolor={wm['color']}@{wm['opacity']:.2f}"
-            f"{font_opt}:box=0[vw]")
-        cur = "vw"
+        if ff:
+            ff_esc = _ff_esc_path(ff)
+            parts.append(
+                f"[{cur}]drawtext=text='{_esc_drawtext(wm['text'])}'"
+                f":x={px(wm['x'], w)}:y={px(wm['y'], h)}"
+                f":fontsize={max(8, px(wm['size'], h))}:fontcolor={wm['color']}@{wm['opacity']:.2f}"
+                f":fontfile='{ff_esc}':box=0[vw]")
+            cur = "vw"
 
     vf = ";".join(parts)
-    # 6. burned subtitles via ASS (needs the .ass file pre-written)
+    # 7. burned subtitles via ASS (needs the .ass file pre-written)
     if ass_path:
-        ap = ass_path.replace("\\", "/").replace(":", "\\:")
-        vf += f";[{cur}]subtitles='{ap}':fontsdir='{font_dir}'[vout]"
+        ap = _ff_esc_path(ass_path)
+        fd_esc = _ff_esc_path(os.path.abspath(font_dir))
+        vf += f";[{cur}]subtitles='{ap}':fontsdir='{fd_esc}'[vout]"
     else:
         vf += f";[{cur}]null[vout]"
     return vf

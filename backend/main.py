@@ -285,6 +285,18 @@ async def save_overlays(video_id: str, body: dict):
 def render_preview(video_id: str, t: float = 0):
     """Render 10 seconds starting at t with ALL overlays applied exactly as
     the preview editor shows them. This is the WYSIWYG proof."""
+    try:
+        return _render_preview_inner(video_id, t)
+    except HTTPException:
+        raise
+    except FileNotFoundError as e:
+        raise HTTPException(500, f"ffmpeg/ffprobe မတွေ့ပါ: {e}. install.bat ပြန်လုပ်ပါ.")
+    except Exception as e:
+        import traceback as _tb
+        raise HTTPException(500, f"preview error: {e}\n{_tb.format_exc()[-600:]}")
+
+
+def _render_preview_inner(video_id: str, t: float = 0):
     src = _video_path(video_id)
     meta = _probe(src)
     w, h = meta["width"], meta["height"]
@@ -381,7 +393,9 @@ def create_job(body: dict):
                            voice_opts=voice_opts,
                            ratio=body.get("ratio") or "16:9",
                            resolution=body.get("resolution") or "720p",
-                           source_title=body.get("source_title") or "")
+                           source_title=body.get("source_title") or "",
+                           fill_mode=body.get("fill_mode") or "blur",
+                           fill_color=body.get("fill_color") or "black")
     # quota pre-check before burning any work
     import subprocess as _sp
     dur = float(_sp.check_output(

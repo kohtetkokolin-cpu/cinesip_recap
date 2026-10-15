@@ -114,7 +114,8 @@ def create_job(video_id: str, video_path: str, mode: str = "long",
                voice_preset: str | None = None,
                voice_opts: dict | None = None,
                ratio: str = "16:9", resolution: str = "720p",
-               source_title: str = "") -> dict:
+               source_title: str = "",
+               fill_mode: str = "blur", fill_color: str = "black") -> dict:
     job_id = uuid.uuid4().hex[:12]
     job = {"id": job_id, "video_id": video_id, "video_path": video_path,
            "mode": mode, "target_minutes": target_minutes, "style": style,
@@ -123,6 +124,8 @@ def create_job(video_id: str, video_path: str, mode: str = "long",
            "ratio": ratio if ratio in ("16:9", "9:16", "original") else "16:9",
            "resolution": resolution if resolution in ("1080p", "720p", "480p") else "720p",
            "source_title": (source_title or "")[:200],
+           "fill_mode": fill_mode if fill_mode in ("crop", "blur", "color") else "blur",
+           "fill_color": (fill_color or "black")[:20],
            "stage": "queued", "progress": 0, "stage_detail": "",
            "log": [], "created": time.time(), "script": None, "result": None,
            "error": None}
@@ -318,7 +321,9 @@ def _run_after_approval(job_id: str):
                 return None
             return rd.render_beat(job_id, b, job["video_path"], b["wav"],
                                   scenes, W, H, max_clip, workdir, ratio=ratio,
-                                  src_w=job["src_w"], src_h=job["src_h"])
+                                  src_w=job["src_w"], src_h=job["src_h"],
+                                  fill=job.get("fill_mode", "blur"),
+                                  fill_color=job.get("fill_color", "black"))
         voiced_beats = [b for b in beats if b.get("wav")]
         with ThreadPoolExecutor(max_workers=rw) as ex:
             futs = {ex.submit(_render_one, b): b["idx"] for b in voiced_beats}

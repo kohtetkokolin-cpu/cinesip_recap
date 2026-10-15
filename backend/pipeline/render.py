@@ -42,10 +42,28 @@ def output_dims(ratio: str, resolution: str, src_w: int, src_h: int) -> tuple[in
     return w, h
 
 
-def ratio_filter(ratio: str, tw: int, th: int) -> str:
+FILL_MODES = ("crop", "blur", "color")
+
+
+def ratio_filter(ratio: str, tw: int, th: int, fill: str = "crop",
+                 fill_color: str = "black") -> str:
     """ffmpeg filter: fit source into target dims.
-    9:16 → center-crop to vertical (standard for Shorts/TikTok).
-    else → scale-to-fit + letterbox pad (never crops content)."""
+    16:9/original → scale-to-fit + letterbox pad (never crops content).
+    9:16 → fill mode decides what happens to the empty bands:
+      crop  — center-crop source to vertical (classic Shorts look)
+      blur  — fit video, fill bands with blurred copy (trendy vertical look)
+      color — fit video, fill bands with a solid color
+    """
+    if ratio == "9:16" and fill == "blur":
+        return (f"split=2[bs1][bs2];"
+                f"[bs1]scale={tw}:{th}:force_original_aspect_ratio=increase,"
+                f"crop={tw}:{th},gblur=sigma=50[bg];"
+                f"[bs2]scale={tw}:-2:flags=lanczos[fg];"
+                f"[bg][fg]overlay=(W-w)/2:(H-h)/2,setsar=1")
+    if ratio == "9:16" and fill == "color":
+        fc = fill_color if fill_color else "black"
+        return (f"scale={tw}:{th}:force_original_aspect_ratio=decrease,"
+                f"pad={tw}:{th}:(ow-iw)/2:(oh-ih)/2:color={fc},setsar=1")
     if ratio == "9:16":
         return (f"crop=w='min(iw,ih*9/16)':h='min(ih,iw*16/9)',"
                 f"scale={tw}:{th}:flags=lanczos,setsar=1")
@@ -78,7 +96,8 @@ def find_bgm() -> str | None:
 def render_beat(job_id: str, beat: dict, src_video: str, vo_wav: str,
                scenes: list, w: int, h: int, max_clip_sec: float,
                workdir: str, ratio: str = "16:9",
-               src_w: int = 0, src_h: int = 0) -> dict:
+               src_w: int = 0, src_h: int = 0,
+               fill: str = "crop", fill_color: str = "black") -> dict:
     """Render one beat: video exactly == VO duration. Returns {mp4, dur}.
     w/h are the TARGET output dims; ratio controls fit vs crop.
     src_w/src_h (source dims) are used for fair-use transforms so the
@@ -96,7 +115,7 @@ def render_beat(job_id: str, beat: dict, src_video: str, vo_wav: str,
     n = len(clips)
     fc = []
     inputs = []
-    rf = ratio_filter(ratio, w, h)
+    rf = ratio_filter(ratio, w, h, fill=fill, fill_color=fill_color)
     for i, c in enumerate(clips):
         inputs += ["-ss", str(c["start"]), "-t", str(round(c["end"] - c["start"], 2)),
                    "-i", src_video]
