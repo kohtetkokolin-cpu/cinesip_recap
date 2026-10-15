@@ -22,7 +22,80 @@ from .quota import QuotaManager
 WAV_DIR = os.path.join(config.DATA_DIR, "wav")
 os.makedirs(WAV_DIR, exist_ok=True)
 
-# role → voice mapping (Gemini preset voices; edge-tts fallback in parens)
+# 10 named recap voices. Edge = unlimited free (rate/pitch/volume adjustable).
+# Gemini = 30 preset voices, most human-like, shares script quota pool.
+VOICE_PRESETS = [
+    {"id": "thiha", "provider": "edge", "voice": "my-MM-ThihaNeural",
+     "name": "ကိုသီဟ", "gender": "male",
+     "desc": "နက်နဲတဲ့အသံ — recap narrator အတွက် အကောင်းဆုံး (အခမဲ့)"},
+    {"id": "nilar", "provider": "edge", "voice": "my-MM-NilarNeural",
+     "name": "မနီလာ", "gender": "female",
+     "desc": "နွေးထွေးတဲ့အသံ — မိန်းကလေး narrator (အခမဲ့)"},
+    {"id": "kore", "provider": "gemini", "voice": "Kore",
+     "name": "ကိုအောင်", "gender": "male",
+     "desc": "လူသံနဲ့အနီးစပ်ဆုံး — နက်နဲတည်ငြိမ်တဲ့ ကျားအသံ"},
+    {"id": "charon", "provider": "gemini", "voice": "Charon",
+     "name": "ကိုကျော်", "gender": "male",
+     "desc": "အားကောင်းတဲ့ ကျားအသံ — action/thriller နဲ့လိုက်"},
+    {"id": "fenrir", "provider": "gemini", "voice": "Fenrir",
+     "name": "ကိုဖြိုး", "gender": "male",
+     "desc": "ငယ်ရွယ်တက်ကြွတဲ့ ကျားအသံ — host စတိုင်နဲ့လိုက်"},
+    {"id": "puck", "provider": "gemini", "voice": "Puck",
+     "name": "ကိုပိုင်", "gender": "male",
+     "desc": "ပေါ့ပေါ့ပါးပါး ကျားအသံ — ဟာသနဲ့လိုက်"},
+    {"id": "leda", "provider": "gemini", "voice": "Leda",
+     "name": "မသန်း", "gender": "female",
+     "desc": "ရှင်းလင်းချိုသာတဲ့ မအသံ — narrator"},
+    {"id": "aoede", "provider": "gemini", "voice": "Aoede",
+     "name": "မအေး", "gender": "female",
+     "desc": "နူးညံ့တဲ့မအသံ — drama/moral စတိုင်နဲ့လိုက်"},
+    {"id": "zephyr", "provider": "gemini", "voice": "Zephyr",
+     "name": "မဇင်", "gender": "female",
+     "desc": "လန်းဆန်းတဲ့မအသံ — horror/comedy နဲ့လိုက်"},
+    {"id": "sulafat", "provider": "gemini", "voice": "Sulafat",
+     "name": "မဆု", "gender": "female",
+     "desc": "တည်ငြိမ်တဲ့မအသံ — documentary စတိုင်နဲ့လိုက်"},
+]
+
+DEFAULT_PRESET = "thiha"  # free + most reliable
+
+_PRESET_BY_ID = {p["id"]: p for p in VOICE_PRESETS}
+_PRESET_BY_VOICE = {p["voice"]: p for p in VOICE_PRESETS}
+
+
+def get_voice_presets() -> list:
+    return [{"id": p["id"], "provider": p["provider"], "name": p["name"],
+             "gender": p["gender"], "desc": p["desc"]} for p in VOICE_PRESETS]
+
+
+def _preset(pid: str | None) -> dict:
+    return _PRESET_BY_ID.get(pid or "") or _PRESET_BY_ID[DEFAULT_PRESET]
+
+
+def _gender_match(provider: str, gender: str) -> dict:
+    for p in VOICE_PRESETS:
+        if p["provider"] == provider and p["gender"] == gender:
+            return p
+    return _PRESET_BY_ID[DEFAULT_PRESET]
+
+
+def preset_for(role_or_voice: str, narrator_preset: str | None = None) -> dict:
+    """Resolve a beat's voice value to a concrete preset.
+    Accepts preset ids ('thiha'), raw voice names ('Kore', 'my-MM-ThihaNeural'),
+    or legacy roles ('narrator'/'female'/'male')."""
+    if not role_or_voice:
+        return _preset(narrator_preset)
+    if role_or_voice in _PRESET_BY_ID:
+        return _PRESET_BY_ID[role_or_voice]
+    if role_or_voice in _PRESET_BY_VOICE:
+        return _PRESET_BY_VOICE[role_or_voice]
+    base = _preset(narrator_preset)
+    if role_or_voice in ("female", "male"):
+        return _gender_match(base["provider"], role_or_voice)
+    return base  # "narrator" or anything unknown → narrator preset
+
+
+# legacy role → voice mapping, kept for back-compat
 VOICES = {
     "narrator": {"gemini": "Kore", "edge": "my-MM-ThihaNeural"},
     "female": {"gemini": "Leda", "edge": "my-MM-NilarNeural"},
@@ -52,7 +125,7 @@ def synth_gemini(text: str, voice_name: str, out_wav: str,
     if not key:
         return {"ok": False, "error": "quota exhausted"}
     last_err = None
-    for model in ("gemini-2.5-flash-preview-tts", "gemini-2.0-flash-preview-tts"):
+    for model in config.GEMINI_TTS_MODELS or ["gemini-2.5-flash-preview-tts"]:
         try:
             client = genai.Client(api_key=key)
             contents = (style_hint + "\n" + text) if style_hint else text
@@ -80,20 +153,45 @@ def synth_gemini(text: str, voice_name: str, out_wav: str,
 
 
 # ---------- provider 2: edge-tts ----------
-async def _edge_synth(text: str, voice: str, out_mp3: str):
+async def _edge_synth(text: str, voice: str, out_mp3: str,
+                      rate: str = "+0%", pitch: str = "+0Hz", volume: str = "+0%"):
     import edge_tts
-    comm = edge_tts.Communicate(text, voice)
+    comm = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch, volume=volume)
     await comm.save(out_mp3)
 
 
-def synth_edge(text: str, voice: str, out_wav: str) -> dict:
+def _edge_params(voice_opts: dict | None) -> tuple[str, str, str]:
+    """UI sliders → edge-tts SSML params.
+    speed 0.7–1.3 → rate percent; pitch -12..+12 → Hz; volume 50–150 → percent."""
+    o = voice_opts or {}
+    try:
+        speed = float(o.get("speed", 1.0))
+    except (TypeError, ValueError):
+        speed = 1.0
+    try:
+        pitch = int(o.get("pitch", 0))
+    except (TypeError, ValueError):
+        pitch = 0
+    try:
+        volume = int(o.get("volume", 100))
+    except (TypeError, ValueError):
+        volume = 100
+    speed = min(1.3, max(0.7, speed))
+    pitch = min(12, max(-12, pitch))
+    volume = min(150, max(50, volume))
+    return (f"{(speed - 1) * 100:+.0f}%", f"{pitch:+d}Hz", f"{volume - 100:+d}%")
+
+
+def synth_edge(text: str, voice: str, out_wav: str,
+               voice_opts: dict | None = None) -> dict:
     import asyncio
+    rate, pitch, volume = _edge_params(voice_opts)
     mp3 = out_wav + ".mp3"
-    asyncio.run(_edge_synth(text, voice, mp3))
+    asyncio.run(_edge_synth(text, voice, mp3, rate, pitch, volume))
     # convert to wav 24k mono
     subprocess.run([config.FFMPEG, "-y", "-v", "error", "-i", mp3,
                     "-ac", "1", "-ar", "24000", out_wav], check=True)
-    words = _edge_word_timings(text, voice)
+    words = _edge_word_timings(text, voice, rate, pitch, volume)
     try:
         os.remove(mp3)
     except OSError:
@@ -101,8 +199,10 @@ def synth_edge(text: str, voice: str, out_wav: str) -> dict:
     return {"ok": True, "provider": "edge", "wav": out_wav, "words": words}
 
 
-def _edge_word_timings(text: str, voice: str) -> list:
-    """Word-level timings via edge-tts submaker. Best-effort; [] on failure."""
+def _edge_word_timings(text: str, voice: str, rate: str = "+0%",
+                       pitch: str = "+0Hz", volume: str = "+0%") -> list:
+    """Word-level timings via edge-tts submaker. Best-effort; [] on failure.
+    Must use the same rate/pitch/volume as synthesis so timings match."""
     import asyncio
     try:
         import edge_tts
@@ -111,7 +211,7 @@ def _edge_word_timings(text: str, voice: str) -> list:
         return []
 
     async def _run():
-        comm = edge_tts.Communicate(text, voice)
+        comm = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch, volume=volume)
         sub = SubMaker()
         async for chunk in comm.stream():
             if chunk["type"] == "WordBoundary":
@@ -146,28 +246,62 @@ def synth_piper(text: str, out_wav: str) -> dict:
 def synthesize(text: str, role: str, out_wav: str,
                quota: QuotaManager | None = None,
                prefer: str = "gemini",
-               style_hint: str = "") -> dict:
-    """Try providers in order. Returns synth dict (ok True/False)."""
-    role = ROLE_FIX.get(role, "narrator")
+               style_hint: str = "",
+               voice_preset: str | None = None,
+               voice_opts: dict | None = None) -> dict:
+    """Try providers in order. Returns synth dict (ok True/False).
+
+    role: preset id ('thiha'), raw voice name ('Kore'), or legacy role
+    ('narrator'/'female'/'male'). voice_preset: the job's narrator preset.
+    voice_opts: {'speed': 0.7-1.3, 'pitch': -12..12, 'volume': 50-150}
+    (native for edge-tts; speed also applied to Gemini via atempo)."""
     q = quota or QuotaManager()
-    order = {"gemini": ["gemini", "edge", "piper"],
-             "edge": ["edge", "gemini", "piper"]}.get(prefer, ["gemini", "edge", "piper"])
+    preset = preset_for(role, voice_preset)
+    prov = preset["provider"]
+    # honor an explicit provider preference only when the preset allows it
+    order = [prov]
+    for p in ("gemini", "edge", "piper"):
+        if p not in order:
+            order.append(p)
+    if prefer == "edge" and "edge" not in order[:1]:
+        order = ["edge"] + [p for p in order if p != "edge"]
     errors = []
-    for prov in order:
+    for p in order:
         try:
-            if prov == "gemini":
-                v = VOICES[role]["gemini"]
-                r = synth_gemini(text, v, out_wav, q, style_hint)
-            elif prov == "edge":
-                r = synth_edge(text, VOICES[role]["edge"], out_wav)
+            if p == "gemini":
+                gp = preset if preset["provider"] == "gemini" else _gender_match(
+                    "gemini", preset["gender"])
+                r = synth_gemini(text, gp["voice"], out_wav, q, style_hint)
+                if r.get("ok") and voice_opts:
+                    r = _apply_speed(r, out_wav, voice_opts)
+            elif p == "edge":
+                ep = preset if preset["provider"] == "edge" else _gender_match(
+                    "edge", preset["gender"])
+                r = synth_edge(text, ep["voice"], out_wav, voice_opts)
             else:
                 r = synth_piper(text, out_wav)
             if r.get("ok"):
                 return r
-            errors.append(f"{prov}: {r.get('error')}")
+            errors.append(f"{p}: {r.get('error')}")
         except Exception as e:
-            errors.append(f"{prov}: {e}")
+            errors.append(f"{p}: {e}")
     return {"ok": False, "error": " | ".join(errors)}
+
+
+def _apply_speed(r: dict, out_wav: str, voice_opts: dict | None) -> dict:
+    """Apply UI speed slider to non-edge audio via atempo (pitch preserved)."""
+    try:
+        speed = float((voice_opts or {}).get("speed", 1.0))
+    except (TypeError, ValueError):
+        return r
+    speed = min(1.3, max(0.7, speed))
+    if abs(speed - 1.0) < 0.01:
+        return r
+    out = out_wav.replace(".wav", "_spd.wav")
+    subprocess.run([config.FFMPEG, "-y", "-v", "error", "-i", out_wav,
+                    "-filter:a", f"atempo={speed:.3f}", out], check=True)
+    r["wav"] = out
+    return r
 
 
 def fit_beat_wav(wav_path: str, max_sec: float) -> tuple[str, float]:

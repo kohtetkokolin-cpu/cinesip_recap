@@ -18,6 +18,7 @@ from fastapi.responses import FileResponse, JSONResponse
 
 from . import config
 from .pipeline import script as _sc
+from .pipeline import voice as _vc
 
 app = FastAPI(title="Cinesip Recap")
 
@@ -26,6 +27,12 @@ app = FastAPI(title="Cinesip Recap")
 def list_styles():
     """The 10 research-based recap styles for the wizard picker."""
     return {"styles": _sc.get_styles(), "default": _sc.DEFAULT_STYLE}
+
+
+@app.get("/api/voices")
+def list_voices():
+    """The 10 named recap voices for the wizard picker."""
+    return {"voices": _vc.get_voice_presets(), "default": _vc.DEFAULT_PRESET}
 
 
 def _check_bins():
@@ -248,7 +255,28 @@ def serve_clip(name: str):
     p = os.path.join(config.CLIP_DIR, os.path.basename(name))
     if not os.path.isfile(p):
         raise HTTPException(404, "clip not found")
-    return FileResponse(p, media_type="video/mp4")
+    mt = "audio/wav" if name.lower().endswith(".wav") else "video/mp4"
+    return FileResponse(p, media_type=mt)
+
+
+@app.post("/api/voice-preview")
+async def voice_preview(body: dict):
+    """Synthesize a short sample with the chosen voice preset + opts.
+    Lets the user hear the voice before starting a job."""
+    from .pipeline import voice as _vv
+    from .pipeline.quota import QuotaManager as _QQ
+    preset = body.get("voice_preset") or _vv.DEFAULT_PRESET
+    if preset not in _vv._PRESET_BY_ID:
+        preset = _vv.DEFAULT_PRESET
+    opts = body.get("voice_opts") or {}
+    text = (body.get("text") or "")[:300]
+    if not text.strip():
+        raise HTTPException(400, "text required")
+    out = os.path.join(config.CLIP_DIR, f"voiceprev_{preset}_{uuid.uuid4().hex[:8]}.wav")
+    r = _vv.synthesize(text, preset, out, _QQ(), voice_preset=preset, voice_opts=opts)
+    if not r.get("ok"):
+        return {"ok": False, "error": r.get("error")}
+    return {"ok": True, "audio_url": f"/api/clip/{os.path.basename(r.get('wav', out))}"}
 
 
 # ================= PHASE 2: recap jobs =================
@@ -266,10 +294,21 @@ async def create_job(body: dict):
     style = body.get("style") or _sc.DEFAULT_STYLE
     if style not in _sc.RECAP_STYLES:
         style = _sc.DEFAULT_STYLE
+    voice_preset = body.get("voice_preset") or _vc.DEFAULT_PRESET
+    if voice_preset not in _vc._PRESET_BY_ID:
+        voice_preset = _vc.DEFAULT_PRESET
+    # voice_opts: {speed: 0.7-1.3, pitch: -12..12, volume: 50-150} — clamped in voice.py
+    voice_opts = body.get("voice_opts") or {}
+    if not isinstance(voice_opts, dict):
+        voice_opts = {}
+    # provider is derived from the preset; kept for back-compat display
+    voice_provider = _vc._PRESET_BY_ID[voice_preset]["provider"]
     job = _jobs.create_job(video_id, src, mode=mode, target_minutes=target,
                            style=style,
-                           voice_provider=body.get("voice_provider", "gemini"),
-                           persona=body.get("persona"))
+                           voice_provider=voice_provider,
+                           persona=body.get("persona"),
+                           voice_preset=voice_preset,
+                           voice_opts=voice_opts)
     # quota pre-check before burning any work
     import subprocess as _sp
     dur = float(_sp.check_output(
@@ -309,11 +348,25 @@ def job_status(job_id: str):
     j = _jobs.get_job(job_id)
     if not j:
         raise HTTPException(404, "job not found")
+    # video dims for the "Overlay Studio" jump button
+    vdims = {}
+    try:
+        mp = os.path.join(config.UPLOAD_DIR, f"{j.get('video_id')}.json")
+        if os.path.isfile(mp):
+            with open(mp) as f:
+                m = json.load(f)
+            vdims = {"width": m.get("width"), "height": m.get("height"),
+                     "duration": m.get("duration")}
+    except Exception:
+        pass
     return {"id": j["id"], "stage": j["stage"], "progress": j.get("progress", 0),
             "stage_detail": j.get("stage_detail", ""), "log": j.get("log", [])[-60:],
             "error": j.get("error"), "evidence": j.get("evidence"),
             "video_id": j.get("video_id"), "mode": j.get("mode"),
-            "voice_provider": j.get("voice_provider"), "created": j.get("created"),
+            "voice_provider": j.get("voice_provider"), "voice_preset": j.get("voice_preset"),
+            "created": j.get("created"),
+            "video_width": vdims.get("width"), "video_height": vdims.get("height"),
+            "video_duration": vdims.get("duration"),
             "n_beats": len((j.get("script") or {}).get("beats", []))}
 
 
@@ -374,9 +427,12 @@ async def voice_preview(job_id: str, body: dict):
     if not beat or not beat.get("narration"):
         raise HTTPException(404, "beat not found")
     from .pipeline import voice as _vc
+    from .pipeline.quota import QuotaManager as _QM
     out = os.path.join(config.DATA_DIR, "jobs", f"{job_id}_pv_{idx}.wav")
     r = _vc.synthesize(beat["narration"][:600], beat.get("voice", "narrator"), out,
-                       prefer=j.get("voice_provider", "gemini"))
+                       _QM(), prefer=j.get("voice_provider", "gemini"),
+                       voice_preset=j.get("voice_preset"),
+                       voice_opts=j.get("voice_opts"))
     if not r.get("ok"):
         raise HTTPException(500, r.get("error"))
     return {"ok": True, "audio_url": f"/api/jobs/{job_id}/voice-file/pv_{idx}.wav",

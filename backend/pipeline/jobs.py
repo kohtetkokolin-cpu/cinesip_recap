@@ -110,11 +110,14 @@ def set_stage(job: dict, stage: str, pct: float = 0, detail: str = ""):
 
 def create_job(video_id: str, video_path: str, mode: str = "long",
                target_minutes: float = 60, style: str = "recap",
-               voice_provider: str = "gemini", persona: str | None = None) -> dict:
+               voice_provider: str = "gemini", persona: str | None = None,
+               voice_preset: str | None = None,
+               voice_opts: dict | None = None) -> dict:
     job_id = uuid.uuid4().hex[:12]
     job = {"id": job_id, "video_id": video_id, "video_path": video_path,
            "mode": mode, "target_minutes": target_minutes, "style": style,
            "voice_provider": voice_provider, "persona": persona,
+           "voice_preset": voice_preset, "voice_opts": voice_opts or {},
            "stage": "queued", "progress": 0, "stage_detail": "",
            "log": [], "created": time.time(), "script": None, "result": None,
            "error": None}
@@ -244,7 +247,9 @@ def _run_after_approval(job_id: str):
                 continue
             wav = os.path.join(workdir, f"vo_{b['idx']:03d}.wav")
             r = vc.synthesize(nar, b.get("voice", "narrator"), wav, quota,
-                              prefer=job.get("voice_provider", "gemini"))
+                              prefer=job.get("voice_provider", "gemini"),
+                              voice_preset=job.get("voice_preset"),
+                              voice_opts=job.get("voice_opts"))
             if not r.get("ok"):
                 raise RuntimeError(f"TTS failed (beat {b['idx']}): {r.get('error')}")
             # cap: VO must not exceed 2.5x footage window + 30s
@@ -255,7 +260,9 @@ def _run_after_approval(job_id: str):
                 nar2 = sc.rewrite_shorter(client, nar, int(max_vo * 2.2))
                 b["narration"] = nar2
                 r = vc.synthesize(nar2, b.get("voice", "narrator"), wav, quota,
-                                  prefer=job.get("voice_provider", "gemini"))
+                                  prefer=job.get("voice_provider", "gemini"),
+                                  voice_preset=job.get("voice_preset"),
+                                  voice_opts=job.get("voice_opts"))
                 if not r.get("ok"):
                     raise RuntimeError(f"TTS retry failed (beat {b['idx']})")
             wav, dur = vc.fit_beat_wav(wav, max_vo)

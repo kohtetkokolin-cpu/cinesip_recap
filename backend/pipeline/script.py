@@ -22,7 +22,7 @@ from .. import config
 from .quota import QuotaManager
 from .analyze import evidence_summary_for_prompt
 
-MODEL_CASCADE = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+MODEL_CASCADE = config.GEMINI_TEXT_MODELS or ["gemini-3.5-flash-lite"]
 
 
 class GeminiClient:
