@@ -642,7 +642,7 @@ function showView(name, param){
   $("viewTitle").textContent = name==="job" ? "Job အသေးစိတ်" : VIEW_TITLES[name];
   window.scrollTo(0,0);
   if(name==="dashboard"){ loadStyles(); loadDashboard(); }
-  if(name==="wizard") renderWizard();
+  if(name==="wizard"){ loadVoices(); renderWizard(); }
   if(name==="job" && param) openJob(param);
   if(name==="studio") studioOnShow();
 }
@@ -950,10 +950,6 @@ $("wizNext").addEventListener("click", ()=>{
 /* ============================================================
    JOB DETAIL
    ============================================================ */
-const VOICE_OPTS = {
-  gemini: ["Kore","Sulafat","Zephyr","Puck","Leda","Aoede","Charon","Fenrir"],
-  edge: ["my-MM-NilarNeural","my-MM-ThihaNeural"]
-};
 function stopJobPoll(){
   if(App.pollTimer){ clearInterval(App.pollTimer); App.pollTimer = null; }
 }
@@ -1633,6 +1629,7 @@ $("btnRenderOv").addEventListener("click", async ()=>{
 
 /* ---------- init ---------- */
 loadStyles();
+loadVoices();
 loadDashboard();
 </script>
 </body>
