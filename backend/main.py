@@ -318,18 +318,46 @@ def _render_preview_inner(video_id: str, t: float = 0):
                  [(0.5, 9.5, clean["sub"]["text"])],
                  clean, font_name=clean["sub"].get("font") or "Padauk.ttf")
 
-    vf = ov.build_filter(w, h, clean, logo_path=logo_path,
-                         font_dir=config.FONT_DIR, ass_path=ass_path)
     out = os.path.join(config.CLIP_DIR, f"{video_id}_preview.mp4")
     dur = 10.0
-    cmd = [config.FFMPEG, "-y", "-ss", str(max(0, t)), "-i", src,
-           "-t", str(dur), "-filter_complex", vf, "-map", "[vout]",
-           "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
-           "-c:a", "aac", "-shortest", out]
-    r = subprocess.run(cmd, capture_output=True, text=True)
-    if r.returncode != 0 or not os.path.isfile(out):
-        raise HTTPException(500, f"render failed: {r.stderr[-800:]}")
-    return {"ok": True, "clip_url": f"/api/clip/{os.path.basename(out)}"}
+
+    # Fallback chain: try full overlays first, then progressively simpler.
+    # Preview must NEVER 500 — a degraded preview beats no preview, and the
+    # warning tells the user exactly which layer failed.
+    levels = [
+        ("full", dict(clean)),
+        ("no-subs", {**clean, "sub": {**clean["sub"]}}),  # ass_path=None below
+        ("no-text", None),  # set below: watermark off + no subs
+        ("bare", None),     # set below: only eq/blur/border
+    ]
+    # build level configs
+    no_text = dict(clean)
+    no_text["watermark"] = {**clean["watermark"], "enabled": False}
+    levels[2] = ("no-text", no_text)
+    bare = {"blur": clean["blur"], "border": clean["border"],
+            "logo": {"enabled": False}, "watermark": {"enabled": False},
+            "sub": clean["sub"], "video": clean["video"], "fairuse": clean["fairuse"]}
+    levels[3] = ("bare", bare)
+
+    last_err = ""
+    for lvl, cfg in levels:
+        use_ass = ass_path if lvl in ("full",) else None
+        if lvl == "no-subs":
+            use_ass = None
+        vf = ov.build_filter(w, h, cfg, logo_path=logo_path,
+                             font_dir=config.FONT_DIR, ass_path=use_ass)
+        cmd = [config.FFMPEG, "-y", "-ss", str(max(0, t)), "-i", src,
+               "-t", str(dur), "-filter_complex", vf, "-map", "[vout]",
+               "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
+               "-c:a", "aac", "-shortest", out]
+        r = subprocess.run(cmd, capture_output=True, text=True)
+        if r.returncode == 0 and os.path.isfile(out):
+            warn = "" if lvl == "full" else \
+                f"⚠️ preview အပြည့်မရပါ ({lvl}): {last_err[-200:]}"
+            return {"ok": True, "clip_url": f"/api/clip/{os.path.basename(out)}",
+                    "level": lvl, "warning": warn}
+        last_err = r.stderr[-500:] if r.stderr else "unknown ffmpeg error"
+    raise HTTPException(500, f"preview failed at all levels: {last_err[-600:]}")
 
 
 @app.get("/api/clip/{name}")

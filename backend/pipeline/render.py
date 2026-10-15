@@ -185,7 +185,12 @@ def _render_chunk(clips: list, src_video: str, out: str) -> None:
     for i, c in enumerate(clips):
         inputs += ["-ss", str(c["start"]), "-t", str(round(c["end"] - c["start"], 2)),
                    "-i", src_video]
-        fc.append(f"[{i}:v]{c['filter']},setpts=PTS-STARTPTS,fps=30[v{i}]")
+        # zoom_punch (zoompan) must NOT get setpts/fps appended — it hangs
+        # (infinite loop); its own fps=30 already normalizes output.
+        # Every clip gets setsar=1: zoompan alters SAR and concat requires
+        # identical params on all inputs (else "Error reinitializing filters").
+        tail = ",setsar=1" if c["transform"] == "zoom_punch" else ",setpts=PTS-STARTPTS,fps=30,setsar=1"
+        fc.append(f"[{i}:v]{c['filter']}{tail}[v{i}]")
     vcat = "".join(f"[v{i}]" for i in range(len(clips)))
     fc.append(f"{vcat}concat=n={len(clips)}:v=1:a=0[vout]")
     cmd = [config.FFMPEG, "-y", "-v", "error", "-threads", str(config.RENDER_THREADS)] + inputs + \

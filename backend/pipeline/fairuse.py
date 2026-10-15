@@ -86,7 +86,10 @@ def transform_filter(tr: str, w: int, h: int, seed: int = 0) -> str:
     if tr == "mirror":
         return "hflip"
     if tr == "zoom_punch":
-        # slow push-in 1.0 → ~1.25 over the clip (d=1: one output frame per input)
+        # slow push-in 1.0 → ~1.25 over the clip (d=1: one output frame per input).
+        # NOTE: zoompan HANGS if followed by setpts/fps (infinite loop), so the
+        # caller must NOT append ",setpts=PTS-STARTPTS,fps=30" for this transform —
+        # zoompan's own fps=30 already normalizes the output. See _render_chunk.
         return ("scale=iw*1.3:ih*1.3,"
                 "zoompan=z='min(1.0+0.0012*on,1.25)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':"
                 f"d=1:s={w}x{h}:fps=30")
