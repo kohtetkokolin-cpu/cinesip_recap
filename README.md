@@ -38,7 +38,17 @@ Fair-use editing tools ပါဝင်ပြီး၊ Gemini free quota နဲ�
 9. **Shorts** — 4 vertical 9:16 cuts from the strongest hooks.
 10. **Metadata** — titles, description, tags, hashtags (copy buttons).
 
-## Windows laptop (RAM 4GB) မှာ run နည်း
+## Windows laptop (RAM 4GB) မှာ run နည်း — အလွယ်ဆုံး
+
+1. **`install.bat` ကို double-click** — Python စစ်၊ portable ffmpeg auto-download
+   (admin မလို), venv + packages အကုန် install, `.env` ပြင်‌ပေးမယ်။
+2. `.env` ဖွင့်ပြီး `GOOGLE_API_KEY=` မှာ AI Studio key (free) ထည့်။
+3. **`run.bat` ကို double-click** — browser auto-pwmht http://localhost:8000
+
+ဒါပဲ! Manual install လိုချင်ရင်သာ အောက်ကအဆင့်တွေ လိုက်ပါ။
+
+<details>
+<summary>Manual install (advanced)</summary>
 
 1. **Python 3.11+** သွင်း — https://www.python.org/downloads/
    (install မှာ "Add python.exe to PATH" ကို ✅ ချိတ်ပါ)
@@ -64,6 +74,8 @@ Fair-use editing tools ပါဝင်ပြီး၊ Gemini free quota နဲ�
    uvicorn backend.main:app --host 0.0.0.0 --port 8000
    ```
 7. Browser မှာ http://localhost:8000 ဖွင့်
+
+</details>
 
 ## Project map
 

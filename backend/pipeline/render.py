@@ -192,7 +192,7 @@ def assemble_final(job_id: str, beat_files: list, beats: list, w: int, h: int,
     cmd = ([config.FFMPEG, "-y", "-v", "error"] + inputs +
            ["-filter_complex", ";".join(fc),
             "-map", "[vout]", "-map", "[aout]",
-            "-c:v", "libx264", "-preset", "medium", "-crf", "20",
+            "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
             "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", out])
     _run(cmd)
     if progress_cb:
