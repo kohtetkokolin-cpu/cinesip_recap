@@ -222,7 +222,7 @@ async def save_overlays(video_id: str, body: dict):
 
 # ---------- render a 10s test clip with overlays burned in ----------
 @app.post("/api/render-preview/{video_id}")
-async def render_preview(video_id: str, t: float = 0):
+def render_preview(video_id: str, t: float = 0):
     """Render 10 seconds starting at t with ALL overlays applied exactly as
     the preview editor shows them. This is the WYSIWYG proof."""
     src = _video_path(video_id)
@@ -296,7 +296,7 @@ import threading as _th
 
 
 @app.post("/api/jobs")
-async def create_job(body: dict):
+def create_job(body: dict):
     video_id = body.get("video_id", "")
     src = _video_path(video_id)
     mode = body.get("mode", "long")  # long | short | both
@@ -427,7 +427,7 @@ def retry_job(job_id: str):
 
 
 @app.post("/api/jobs/{job_id}/voice-preview")
-def voice_preview(job_id: str, body: dict):
+def voice_preview_job(job_id: str, body: dict):
     """Synthesize one beat's narration for preview (does not advance the job)."""
     j = _jobs.get_job(job_id)
     if not j or not j.get("script"):
