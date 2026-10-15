@@ -104,7 +104,14 @@ class QuotaManager:
         # reserve 30% of the estimate for TTS (shares the pool)
         need = int(est["total"] * 1.3) + 2
         have = self.remaining_total()
+        if have == 0:
+            hint = ("Key မတွေ့ပါ (have:0) — .env ဖိုင်မှာ GOOGLE_API_KEY= နောက်မှာ "
+                    "AI Studio key ထည့်ပြီး run.bat ကို ပြန် run ပါ။ "
+                    "Key ထည့်ပြီးသားဆိုရင် server ပြန် run ဖို့ မေ့မနေပါနဲ့ (.env က စဖွင့်တုန်းကပဲ ဖတ်တယ်)။")
+        elif have < need:
+            hint = ("Quota မလုံလောက်ပါ — key အသစ်ထပ်ထည့်ပါ (GOOGLE_API_KEYS) "
+                    "ဒါမှမဟုတ် မနက်ဖြန် ပြန်လုပ်ပါ။")
+        else:
+            hint = ""
         return {"ok": have >= need, "need": need, "have": have,
-                "estimate": est,
-                "hint": ("Quota မလုံလောက်ပါ — key အသစ်ထပ်ထည့်ပါ (GOOGLE_API_KEYS) "
-                         "ဒါမှမဟုတ် မနက်ဖြန် ပြန်လုပ်ပါ။" if have < need else "")}
+                "estimate": est, "hint": hint}

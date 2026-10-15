@@ -1,6 +1,15 @@
 """Cinesip Recap — configuration. Tuned for a low-spec Windows laptop (~4GB RAM)."""
 import os
 
+# Load .env FIRST — before reading any env vars below.
+# (Bug 2026-10-15: nothing loaded .env, so GOOGLE_API_KEY in .env was silently
+# ignored and quota always showed have:0.)
+try:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".env"))
+except ImportError:
+    pass
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 UPLOAD_DIR = os.path.join(DATA_DIR, "uploads")

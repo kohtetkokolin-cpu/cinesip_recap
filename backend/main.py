@@ -23,6 +23,16 @@ from .pipeline import voice as _vc
 app = FastAPI(title="Cinesip Recap")
 
 
+@app.get("/api/health")
+def health():
+    """Lightweight status: is a Gemini key configured? (never exposes the key)"""
+    n = len(config.GOOGLE_API_KEYS)
+    return {"ok": True, "gemini_keys": n,
+            "gemini_ready": n > 0,
+            "msg": f"Gemini key {n} ခု တွေ့သည်" if n else
+                   "Gemini key မရှိသေးပါ — .env မှာ GOOGLE_API_KEY ထည့်ပါ"}
+
+
 @app.get("/api/styles")
 def list_styles():
     """The 10 research-based recap styles for the wizard picker."""
@@ -260,7 +270,7 @@ def serve_clip(name: str):
 
 
 @app.post("/api/voice-preview")
-async def voice_preview(body: dict):
+def voice_preview(body: dict):
     """Synthesize a short sample with the chosen voice preset + opts.
     Lets the user hear the voice before starting a job."""
     from .pipeline import voice as _vv
@@ -417,7 +427,7 @@ def retry_job(job_id: str):
 
 
 @app.post("/api/jobs/{job_id}/voice-preview")
-async def voice_preview(job_id: str, body: dict):
+def voice_preview(job_id: str, body: dict):
     """Synthesize one beat's narration for preview (does not advance the job)."""
     j = _jobs.get_job(job_id)
     if not j or not j.get("script"):
