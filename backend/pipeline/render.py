@@ -257,14 +257,21 @@ def _render_chunk(clips: list, src_video: str, out: str) -> None:
                   f"y='ih/2-(ih/zoom/2)':d=1:s={c['fw']}x{c['fh']}:fps=30")
             fc.append(f"[{i}:v]{zf},setsar=1[v{i}]")
             continue
-        inputs += ["-ss", str(c["start"]), "-t", str(round(c["end"] - c["start"], 2)),
-                   "-i", src_video]
-        # zoom_punch (zoompan) must NOT get setpts/fps appended — it hangs
-        # (infinite loop); its own fps=30 already normalizes output.
+        # Clip extraction: fast input seek + precise trim filter.
+        # (2026-10-16 e2e found: "-ss X -t D" as INPUT options + concat HANGS
+        #  ffmpeg forever on some clips — EOF never reaches concat. Fixed by
+        #  seeking without -t and cutting precisely with trim instead.)
+        dur_c = round(c["end"] - c["start"], 2)
+        seek = max(0.0, round(c["start"] - 2.0, 2))  # keyframe seek, fast
+        off = round(c["start"] - seek, 2)
+        inputs += ["-ss", f"{seek:.2f}", "-i", src_video]
+        trim = f"trim=start={off:.2f}:end={off + dur_c:.2f},setpts=PTS-STARTPTS,"
+        # zoom_punch (zoompan) must NOT get fps appended after itself — it
+        # hangs (infinite loop); its own fps=30 already normalizes output.
         # Every clip gets setsar=1: zoompan alters SAR and concat requires
         # identical params on all inputs (else "Error reinitializing filters").
-        tail = ",setsar=1" if c["transform"] == "zoom_punch" else ",setpts=PTS-STARTPTS,fps=30,setsar=1"
-        fc.append(f"[{i}:v]{c['filter']}{tail}[v{i}]")
+        tail = ",setsar=1" if c["transform"] == "zoom_punch" else ",fps=30,setsar=1"
+        fc.append(f"[{i}:v]{trim}{c['filter']}{tail}[v{i}]")
     vcat = "".join(f"[v{i}]" for i in range(len(clips)))
     fc.append(f"{vcat}concat=n={len(clips)}:v=1:a=0[vout]")
     cmd = [config.FFMPEG, "-y", "-v", "error", "-threads", str(config.RENDER_THREADS)] + inputs + \
