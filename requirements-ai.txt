@@ -8,3 +8,6 @@ edge-tts
 yt-dlp
 pyyaml
 apscheduler
+# AutoSync smart matching (all local, free, CPU-only)
+opencv-python-headless  # YuNet face detection + SFace recognition + visual features
+ai-edge-litert          # YAMNet audio event classification (TFLite)

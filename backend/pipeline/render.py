@@ -122,7 +122,8 @@ def render_beat(job_id: str, beat: dict, src_video: str, vo_wav: str,
                scenes: list, w: int, h: int, max_clip_sec: float,
                workdir: str, ratio: str = "16:9",
                src_w: int = 0, src_h: int = 0,
-               fill: str = "crop", fill_color: str = "black") -> dict:
+               fill: str = "crop", fill_color: str = "black",
+               evidence: dict | None = None) -> dict:
     """Render one beat: video exactly == VO duration. Returns {mp4, dur}.
 
     w/h are the TARGET output dims; ratio controls fit vs crop.
@@ -139,9 +140,33 @@ def render_beat(job_id: str, beat: dict, src_video: str, vo_wav: str,
     # frame-quantized: the beat's video lands on an exact frame boundary,
     # so no ±16ms drift accumulates across beats
     dur = qdur(wav_duration(vo_wav))
-    plan = beat_video_plan(beat, scenes, src_w or w, src_h or h,
-                           max_clip_sec=max_clip_sec)
-    clips = plan["clips"]
+    # --- AutoSync smart clip selection (zero user input) ---
+    # Tries content-matched clips first (character + audio + visual signals);
+    # falls back to sequential fair-use plan when confidence is low.
+    clips = []
+    if evidence and evidence.get("scenes"):
+        from . import smartsync
+        # enrich scenes with cached visual features for scoring
+        feats = evidence.get("scene_feats", [])
+        ev = dict(evidence)
+        ev["scenes"] = [
+            {"start": s[0], "end": s[1],
+             "feat": feats[i] if i < len(feats) else {}}
+            for i, s in enumerate(evidence["scenes"])]
+        smart = smartsync.smart_select(
+            beat, ev, evidence.get("name_to_cluster", {}),
+            max_clip_sec=max_clip_sec)
+        if smart:
+            from .fairuse import transform_filter
+            for i, c in enumerate(smart):
+                c["transform"] = "plain"
+                c["filter"] = transform_filter(
+                    "plain", src_w or w, src_h or h, seed=beat["idx"] * 100 + i)
+            clips = smart
+    if not clips:
+        plan = beat_video_plan(beat, scenes, src_w or w, src_h or h,
+                               max_clip_sec=max_clip_sec)
+        clips = plan["clips"]
     if not clips:  # degenerate: freeze first frame
         clips = [{"start": beat["footage_start"],
                   "end": min(beat["footage_end"], beat["footage_start"] + 2),

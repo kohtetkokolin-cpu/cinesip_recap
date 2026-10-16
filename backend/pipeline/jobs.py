@@ -324,6 +324,25 @@ def _run_after_approval(job_id: str):
         # ---- 4. render ----
         from . import overlays as _ov
         log(job, "🎬 Render လုပ်နေသည် (fair-use transforms + sync)")
+        # ---- AutoSync: auto-name face clusters (zero user input) ----
+        # Links Burmese character names from the script to face clusters via
+        # dialogue co-occurrence. Conservative: unconfident names stay anonymous.
+        try:
+            from . import smartsync
+            ev_full = az.build_evidence(job["video_id"], job["video_path"])  # cached
+            names = smartsync.extract_names(beats, ev_full.get("segments", []))
+            name_to_cluster = smartsync.auto_name_clusters(
+                names, ev_full.get("face_clusters", []),
+                ev_full.get("segments", []))
+            ev_full["name_to_cluster"] = name_to_cluster
+            if name_to_cluster:
+                log(job, "👤 AutoSync: " + ", ".join(
+                    f"{n}→Person{c}" for n, c in name_to_cluster.items()))
+            else:
+                log(job, "👤 AutoSync: no confident character mapping (anonymous mode)")
+        except Exception as e:
+            ev_full, name_to_cluster = {}, {}
+            log(job, f"👤 AutoSync skipped: {str(e)[:80]}")
         # load user overlays saved in preview editor
         ov_path = os.path.join(config.DATA_DIR, "overlays", f"{job['video_id']}.json")
         overlay_cfg = {}
@@ -345,7 +364,8 @@ def _run_after_approval(job_id: str):
                                   scenes, W, H, max_clip, workdir, ratio=ratio,
                                   src_w=job["src_w"], src_h=job["src_h"],
                                   fill=job.get("fill_mode", "blur"),
-                                  fill_color=job.get("fill_color", "black"))
+                                  fill_color=job.get("fill_color", "black"),
+                                  evidence=ev_full)
         voiced_beats = [b for b in beats if b.get("wav")]
         with ThreadPoolExecutor(max_workers=rw) as ex:
             futs = {ex.submit(_render_one, b): b["idx"] for b in voiced_beats}

@@ -166,11 +166,76 @@ def build_evidence(video_id: str, video_path: str, progress_cb=None) -> dict:
           "n_segments": len(segments), "n_scenes": len(scenes),
           "transcript_words": words, "segments": segments, "scenes": scenes,
           "cached": False}
+
+    # ---- AutoSync smart signals (cached with evidence) ----
+    # All local + free: face clusters, audio events, per-scene visual features.
+    # Each is wrapped so a failure degrades gracefully (never blocks analysis).
+    if progress_cb:
+        progress_cb("smart", 1, 4)
+    try:
+        from . import faceid
+        ev["face_clusters"] = faceid.analyze_faces(
+            video_path, progress_cb=progress_cb)["clusters"]
+    except Exception as e:
+        ev["face_clusters"] = []
+        ev["face_error"] = str(e)[:120]
+    if progress_cb:
+        progress_cb("smart", 2, 4)
+    try:
+        from . import audioevents
+        # ai_edge_litert is optional; skip gracefully if missing
+        import ai_edge_litert  # noqa: F401
+        ev["audio_events"] = audioevents.analyze_audio_events(
+            video_path, progress_cb=progress_cb)
+    except Exception as e:
+        ev["audio_events"] = {"timeline": []}
+        ev["audio_error"] = str(e)[:120]
+    if progress_cb:
+        progress_cb("smart", 3, 4)
+    try:
+        ev["scene_feats"] = _scene_visual_features(video_path, scenes)
+    except Exception as e:
+        ev["scene_feats"] = []
+        ev["feat_error"] = str(e)[:120]
+    if progress_cb:
+        progress_cb("smart", 4, 4)
+
     tmp = cache + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(ev, f, ensure_ascii=False)
     os.replace(tmp, cache)
     return ev
+
+
+def _scene_visual_features(video_path, scenes, sample_n=5):
+    """Per-scene motion (0-1) + brightness (0-1). Cheap OpenCV sampling."""
+    import cv2
+    import numpy as np
+    cap = cv2.VideoCapture(video_path)
+    fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+    out = []
+    for s, e in scenes:
+        d = max(0.5, e - s)
+        ts = [s + d * (i + 1) / (sample_n + 1) for i in range(sample_n)]
+        prev, diffs, brights = None, [], []
+        for t in ts:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, int(t * fps))
+            ok, frame = cap.read()
+            if not ok:
+                continue
+            g = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            brights.append(float(g.mean()) / 255.0)
+            if prev is not None:
+                diffs.append(float(np.abs(g.astype(int) - prev.astype(int)).mean()) / 255.0)
+            prev = g
+        out.append({"motion": round(float(np.mean(diffs)) * 4, 3) if diffs else 0.0,
+                    "bright": round(float(np.mean(brights)), 3) if brights else 0.5})
+    cap.release()
+    # normalize motion 0-1 across scenes
+    mx = max([f["motion"] for f in out] + [1e-6])
+    for f in out:
+        f["motion"] = round(min(1.0, f["motion"] / mx), 3)
+    return out
 
 
 def evidence_summary_for_prompt(ev: dict, max_chars: int = 12000) -> str:
