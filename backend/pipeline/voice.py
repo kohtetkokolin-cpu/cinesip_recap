@@ -317,3 +317,42 @@ def fit_beat_wav(wav_path: str, max_sec: float) -> tuple[str, float]:
     subprocess.run([config.FFMPEG, "-y", "-v", "error", "-i", wav_path,
                     "-filter:a", f"atempo={rate:.3f}", out], check=True)
     return out, wav_duration(out)
+
+
+def fit_total_to_target(beats: list, target_sec: float, tol: float = 0.02) -> dict:
+    """Audio-first FIT loop (idea from Myanmar Recap Studio's dialogue_v2):
+    measure total VO duration → ONE atempo correction → re-measure.
+
+    This is what makes the final video land on the user's target minutes:
+    the script only *estimates* duration (~150 wpm), but TTS speed varies,
+    so after synthesis we measure the truth and bend the audio to fit.
+
+    beats: dicts with 'wav', 'vo_dur', 'words' ([{w,start,end}]). Mutated
+    in place (wav path, vo_dur, and karaoke word timings all stay truthful).
+    Returns {'total', 'target', 'corrected', 'factor', 'clamped'}.
+    """
+    total = sum(b.get("vo_dur", 0) or 0 for b in beats if b.get("wav"))
+    if total <= 0 or target_sec <= 0:
+        return {"total": round(total, 1), "target": target_sec, "corrected": False}
+    err = abs(total - target_sec) / target_sec
+    if err <= tol:
+        return {"total": round(total, 1), "target": target_sec,
+                "corrected": False, "err": round(err, 4)}
+    factor = total / target_sec  # atempo>1 → faster → shorter
+    clamped = min(1.18, max(0.85, factor))  # beyond this, voice sounds wrong
+    for b in beats:
+        wav = b.get("wav")
+        if not wav:
+            continue
+        out = wav.replace(".wav", "_target.wav")
+        subprocess.run([config.FFMPEG, "-y", "-v", "error", "-i", wav,
+                        "-filter:a", f"atempo={clamped:.4f}", out], check=True)
+        b["wav"] = out
+        b["vo_dur"] = round(wav_duration(out), 2)
+        # keep karaoke timings truthful — scale them by the tempo change
+        for wd in (b.get("words") or []):
+            wd["start"] = round(wd["start"] / clamped, 2)
+            wd["end"] = round(wd["end"] / clamped, 2)
+    new_total = sum(b.get("vo_dur", 0) or 0 for b in beats if b.get("wav"))
+    return {"total": round(new_total, 1), "target": target_sec, "corrected": True,
+            "factor": round(clamped, 4), "clamped": abs(clamped - factor) > 1e-9}

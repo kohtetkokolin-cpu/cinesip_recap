@@ -74,6 +74,13 @@ SCRIPT QUALITY RULES (must follow):
     NEVER chain "and then... and then..." — each beat needs a turning point, a surprise, or a feeling.
 12. RHYTHM: vary sentence length. Action = short punchy sentences. Emotion = longer flowing ones.
     Read each beat aloud in your head — if it drones, rewrite it.
+13. NO DEAD AIR: the narration must NEVER stall. Every single sentence pushes the story
+    forward — a reveal, a decision, a feeling, a twist. No filler lines, no throat-clearing,
+    no "meanwhile, let's take a moment" pauses. If a beat feels slow, cut WORDS, never meaning.
+    (Top recap channels run 6+ minutes with zero silence longer than a breath — match that energy.)
+14. OPEN-LOOP ENDING: the final beat must NOT trail off with a summary. End on a hook —
+    a burning question, a tease for the next episode/recap, or a "what would YOU do?"
+    thrown directly at the viewer. The viewer should finish wanting more, not feeling done.
 """.strip()
 
 BIBLE_PROMPT = """You are a movie analyst. Read this transcript+scene evidence and write a story bible as JSON.

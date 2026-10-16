@@ -297,6 +297,19 @@ def _run_after_approval(job_id: str):
                 set_stage(job, "voice", 45 + 20 * done / max(1, len(beats)),
                           f"beat {done}/{len(beats)} ({n_workers} parallel)")
         log(job, "✅ Voiceover ပြီးပြီ")
+
+        # ---- 3b. FIT loop: bend total VO to the user's target minutes ----
+        # The script only *estimates* duration (~150 wpm); TTS speed varies.
+        # Measure the truth, then one atempo correction → final ≈ target.
+        target_sec = float(job.get("target_minutes", 0) or 0) * 60
+        if target_sec > 0:
+            fit = vc.fit_total_to_target(beats, target_sec)
+            if fit.get("corrected"):
+                note = " (tempo clamped — ကျန်တာ အသံကို မထိခိုက်အောင်)" if fit.get("clamped") else ""
+                log(job, f"🎯 FIT: {fit['total']/60:.1f} min / target {target_sec/60:.1f} min"
+                         f" (tempo ×{fit['factor']}){note}")
+            else:
+                log(job, f"🎯 Duration {fit['total']/60:.1f} min / target {target_sec/60:.1f} min — OK")
         _save(job)
 
         # ---- 4. render ----

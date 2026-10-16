@@ -29,6 +29,15 @@ def _even(n: float) -> int:
     return max(2, round(n / 2) * 2)
 
 
+def qdur(dur: float, fps: int = 30) -> float:
+    """Quantize a duration to an exact frame boundary (MRS frame-clock idea).
+
+    Rounding 187.437s to the nearest 1/30s frame (187.433s) kills the
+    ±16ms rounding drift that otherwise accumulates across dozens of beats
+    and makes the final duration wander off target."""
+    return round(round(dur * fps) / fps, 3)
+
+
 def output_dims(ratio: str, resolution: str, src_w: int, src_h: int) -> tuple[int, int]:
     """Target (w, h) for the final video — always even (x264-safe)."""
     if ratio not in RATIOS:
@@ -111,7 +120,9 @@ def render_beat(job_id: str, beat: dict, src_video: str, vo_wav: str,
     ratio conversion + exact-duration trim + VO mux happen once.
     """
     from .voice import wav_duration
-    dur = wav_duration(vo_wav)
+    # frame-quantized: the beat's video lands on an exact frame boundary,
+    # so no ±16ms drift accumulates across beats
+    dur = qdur(wav_duration(vo_wav))
     plan = beat_video_plan(beat, scenes, src_w or w, src_h or h,
                            max_clip_sec=max_clip_sec)
     clips = plan["clips"]
@@ -289,14 +300,17 @@ def assemble_final(job_id: str, beat_files: list, beats: list, w: int, h: int,
     fc = [f"{vcat}concat=n={n}:v=1:a=0[vcat]", f"{acat}concat=n={n}:v=0:a=1[acat]"]
 
     bgm = find_bgm()
+    # SoloRecap lesson: loud, normalized voice-only audio needs no BGM.
+    # loudnorm gives broadcast-consistent loudness on every output.
     if bgm:
         inputs += ["-i", bgm]
-        # loop BGM, duck under VO via sidechain, then mix
+        # loop BGM, duck under VO via sidechain, then mix, then normalize
         fc += [f"[{n}:a]aloop=loop=-1:size=2e9,volume=0.14[bg]",
                "[bg][acat]sidechaincompress=threshold=0.02:ratio=10:attack=15:release=500[bgd]",
-               "[acat][bgd]amix=inputs=2:duration=first:dropout_transition=0[aout]"]
+               "[acat][bgd]amix=inputs=2:duration=first:dropout_transition=0[mx]",
+               "[mx]loudnorm=I=-16:TP=-1.5:LRA=11[aout]"]
     else:
-        fc.append("[acat]anull[aout]")
+        fc.append("[acat]loudnorm=I=-16:TP=-1.5:LRA=11[aout]")
 
     # user overlays (WYSIWYG) incl. burned karaoke subtitles
     vf_tail = ov.build_filter(w, h, cfg, logo_path=logo_path,
@@ -314,5 +328,21 @@ def assemble_final(job_id: str, beat_files: list, beats: list, w: int, h: int,
     _run(cmd)
     if progress_cb:
         progress_cb("assemble", 1, 1)
+
+    # --- verify + repair (MRS safety-net idea): the final file must equal
+    # the sum of beat VO durations. If ffprobe disagrees by >80ms, re-trim.
+    expected = qdur(sum(b.get("vo_dur", 0) or 0 for b in beats))
+    try:
+        actual = float(subprocess.check_output(
+            [config.FFPROBE, "-v", "error", "-show_entries", "format=duration",
+             "-of", "default=noprint_wrappers=1:nokey=1", out], text=True).strip())
+    except Exception:
+        actual = expected
+    if abs(actual - expected) > 0.08 and expected > 0:
+        fixed = os.path.join(workdir, "final_fixed.mp4")
+        _run([config.FFMPEG, "-y", "-v", "error", "-i", out,
+              "-t", f"{expected:.3f}", "-c", "copy", fixed])
+        os.replace(fixed, out)
+        actual = expected
     return {"video": out, "srt": srt_path, "ass": ass_path,
-            "duration": sum(b.get("vo_dur", 0) for b in beats)}
+            "duration": round(actual, 1)}
