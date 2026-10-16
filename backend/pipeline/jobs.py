@@ -203,10 +203,19 @@ def _run(job: dict):
     # ---- 2. script ----
     set_stage(job, "script", 26, "writing bible")
     log(job, "✍️ Script ရေးနေသည် (Gemini)")
+    # TTS WPM calibration (Myanmar Recap Studio idea): measure the chosen
+    # voice's REAL speed with one short sample, so the script's word budget
+    # starts near the truth (the FIT loop later corrects whatever remains).
+    # Cached per (provider, voice, speed) — costs one TTS call, never blocks.
+    wpm = vc.calibrate_wpm(prefer=job.get("voice_provider", "gemini"),
+                           voice_preset=job.get("voice_preset"),
+                           voice_opts=job.get("voice_opts"), quota=quota)
+    log(job, f"🎙️ Voice speed: ~{wpm:.0f} wpm (calibrated)")
     script = sc.build_script(client, ev, job["target_minutes"],
                              progress_cb=lambda n, i, t: _progress(job, "script")(n, i, t),
                              persona=job.get("persona"),
-                             style=job.get("style") or sc.DEFAULT_STYLE)
+                             style=job.get("style") or sc.DEFAULT_STYLE,
+                             wpm=wpm)
     # commentary flags for the reviewer
     for b in script["beats"]:
         b["commentary_score"] = round(fu.commentary_score(b.get("narration", "")), 2)

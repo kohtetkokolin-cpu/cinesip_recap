@@ -356,3 +356,72 @@ def fit_total_to_target(beats: list, target_sec: float, tol: float = 0.02) -> di
     new_total = sum(b.get("vo_dur", 0) or 0 for b in beats if b.get("wav"))
     return {"total": round(new_total, 1), "target": target_sec, "corrected": True,
             "factor": round(clamped, 4), "clamped": abs(clamped - factor) > 1e-9}
+
+
+# ---------- TTS WPM calibration (idea from Myanmar Recap Studio) ----------
+# Burmese TTS speed cannot be trusted to a formula (~150 wpm is a guess that
+# varies by voice and speed slider). MRS calibrates per voice by synthesizing
+# a real sample and measuring it. We do the same ONCE per (provider, voice,
+# speed) and cache the result, so the script's word budget starts close to
+# the truth and the FIT loop has less to correct.
+_CALIB_SAMPLE = (
+    "ဒီညမှာ မိုးတွေရွာနေတယ်။ မင်းသားက ရွာကနေထွက်ပြီး မြို့ကြီးကို သွားဖို့ "
+    "ဆုံးဖြတ်လိုက်တယ်။ သူ့မိခင်က မျက်ရည်တွေနဲ့ လိုက်ပို့တယ်။ ရထားပေါ်မှာ "
+    "သူငယ်ချင်းဟောင်းနဲ့ မထင်မှတ်ဘဲ ပြန်တွေ့တယ်။ နှစ်ယောက်သား အတိတ်အကြောင်း "
+    "တွေပြောရင်း ရယ်မောကြတယ်။ မြို့ကိုရောက်တော့ အလုပ်သစ်ကို စတင်ရတယ်။ "
+    "ဒါပေမယ့် သူ့ရင်ထဲမှာ ရွာကိုလွမ်းတဲ့စိတ် ကျန်နေသေးတယ်။"
+)
+_WPM_CACHE_FILE = os.path.join(config.DATA_DIR, "wpm_calib.json")
+
+
+def calibrate_wpm(prefer: str = "gemini", voice_preset=None,
+                  voice_opts: dict | None = None, quota=None) -> float:
+    """Measure the chosen voice's real words-per-minute. Returns ~150 on any
+    failure (never blocks a job). One TTS call per new (provider, voice,
+    speed) combination; thereafter cached on disk."""
+    import json as _json
+    import tempfile as _tf
+    try:
+        speed = float((voice_opts or {}).get("speed", 1.0))
+    except (TypeError, ValueError):
+        speed = 1.0
+    key = f"{prefer}|{voice_preset}|{speed:.2f}"
+    cache = {}
+    try:
+        with open(_WPM_CACHE_FILE, encoding="utf-8") as f:
+            cache = _json.load(f)
+        if cache.get(key):
+            return float(cache[key])
+    except Exception:
+        pass
+    tmp = None
+    try:
+        if quota is None:
+            quota = QuotaManager()
+        fd, tmp = _tf.mkstemp(suffix=".wav", prefix="wpmcal_")
+        os.close(fd)
+        r = synthesize(_CALIB_SAMPLE, "narrator", tmp, quota,
+                       prefer=prefer, voice_preset=voice_preset,
+                       voice_opts=voice_opts)
+        if not r.get("ok"):
+            return 150.0
+        dur = wav_duration(r["wav"])
+        n_words = len(_CALIB_SAMPLE.split())
+        wpm = n_words / (dur / 60.0) if dur > 0 else 150.0
+        wpm = round(min(320.0, max(60.0, wpm)), 1)
+        cache[key] = wpm
+        try:
+            os.makedirs(config.DATA_DIR, exist_ok=True)
+            with open(_WPM_CACHE_FILE, "w", encoding="utf-8") as f:
+                _json.dump(cache, f)
+        except Exception:
+            pass
+        return wpm
+    except Exception:
+        return 150.0
+    finally:
+        try:
+            if tmp and os.path.isfile(tmp):
+                os.remove(tmp)
+        except Exception:
+            pass

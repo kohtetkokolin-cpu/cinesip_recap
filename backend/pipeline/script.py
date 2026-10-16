@@ -119,7 +119,7 @@ def write_bible(client: GeminiClient, ev: dict) -> dict:
 
 
 OUTLINE_PROMPT = """You are a recap scriptwriter. Given this story bible and evidence, plan {n_beats} beats
-for a {target_min}-minute Burmese movie recap (~150 words/min narration).
+for a {target_min}-minute Burmese movie recap (~{wpm} words/min narration).
 
 BIBLE: {bible}
 EVIDENCE: {evidence}
@@ -130,7 +130,7 @@ HOOK DIRECTIVE: {style_hook}
 Return ONLY valid JSON list, one object per beat:
 [{{"idx": 1, "footage_start": <sec>, "footage_end": <sec>, "goal": "what this beat must convey",
 "hook_line": "opening line of this beat", "payoff": "how the beat ends (payoff or open loop)",
-"target_words": <~450 for 3 min>}}, ...]
+"target_words": <~{beat_words} for 3 min>}}, ...]
 Beats must cover the whole film in order, footage windows must not overlap, and the
 FIRST beat's hook_line must follow the HOOK DIRECTIVE above.
 
@@ -144,11 +144,12 @@ opening block on an explicit open loop addressed to the viewer.
 
 def write_outline(client: GeminiClient, bible: dict, ev: dict,
                   target_min: float, n_beats: int,
-                  style: str | None = None) -> list:
+                  style: str | None = None, wpm: float = 150) -> list:
     ev_txt = evidence_summary_for_prompt(ev, max_chars=6000)
     st = _style_block(style)
     out = client.generate(OUTLINE_PROMPT.format(
         n_beats=n_beats, target_min=round(target_min, 1),
+        wpm=f"{wpm:.0f}", beat_words=int(3 * wpm),
         bible=json.dumps(bible, ensure_ascii=False)[:4000],
         evidence=ev_txt, rules=QUALITY_RULES,
         style_name=st["name"], style_desc=st["desc"], style_hook=st["hook"]))
@@ -172,7 +173,7 @@ COMMENTARY DIRECTIVE: {style_commentary}
 {persona_line}
 Each beat: clear written Burmese (not slang), third-person neutral base unless the style
 sets a host persona, direct second-person audience address ("ပရိတ်သတ်တို့", "မိတ်ဆွေတို့")
-every few beats, ~150 words/min.
+every few beats, ~{wpm} words/min.
 BEATS TO WRITE (JSON): {beats_json}
 STORY CONTEXT: {bible}
 
@@ -384,7 +385,8 @@ def _persona_line(persona: str | None) -> str:
 
 def write_beats(client: GeminiClient, bible: dict, beats: list,
                 batch_size: int = 6, max_workers: int = 3,
-                persona: str | None = None, style: str | None = None) -> list:
+                persona: str | None = None, style: str | None = None,
+                wpm: float = 150) -> list:
     """Write narrations in parallel batches. Returns beats with 'narration'."""
     batches = [beats[i:i + batch_size] for i in range(0, len(beats), batch_size)]
     bible_s = json.dumps(bible, ensure_ascii=False)[:3000]
@@ -399,6 +401,7 @@ def write_beats(client: GeminiClient, bible: dict, beats: list,
         out = client.generate(BEATS_PROMPT.format(
             beats_json=json.dumps(slim, ensure_ascii=False),
             bible=bible_s, rules=QUALITY_RULES, persona_line=persona_line,
+            wpm=f"{wpm:.0f}",
             style_name=st["name"], style_desc=st["desc"],
             style_voice=st["voice"], style_commentary=st["commentary"],
             dub_line=dub_line))
@@ -430,7 +433,7 @@ def rewrite_shorter(client: GeminiClient, narration: str, max_words: int) -> str
 
 def build_script(client: GeminiClient, ev: dict, target_min: float,
                  progress_cb=None, persona: str | None = None,
-                 style: str | None = None) -> dict:
+                 style: str | None = None, wpm: float = 150) -> dict:
     """Full script pipeline: bible → outline → beats. Returns {bible, beats}."""
     n_beats = max(4, int(target_min / 3))
     if progress_cb:
@@ -438,11 +441,12 @@ def build_script(client: GeminiClient, ev: dict, target_min: float,
     bible = write_bible(client, ev)
     if progress_cb:
         progress_cb("outline", 0, 1)
-    beats = write_outline(client, bible, ev, target_min, n_beats, style=style)
+    beats = write_outline(client, bible, ev, target_min, n_beats, style=style, wpm=wpm)
     if progress_cb:
         progress_cb("beats", 0, len(beats))
-    beats = write_beats(client, bible, beats, persona=persona, style=style)
+    beats = write_beats(client, bible, beats, persona=persona, style=style, wpm=wpm)
     if progress_cb:
         progress_cb("beats", len(beats), len(beats))
     return {"bible": bible, "beats": beats, "target_min": target_min,
+            "wpm": wpm,
             "style": (style or DEFAULT_STYLE)}

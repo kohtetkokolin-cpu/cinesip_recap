@@ -108,6 +108,44 @@ def transform_filter(tr: str, w: int, h: int, seed: int = 0) -> str:
     return "null"
 
 
+def freeze_snap(words: list, coverage: float, max_chars: int = 28) -> float | None:
+    """Snap a footage-freeze start to a subtitle-row boundary (Myanmar Recap
+    Studio idea: never freeze mid-sentence — hold the frame only where a
+    caption row ends, so the narrator is never caught mid-word on a still).
+
+    words: [{w, start, end}] (edge-tts word timings; [] for Gemini/Piper).
+    coverage: seconds of real footage available for the beat.
+    Returns the latest row-end time <= coverage worth snapping to, or None
+    (keep the current behaviour: freeze from where the footage runs out).
+    """
+    if not words or coverage <= 0:
+        return None
+    rows = []
+    cur, cur_end = "", 0.0
+    for wd in words:
+        w = str(wd.get("w", ""))
+        if cur and len(cur) + len(w) + 1 > max_chars:
+            rows.append(cur_end)
+            cur, cur_end = "", 0.0
+        cur = (cur + " " + w).strip()
+        try:
+            cur_end = float(wd.get("end", cur_end))
+        except (TypeError, ValueError):
+            pass
+    if cur:
+        rows.append(cur_end)
+    # a row must end clearly before the footage runs out to be worth using
+    cands = [r for r in rows if 0 < r <= coverage - 0.2]
+    if not cands:
+        return None
+    snap = max(cands)
+    # only snap back if it moves the freeze point by a meaningful amount,
+    # and never discard more than 8s of real footage for it
+    if coverage - snap < 1.0 or coverage - snap > 8.0:
+        return None
+    return round(snap, 2)
+
+
 def beat_video_plan(beat: dict, scenes: list, w: int, h: int,
                     max_clip_sec: float = 5.0) -> dict:
     """Full fair-use plan for one beat: clips + per-clip filters."""

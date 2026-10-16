@@ -16,7 +16,7 @@ import subprocess
 
 from .. import config
 from . import overlays as ov
-from .fairuse import beat_video_plan
+from .fairuse import beat_video_plan, freeze_snap
 
 # ---------- output ratio / resolution ----------
 RATIOS = ("16:9", "9:16", "original")
@@ -95,6 +95,22 @@ def _run(cmd, log_path=None):
     return r
 
 
+def _probe_dur(path: str, stream: str | None = None) -> float:
+    """ffprobe duration of a file (or one stream). -1.0 when unreadable."""
+    try:
+        if stream:
+            sel = ["-select_streams", stream, "-show_entries", "stream=duration"]
+        else:
+            sel = ["-show_entries", "format=duration"]
+        out = subprocess.check_output(
+            [config.FFPROBE, "-v", "error"] + sel +
+            ["-of", "default=noprint_wrappers=1:nokey=1", path],
+            text=True).strip()
+        return float(out)
+    except Exception:
+        return -1.0
+
+
 def find_bgm() -> str | None:
     for f in sorted(os.listdir(BGM_DIR)):
         if f.lower().endswith((".mp3", ".wav", ".m4a", ".ogg")):
@@ -130,6 +146,39 @@ def render_beat(job_id: str, beat: dict, src_video: str, vo_wav: str,
         clips = [{"start": beat["footage_start"],
                   "end": min(beat["footage_end"], beat["footage_start"] + 2),
                   "transform": "plain", "filter": "null"}]
+
+    # --- freeze-at-subtitle-boundary (Myanmar Recap Studio idea) ---
+    # When the VO outruns the footage, the tail is held on a frozen frame.
+    # Freezing mid-sentence looks broken, so snap the freeze start back to
+    # the latest subtitle-row end (from word timings) and hold THAT frame
+    # with a slow Ken Burns push instead of a dead still.
+    fw, fh = src_w or w, src_h or h
+    coverage = sum(c["end"] - c["start"] for c in clips)
+    snap = None
+    if coverage < dur - 0.05 and beat.get("words"):
+        snap = freeze_snap(beat["words"], coverage)
+    if snap:
+        # snap is VO-relative (word timings are 0-based); the clips live on
+        # the SOURCE timeline, so map it by walking the sequential clip plan
+        acc, snap_src = 0.0, None
+        for c in clips:
+            d = c["end"] - c["start"]
+            if snap <= acc + d:
+                snap_src = c["start"] + (snap - acc)
+                break
+            acc += d
+        if snap_src is None:
+            snap_src = clips[-1]["end"] if clips else 0.0
+        clips = [c for c in clips if c["start"] < snap_src]
+        if clips:
+            clips[-1]["end"] = min(clips[-1]["end"], snap_src)
+        fpng = os.path.join(workdir, f"beat_{beat['idx']:03d}_freeze.png")
+        _run([config.FFMPEG, "-y", "-v", "error",
+              "-ss", f"{snap_src:.2f}", "-i", src_video,
+              "-frames:v", "1", fpng])
+        clips.append({"start": snap_src, "end": snap_src, "transform": "freeze",
+                      "frame": fpng, "freeze_dur": round(dur - snap, 2),
+                      "fw": fw, "fh": fh, "filter": "null"})
 
     # --- pass 1: render clip chunks (transforms at source dims) ---
     chunk_files = []
@@ -194,6 +243,20 @@ def _render_chunk(clips: list, src_video: str, out: str) -> None:
     fair-use transforms only, no audio)."""
     inputs, fc = [], []
     for i, c in enumerate(clips):
+        if c.get("transform") == "freeze":
+            # held frame with a slow Ken Burns push (MRS out_z): the single
+            # extracted frame is looped for freeze_dur at 30fps, then gently
+            # pushed in — reads as intentional, not a dead still.
+            # (zoompan must NOT get setpts/fps appended — same hang rule as
+            # zoom_punch; its own fps=30 normalizes the output.)
+            fd = max(0.1, float(c.get("freeze_dur", 1.0)))
+            inputs += ["-loop", "1", "-framerate", "30",
+                       "-t", f"{fd:.2f}", "-i", c["frame"]]
+            zf = (f"scale=iw*1.3:ih*1.3,"
+                  f"zoompan=z='min(1.0+0.0012*on,1.25)':x='iw/2-(iw/zoom/2)':"
+                  f"y='ih/2-(ih/zoom/2)':d=1:s={c['fw']}x{c['fh']}:fps=30")
+            fc.append(f"[{i}:v]{zf},setsar=1[v{i}]")
+            continue
         inputs += ["-ss", str(c["start"]), "-t", str(round(c["end"] - c["start"], 2)),
                    "-i", src_video]
         # zoom_punch (zoompan) must NOT get setpts/fps appended — it hangs
@@ -292,6 +355,19 @@ def assemble_final(job_id: str, beat_files: list, beats: list, w: int, h: int,
     write_srt(srt_path, beats)
 
     n = len(beat_files)
+    # --- per-beat mapping gate (MRS safety net) ---
+    # Each beat file's duration must equal its VO duration; repair stragglers
+    # here so one bad beat can't poison the final concat.
+    for bf, b in zip(beat_files, beats):
+        exp = qdur(b.get("vo_dur", 0) or 0)
+        if exp <= 0:
+            continue
+        vd = _probe_dur(bf["mp4"])
+        if vd > 0 and abs(vd - exp) > 0.05:
+            fixed = bf["mp4"] + ".gate.mp4"
+            _run([config.FFMPEG, "-y", "-v", "error", "-i", bf["mp4"],
+                  "-t", f"{exp:.3f}", "-c", "copy", fixed])
+            os.replace(fixed, bf["mp4"])
     inputs, maps = [], []
     for i, bf in enumerate(beat_files):
         inputs += ["-i", bf["mp4"]]
@@ -344,5 +420,17 @@ def assemble_final(job_id: str, beat_files: list, beats: list, w: int, h: int,
               "-t", f"{expected:.3f}", "-c", "copy", fixed])
         os.replace(fixed, out)
         actual = expected
+    # --- final A/V mapping gate (MRS): video and audio streams must agree ---
+    # (Repair, don't fail — failing here would discard a finished render.)
+    vd = _probe_dur(out, "v:0")
+    ad = _probe_dur(out, "a:0")
+    if vd > 0 and ad > 0 and abs(vd - ad) > 0.10:
+        fixed = os.path.join(workdir, "final_av.mp4")
+        _run([config.FFMPEG, "-y", "-v", "error", "-i", out,
+              "-c:v", "copy",
+              "-af", f"apad,atrim=0:{vd:.3f}",
+              "-t", f"{vd:.3f}", "-c:a", "aac", "-b:a", "160k", fixed])
+        os.replace(fixed, out)
+        actual = vd
     return {"video": out, "srt": srt_path, "ass": ass_path,
             "duration": round(actual, 1)}
