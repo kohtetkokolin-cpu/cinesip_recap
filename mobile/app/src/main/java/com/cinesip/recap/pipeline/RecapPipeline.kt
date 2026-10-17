@@ -405,6 +405,7 @@ class RecapPipeline(private val ctx: Context) {
             val video = cfg.getString("video")
             val style = cfg.optString("style", "full_story")
             val voice = cfg.optString("voice", "my-MM-ThihaNeural")
+            val voicePreset = cfg.optString("voicePreset", "thiha")
             val speed = cfg.optDouble("speed", 1.0)
             val pitch = cfg.optInt("pitch", 0)
             val vol = cfg.optInt("vol", 100)
@@ -429,14 +430,38 @@ class RecapPipeline(private val ctx: Context) {
             if (beats.isEmpty()) { onError("❌ Script ရေးမရဘူး"); return }
 
             p(40, "🔊 အသံ ထုတ်နေတယ်...")
-            val tts = com.cinesip.recap.api.EdgeTtsClient(ctx)
+            val geminiKey = ctx.getSharedPreferences("cinesip", android.content.Context.MODE_PRIVATE)
+                .getString("gemini_key", "") ?: ""
             val dir = java.io.File(ctx.cacheDir, "wizard_${System.currentTimeMillis()}").apply { mkdirs() }
             val audioFiles = mutableListOf<String>()
             beats.forEachIndexed { i, beat ->
-                val af = java.io.File(dir, "beat_$i.mp3").absolutePath
-                // Unlimited text: split into chunks if needed (edge-tts handles long text)
-                tts.synthesize(beat.textMy, af, voice, speed, pitch, vol)
-                audioFiles.add(af)
+                val af = java.io.File(dir, "beat_$i.wav").absolutePath
+                var ok = false
+                // Try Gemini TTS first (primary)
+                if (geminiKey.isNotBlank()) {
+                    try {
+                        com.cinesip.recap.api.GeminiTtsClient(ctx, geminiKey)
+                            .synthesize(beat.textMy, af, voicePreset, speed)
+                        ok = java.io.File(af).exists() && java.io.File(af).length() > 0
+                    } catch (e: Exception) { e.printStackTrace() }
+                }
+                // Fallback to edge-tts
+                if (!ok) {
+                    try {
+                        val mp3af = java.io.File(dir, "beat_$i.mp3").absolutePath
+                        com.cinesip.recap.api.EdgeTtsClient(ctx)
+                            .synthesize(beat.textMy, mp3af, voice, speed, pitch, vol)
+                        if (java.io.File(mp3af).exists()) {
+                            audioFiles.add(mp3af)
+                        } else {
+                            audioFiles.add("") // silent placeholder
+                        }
+                    } catch (e: Exception) {
+                        audioFiles.add("") // silent placeholder
+                    }
+                } else {
+                    audioFiles.add(af)
+                }
                 p(40 + i * 30 / beats.size.coerceAtLeast(1), "🔊 အသံ ${i+1}/${beats.size}")
             }
 
