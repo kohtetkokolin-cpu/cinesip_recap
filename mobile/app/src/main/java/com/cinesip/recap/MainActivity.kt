@@ -1,0 +1,60 @@
+package com.cinesip.recap
+
+import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.Intent
+import android.net.Uri
+import android.os.Bundle
+import android.webkit.*
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
+
+class MainActivity : AppCompatActivity() {
+    private lateinit var web: WebView
+    private var pickedPath: String? = null
+
+    private val pickVideo = registerForActivityResult(
+        ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let {
+            pickedPath = FileUtil.getPath(this, it) ?: it.toString()
+            web.evaluateJavascript(
+                "document.getElementById('fileInfo').textContent='✓ '+${pickedPath!!.length}+' chars';",
+                null)
+        }
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        web = WebView(this)
+        setContentView(web)
+        with(web.settings) {
+            javaScriptEnabled = true
+            domStorageEnabled = true
+            mediaPlaybackRequiresUserGesture = false
+            allowFileAccess = true
+        }
+        web.webChromeClient = WebChromeClient()
+        web.addJavascriptInterface(CinesipBridge(this), "CinesipBridge")
+        web.loadUrl("file:///android_asset/index.html")
+    }
+
+    fun openPicker() = pickVideo.launch("video/*")
+    fun getPicked(): String? = pickedPath
+    fun webEval(js: String) { web.evaluateJavascript(js, null) }
+    fun prefs(key: String): String? =
+        getSharedPreferences("cinesip", MODE_PRIVATE).getString(key, null)
+    fun prefs(key: String, value: String) =
+        getSharedPreferences("cinesip", MODE_PRIVATE).edit().putString(key, value).apply()
+    fun toast(m: String) =
+        runOnUiThread { Toast.makeText(this, m, Toast.LENGTH_SHORT).show() }
+    fun onProgress(p: Int, s: String) =
+        runOnUiThread { web.evaluateJavascript("onProgress($p,'$s')", null) }
+    fun onRenderDone(path: String) =
+        runOnUiThread { web.evaluateJavascript("onRenderDone('$path')", null) }
+
+    override fun onBackPressed() {
+        if (web.canGoBack()) web.goBack() else super.onBackPressed()
+    }
+}
