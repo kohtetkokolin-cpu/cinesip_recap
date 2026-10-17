@@ -1,1 +1,78 @@
-cGFja2FnZSBjb20uY2luZXNpcC5yZWNhcAoKaW1wb3J0IGFuZHJvaWQuYW5ub3RhdGlvbi5TdXBwcmVzc0xpbnQKaW1wb3J0IGFuZHJvaWQuYXBwLkFjdGl2aXR5CmltcG9ydCBhbmRyb2lkLmNvbnRlbnQuSW50ZW50CmltcG9ydCBhbmRyb2lkLm5ldC5VcmkKaW1wb3J0IGFuZHJvaWQub3MuQnVuZGxlCmltcG9ydCBhbmRyb2lkLndlYmtpdC4qCmltcG9ydCBhbmRyb2lkLndpZGdldC5Ub2FzdAppbXBvcnQgYW5kcm9pZHguYWN0aXZpdHkucmVzdWx0LmNvbnRyYWN0LkFjdGl2aXR5UmVzdWx0Q29udHJhY3RzCmltcG9ydCBhbmRyb2lkeC5hcHBjb21wYXQuYXBwLkFwcENvbXBhdEFjdGl2aXR5CgpjbGFzcyBNYWluQWN0aXZpdHkgOiBBcHBDb21wYXRBY3Rpdml0eSgpIHsKICAgIHByaXZhdGUgbGF0ZWluaXQgdmFyIHdlYjogV2ViVmlldwogICAgcHJpdmF0ZSB2YXIgcGlja2VkUGF0aDogU3RyaW5nPyA9IG51bGwKCiAgICBwcml2YXRlIHZhbCBwaWNrVmlkZW8gPSByZWdpc3RlckZvckFjdGl2aXR5UmVzdWx0KAogICAgICAgIEFjdGl2aXR5UmVzdWx0Q29udHJhY3RzLkdldENvbnRlbnQoKSkgeyB1cmk6IFVyaT8gLT4KICAgICAgICB1cmk/LmxldCB7CiAgICAgICAgICAgIHBpY2tlZFBhdGggPSBGaWxlVXRpbC5nZXRQYXRoKHRoaXMsIGl0KSA/OiBpdC50b1N0cmluZygpCiAgICAgICAgICAgIHdlYi5ldmFsdWF0ZUphdmFzY3JpcHQoIm9uVmlkZW9QaWNrZWQoJyRwaWNrZWRQYXRoJykiLCBudWxsKQogICAgICAgIH0KICAgIH0KCiAgICBwcml2YXRlIHZhbCBwaWNrQXVkaW8gPSByZWdpc3RlckZvckFjdGl2aXR5UmVzdWx0KAogICAgICAgIEFjdGl2aXR5UmVzdWx0Q29udHJhY3RzLkdldENvbnRlbnQoKSkgeyB1cmk6IFVyaT8gLT4KICAgICAgICB1cmk/LmxldCB7CiAgICAgICAgICAgIHZhbCBwYXRoID0gRmlsZVV0aWwuZ2V0UGF0aCh0aGlzLCBpdCkgPzogaXQudG9TdHJpbmcoKQogICAgICAgICAgICB3ZWIuZXZhbHVhdGVKYXZhc2NyaXB0KCJvbkF1ZGlvUGlja2VkKCckcGF0aCcpIiwgbnVsbCkKICAgICAgICB9CiAgICB9CgogICAgQFN1cHByZXNzTGludCgiU2V0SmF2YVNjcmlwdEVuYWJsZWQiKQogICAgb3ZlcnJpZGUgZnVuIG9uQ3JlYXRlKHNhdmVkSW5zdGFuY2VTdGF0ZTogQnVuZGxlPykgewogICAgICAgIHN1cGVyLm9uQ3JlYXRlKHNhdmVkSW5zdGFuY2VTdGF0ZSkKICAgICAgICB3ZWIgPSBXZWJWaWV3KHRoaXMpCiAgICAgICAgc2V0Q29udGVudFZpZXcod2ViKQogICAgICAgIHdpdGgod2ViLnNldHRpbmdzKSB7CiAgICAgICAgICAgIGphdmFTY3JpcHRFbmFibGVkID0gdHJ1ZQogICAgICAgICAgICBkb21TdG9yYWdlRW5hYmxlZCA9IHRydWUKICAgICAgICAgICAgbWVkaWFQbGF5YmFja1JlcXVpcmVzVXNlckdlc3R1cmUgPSBmYWxzZQogICAgICAgICAgICBhbGxvd0ZpbGVBY2Nlc3MgPSB0cnVlCiAgICAgICAgfQogICAgICAgIHdlYi53ZWJDaHJvbWVDbGllbnQgPSBXZWJDaHJvbWVDbGllbnQoKQogICAgICAgIHdlYi5hZGRKYXZhc2NyaXB0SW50ZXJmYWNlKENpbmVzaXBCcmlkZ2UodGhpcyksICJDaW5lc2lwQnJpZGdlIikKICAgICAgICB3ZWIubG9hZFVybCgiZmlsZTovLy9hbmRyb2lkX2Fzc2V0L3dpemFyZC5odG1sIikKICAgIH0KCiAgICBmdW4gb3BlblBpY2tlcigpID0gcGlja1ZpZGVvLmxhdW5jaCgidmlkZW8vKiIpCiAgICBmdW4gb3BlbkF1ZGlvUGlja2VyKCkgPSBwaWNrQXVkaW8ubGF1bmNoKCJhdWRpby8qIikKICAgIGZ1biBvcGVuTG9nb1BpY2tlcigpID0gcGlja0F1ZGlvLmxhdW5jaCgiaW1hZ2UvKiIpCiAgICBmdW4gZ2V0UGlja2VkKCk6IFN0cmluZz8gPSBwaWNrZWRQYXRoCiAgICBmdW4gd2ViRXZhbChqczogU3RyaW5nKSB7IHdlYi5ldmFsdWF0ZUphdmFzY3JpcHQoanMsIG51bGwpIH0KICAgIGZ1biBzY29wZSgpID0ga290bGlueC5jb3JvdXRpbmVzLkNvcm91dGluZVNjb3BlKGtvdGxpbnguY29yb3V0aW5lcy5EaXNwYXRjaGVycy5NYWluKQogICAgZnVuIHBsYXlBdWRpbyhwYXRoOiBTdHJpbmcpIHsKICAgICAgICB0cnkgewogICAgICAgICAgICB2YWwgbXAgPSBhbmRyb2lkLm1lZGlhLk1lZGlhUGxheWVyKCkKICAgICAgICAgICAgbXAuc2V0RGF0YVNvdXJjZShwYXRoKQogICAgICAgICAgICBtcC5wcmVwYXJlKCkKICAgICAgICAgICAgbXAuc3RhcnQoKQogICAgICAgICAgICBtcC5zZXRPbkNvbXBsZXRpb25MaXN0ZW5lciB7IGl0LnJlbGVhc2UoKSB9CiAgICAgICAgfSBjYXRjaCAoZTogRXhjZXB0aW9uKSB7IHRvYXN0KCLinYwgIiArIChlLm1lc3NhZ2UgPzogImVycm9yIikpIH0KICAgIH0KICAgIGZ1biBwcmVmcyhrZXk6IFN0cmluZyk6IFN0cmluZz8gPQogICAgICAgIGdldFNoYXJlZFByZWZlcmVuY2VzKCJjaW5lc2lwIiwgTU9ERV9QUklWQVRFKS5nZXRTdHJpbmcoa2V5LCBudWxsKQogICAgZnVuIHByZWZzKGtleTogU3RyaW5nLCB2YWx1ZTogU3RyaW5nKSA9CiAgICAgICAgZ2V0U2hhcmVkUHJlZmVyZW5jZXMoImNpbmVzaXAiLCBNT0RFX1BSSVZBVEUpLmVkaXQoKS5wdXRTdHJpbmcoa2V5LCB2YWx1ZSkuYXBwbHkoKQogICAgZnVuIHRvYXN0KG06IFN0cmluZykgPQogICAgICAgIHJ1bk9uVWlUaHJlYWQgeyBUb2FzdC5tYWtlVGV4dCh0aGlzLCBtLCBUb2FzdC5MRU5HVEhfU0hPUlQpLnNob3coKSB9CiAgICBmdW4gb25Qcm9ncmVzcyhwOiBJbnQsIHM6IFN0cmluZykgPQogICAgICAgIHJ1bk9uVWlUaHJlYWQgeyB3ZWIuZXZhbHVhdGVKYXZhc2NyaXB0KCJvblByb2dyZXNzKCRwLCckcycpIiwgbnVsbCkgfQogICAgZnVuIG9uUmVuZGVyRG9uZShwYXRoOiBTdHJpbmcpID0KICAgICAgICBydW5PblVpVGhyZWFkIHsgd2ViLmV2YWx1YXRlSmF2YXNjcmlwdCgib25SZW5kZXJEb25lKCckcGF0aCcpIiwgbnVsbCkgfQoKICAgIG92ZXJyaWRlIGZ1biBvbkJhY2tQcmVzc2VkKCkgewogICAgICAgIGlmICh3ZWIuY2FuR29CYWNrKCkpIHdlYi5nb0JhY2soKSBlbHNlIHN1cGVyLm9uQmFja1ByZXNzZWQoKQogICAgfQp9Cg==
+package com.cinesip.recap
+
+import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.Intent
+import android.net.Uri
+import android.os.Bundle
+import android.webkit.*
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
+
+class MainActivity : AppCompatActivity() {
+    private lateinit var web: WebView
+    private var pickedPath: String? = null
+
+    private val pickVideo = registerForActivityResult(
+        ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let {
+            pickedPath = FileUtil.getPath(this, it) ?: it.toString()
+            web.evaluateJavascript("onVideoPicked('$pickedPath')", null)
+        }
+    }
+
+    private val pickAudio = registerForActivityResult(
+        ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let {
+            val path = FileUtil.getPath(this, it) ?: it.toString()
+            web.evaluateJavascript("onAudioPicked('$path')", null)
+        }
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        web = WebView(this)
+        setContentView(web)
+        with(web.settings) {
+            javaScriptEnabled = true
+            domStorageEnabled = true
+            mediaPlaybackRequiresUserGesture = false
+            allowFileAccess = true
+        }
+        web.webChromeClient = WebChromeClient()
+        web.addJavascriptInterface(CinesipBridge(this), "CinesipBridge")
+        web.loadUrl("file:///android_asset/wizard.html")
+    }
+
+    fun openPicker() = pickVideo.launch("video/*")
+    fun openAudioPicker() = pickAudio.launch("audio/*")
+    fun openLogoPicker() = pickAudio.launch("image/*")
+    fun getPicked(): String? = pickedPath
+    fun webEval(js: String) { web.evaluateJavascript(js, null) }
+    fun scope() = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main)
+    fun playAudio(path: String) {
+        try {
+            val mp = android.media.MediaPlayer()
+            mp.setDataSource(path)
+            mp.prepare()
+            mp.start()
+            mp.setOnCompletionListener { it.release() }
+        } catch (e: Exception) { toast("❌ " + (e.message ?: "error")) }
+    }
+    fun prefs(key: String): String? =
+        getSharedPreferences("cinesip", MODE_PRIVATE).getString(key, null)
+    fun prefs(key: String, value: String) =
+        getSharedPreferences("cinesip", MODE_PRIVATE).edit().putString(key, value).apply()
+    fun toast(m: String) =
+        runOnUiThread { Toast.makeText(this, m, Toast.LENGTH_SHORT).show() }
+    fun onProgress(p: Int, s: String) =
+        runOnUiThread { web.evaluateJavascript("onProgress($p,'$s')", null) }
+    fun onRenderDone(path: String) =
+        runOnUiThread { web.evaluateJavascript("onRenderDone('$path')", null) }
+
+    override fun onBackPressed() {
+        if (web.canGoBack()) web.goBack() else super.onBackPressed()
+    }
+}
