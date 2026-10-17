@@ -30,6 +30,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private val pickLogo = registerForActivityResult(
+        ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let {
+            val path = FileUtil.getPath(this, it) ?: it.toString()
+            web.evaluateJavascript("onLogoPicked('$path')", null)
+        }
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,7 +56,7 @@ class MainActivity : AppCompatActivity() {
 
     fun openPicker() = pickVideo.launch("video/*")
     fun openAudioPicker() = pickAudio.launch("audio/*")
-    fun openLogoPicker() = pickAudio.launch("image/*")
+    fun openLogoPicker() = pickLogo.launch("image/*")
     fun getPicked(): String? = pickedPath
     fun webEval(js: String) { web.evaluateJavascript(js, null) }
     fun scope() = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main)
