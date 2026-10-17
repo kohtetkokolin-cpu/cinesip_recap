@@ -37,7 +37,6 @@ class EdgeTtsClient(private val ctx: Context) {
         private const val WSS_URL = "wss://api.msedgeservices.com/tts/cognitiveservices/websocket/v1"
         private const val SUBSCRIPTION_KEY = "6A5AA1D4EAFF4E9FB37E23D68491D6F4"
     }
-    }
 
     /**
      * Synthesize Burmese text to a wav file. Returns the file path.
