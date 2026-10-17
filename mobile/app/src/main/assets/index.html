@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="my">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Cinesip Recap</title>
+<style>
+:root{--bg:#0b0e12;--panel:#141a21;--panel2:#1b232c;--line:#2b3640;--text:#eef3f6;
+--muted:#8d99a5;--gold:#f5c518;--green:#38f26d;--red:#ff5a5a}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);
+font-family:system-ui,-apple-system,"Segoe UI",sans-serif;overflow:hidden;
+-webkit-tap-highlight-color:transparent}
+#app{height:100%;display:flex;flex-direction:column}
+header{flex:0 0 52px;display:flex;align-items:center;gap:8px;padding:0 12px;
+background:#0d1218;border-bottom:1px solid var(--line)}
+header .logo{width:30px;height:30px;border-radius:8px;background:var(--gold);
+display:flex;align-items:center;justify-content:center;font-weight:900;color:#000}
+header h1{font-size:16px}
+header .sp{flex:1}
+main{flex:1;overflow-y:auto;padding:12px;-webkit-overflow-scrolling:touch}
+.screen{display:none}.screen.on{display:block}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+padding:14px;margin-bottom:12px}
+.btn{display:block;width:100%;padding:14px;border:0;border-radius:12px;
+background:var(--gold);color:#000;font-weight:800;font-size:15px;margin:8px 0}
+.btn.ghost{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+.btn.green{background:var(--green)}
+.btn:active{transform:scale(.98)}
+select,input[type=text]{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);
+background:var(--panel2);color:var(--text);font-size:15px;margin:6px 0}
+label{font-size:13px;color:var(--muted)}
+.prog{height:8px;background:var(--panel2);border-radius:4px;overflow:hidden;margin:8px 0}
+.prog i{display:block;height:100%;background:var(--gold);width:0%;transition:width .3s}
+.airow{display:flex;gap:6px;margin:6px 0;font-size:12px}
+.aichip{flex:1;text-align:center;padding:8px;border-radius:8px;background:var(--panel2);
+border:1px solid var(--line);color:var(--muted)}
+.aichip.ok{color:var(--green);border-color:var(--green)}
+video{width:100%;border-radius:10px;background:#000}
+.log{font-size:12px;color:var(--muted);white-space:pre-wrap;max-height:180px;overflow-y:auto}
+.hint{font-size:13px;color:var(--muted);line-height:1.5}
+.big{font-size:15px;line-height:1.6}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+<div class="logo">C</div><h1>Cinesip Recap</h1><div class="sp"></div>
+<span style="font-size:11px;color:var(--green)">● on-device</span>
+</header>
+<main>
+<div class="screen on" id="s-home">
+<div class="card">
+<div class="big">🎬 Movie Recap Studio</div>
+<p class="hint">100% ဖုန်းထဲမှာ — AI က အသံနဲ့ ပြကွက် auto-ညှိပေးမယ်</p>
+<div class="airow">
+<div class="aichip" id="chip-tr">🎤 transcribe</div>
+<div class="aichip" id="chip-face">👤 faces</div>
+<div class="aichip" id="chip-audio">🔊 audio</div>
+</div>
+<div class="hint" id="modelMsg">AI models စစ်နေသည်...</div>
+</div>
+<button class="btn" onclick="go('s-new')">+ Recap အသစ်</button>
+<button class="btn ghost" onclick="go('s-settings')">⚙️ Settings</button>
+</div>
+<div class="screen" id="s-new">
+<div class="card">
+<label>ရုပ်ရှင်ဖိုင်</label>
+<button class="btn ghost" onclick="pickVideo()">📁 ဖိုင်ရွေး</button>
+<div class="hint" id="fileInfo">မရွေးရသေးပါ</div>
+<label>Style</label>
+<select id="style">
+<option value="full_story">ဇာတ်လမ်းအပြည့်</option>
+<option value="mystery">Mystery</option>
+<option value="comedy">Comedy</option>
+<option value="speedrun">Speedrun</option>
+<option value="dub_dialog">Dubbing</option>
+</select>
+<label>Target မိနစ်</label>
+<select id="mins"><option>5</option><option>10</option><option selected>15</option><option>30</option></select>
+<label>အချိုး</label>
+<select id="ratio"><option value="16:9">16:9</option><option value="9:16">9:16 (Shorts)</option></select>
+</div>
+<button class="btn green" onclick="startAuto()">🚀 Auto Recap စမယ်</button>
+<button class="btn ghost" onclick="go('s-home')">နောက်</button>
+</div>
+<div class="screen" id="s-prog">
+<div class="card">
+<div class="big">⚙️ <span id="stageName">ပြင်ဆင်နေသည်...</span></div>
+<div class="prog"><i id="bar"></i></div>
+<div class="log" id="jobLog"></div>
+</div>
+<button class="btn ghost" onclick="go('s-home')">နောက်</button>
+</div>
+<div class="screen" id="s-done">
+<div class="card"><div class="big">✅ ပြီးပြီ!</div></div>
+<video id="preview" controls playsinline></video>
+<div style="display:flex;gap:8px;margin-top:8px">
+<button class="btn green" style="flex:1" onclick="shareOut()">📤 Share</button>
+<button class="btn ghost" style="flex:1" onclick="go('s-home')">🏠</button>
+</div>
+</div>
+<div class="screen" id="s-settings">
+<div class="card"><div class="big">⚙️ Settings</div>
+<label>Gemini API Key (script ရေး)</label>
+<input type="text" id="gemKey" placeholder="AIza...">
+<p class="hint">Free — aistudio.google.com က ရတယ်</p>
+</div>
+<button class="btn" onclick="saveSettings()">💾 သိမ်း</button>
+<button class="btn ghost" onclick="go('s-home')">နောက်</button>
+</div>
+</main>
+</div>
+<script>
+const B = window.CinesipBridge;
+function go(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+document.getElementById(id).classList.add('on');}
+function pickVideo(){if(B&&B.pickVideo)B.pickVideo();}
+function onAiStatus(tr,fa,au){
+ setChip('chip-tr',tr);setChip('chip-face',fa);setChip('chip-audio',au);
+ document.getElementById('modelMsg').textContent =
+  (tr&&fa&&au)?"✓ AI အသင့်":"⏳ Models ဒေါင်းနေသည် (ပထမအကြိမ်သာ)...";}
+function setChip(id,ok){const e=document.getElementById(id);
+ e.classList.toggle('ok',!!ok);}
+function onModelProgress(name,pct){
+ document.getElementById('modelMsg').textContent="⏳ "+name+": "+pct+"%";}
+function startAuto(){
+ const fp=(B&&B.getPickedPath)?B.getPickedPath():"";
+ if(!fp){alert('ဖိုင်အရင်ရွေးပါ');return;}
+ go('s-prog');
+ const key=(B&&B.getGeminiKey)?B.getGeminiKey():"";
+ if(!key){alert('Settings မှာ Gemini Key ထည့်ပါ');go('s-settings');return;}
+ B.startAutoRecap(fp,document.getElementById('style').value,
+  parseInt(document.getElementById('mins').value),key);}
+function onPipelineProgress(stage,pct){
+ document.getElementById('stageName').textContent=stage;
+ document.getElementById('bar').style.width=pct+'%';
+ const el=document.getElementById('jobLog');
+ el.textContent+=stage+' ('+pct+'%)\n';el.scrollTop=1e6;}
+function onPipelineError(msg){alert('Error: '+msg);go('s-home');}
+function onRenderDone(path){go('s-done');document.getElementById('preview').src=path;}
+function shareOut(){if(B&&B.shareOutput)B.shareOutput();}
+function saveSettings(){
+ if(B&&B.saveGeminiKey)B.saveGeminiKey(document.getElementById('gemKey').value);
+ go('s-home');}
+if(B&&B.ensureAiModels)B.ensureAiModels();
+if(B&&B.getGeminiKey)document.getElementById('gemKey').value=B.getGeminiKey();
+</script>
+</body>
+</html>
