@@ -1,1 +1,519 @@
-cGFja2FnZSBjb20uY2luZXNpcC5yZWNhcC5waXBlbGluZQoKaW1wb3J0IGFuZHJvaWQuY29udGVudC5Db250ZXh0CmltcG9ydCBjb20uYW50b25rYXJwZW5rby5mZm1wZWdraXQuRkZtcGVnS2l0CmltcG9ydCBjb20uYW50b25rYXJwZW5rby5mZm1wZWdraXQuUmV0dXJuQ29kZQppbXBvcnQgY29tLmNpbmVzaXAucmVjYXAuYWkuKgppbXBvcnQgY29tLmNpbmVzaXAucmVjYXAuYXBpLkVkZ2VUdHNDbGllbnQKaW1wb3J0IGNvbS5jaW5lc2lwLnJlY2FwLmFwaS5HZW1pbmlDbGllbnQKaW1wb3J0IGtvdGxpbnguY29yb3V0aW5lcy5EaXNwYXRjaGVycwppbXBvcnQga290bGlueC5jb3JvdXRpbmVzLndpdGhDb250ZXh0CmltcG9ydCBqYXZhLmlvLkZpbGUKCi8qKgogKiBGdWxsIG9uLWRldmljZSByZWNhcCBwaXBlbGluZS4gMTAwJSBwaG9uZSwgbm8gbGFwdG9wLCBubyBzZXJ2ZXIuCiAqCiAqIFN0YWdlczoKICogIDEuIEV4dHJhY3QgYXVkaW8gKDE2a0h6IG1vbm8gd2F2KSB2aWEgRkZtcGVnS2l0CiAqICAyLiBUcmFuc2NyaWJlIChzaGVycGEtb25ueCwgb24tZGV2aWNlKQogKiAgMy4gU2FtcGxlIGZyYW1lcyDihpIgZmFjZSBkZXRlY3Rpb24gKyBjbHVzdGVyaW5nIChPcGVuQ1YsIG9uLWRldmljZSkKICogIDQuIEF1ZGlvIGV2ZW50cyAoWUFNTmV0IFRGTGl0ZSwgb24tZGV2aWNlKQogKiAgNS4gR2VtaW5pIHNjcmlwdCAoSFRUUFMgQVBJKQogKiAgNi4gU21hcnRTeW5jIGJlYXTihpJzY2VuZSBtYXRjaGluZyAob24tZGV2aWNlKQogKiAgNy4gRWRnZS1UVFMgdm9pY2UgcGVyIGJlYXQgKFdlYlNvY2tldCBBUEkpCiAqICA4LiBSZW5kZXIgZmluYWwgdmlkZW8gKEZGbXBlZ0tpdCwgb24tZGV2aWNlKQogKgogKiBFdmVyeSBBSSBzdGFnZSBkZWdyYWRlcyBncmFjZWZ1bGx5IOKAlCBwaXBlbGluZSBuZXZlciBoYXJkLWZhaWxzLgogKi8KY2xhc3MgUmVjYXBQaXBlbGluZShwcml2YXRlIHZhbCBjdHg6IENvbnRleHQpIHsKCiAgICBkYXRhIGNsYXNzIFByb2dyZXNzKHZhbCBzdGFnZTogU3RyaW5nLCB2YWwgcGN0OiBJbnQpCgogICAgc3VzcGVuZCBmdW4gcnVuKAogICAgICAgIHNyY1ZpZGVvOiBTdHJpbmcsCiAgICAgICAgc3R5bGU6IFN0cmluZywKICAgICAgICB0YXJnZXRNaW51dGVzOiBJbnQsCiAgICAgICAgZ2VtaW5pS2V5OiBTdHJpbmcsCiAgICAgICAgb25Qcm9ncmVzczogKFByb2dyZXNzKSAtPiBVbml0CiAgICApOiBTdHJpbmcgPSB3aXRoQ29udGV4dChEaXNwYXRjaGVycy5JTykgewogICAgICAgIHZhbCB3b3JrRGlyID0gRmlsZShjdHguZ2V0RXh0ZXJuYWxGaWxlc0RpcihudWxsKSwgInBpcGVsaW5lXyR7U3lzdGVtLmN1cnJlbnRUaW1lTWlsbGlzKCl9IikKICAgICAgICB3b3JrRGlyLm1rZGlycygpCiAgICAgICAgZnVuIHAoczogU3RyaW5nLCBwY3Q6IEludCkgPSBvblByb2dyZXNzKFByb2dyZXNzKHMsIHBjdCkpCgogICAgICAgIC8vIC0tLS0gMS4gRXh0cmFjdCBhdWRpbyAtLS0tCiAgICAgICAgcCgiYXVkaW8gZXh0cmFjdCIsIDUpCiAgICAgICAgdmFsIHdhdiA9IEZpbGUod29ya0RpciwgImF1ZGlvLndhdiIpLmFic29sdXRlUGF0aAogICAgICAgIGZmbXBlZygiLXkgLWkgXCIkc3JjVmlkZW9cIiAtYXIgMTYwMDAgLWFjIDEgLWM6YSBwY21fczE2bGUgXCIkd2F2XCIiKQoKICAgICAgICAvLyAtLS0tIDIuIFRyYW5zY3JpYmUgLS0tLQogICAgICAgIHAoInRyYW5zY3JpYmluZyIsIDEwKQogICAgICAgIHZhbCB0cmFuc2NyaWJlciA9IFRyYW5zY3JpYmVyKGN0eCkKICAgICAgICB2YWwgc2VnbWVudHMgPSB0cnkgewogICAgICAgICAgICB0cmFuc2NyaWJlci50cmFuc2NyaWJlKHdhdikgeyBwY3QgLT4gcCgidHJhbnNjcmliaW5nIiwgMTAgKyBwY3QgKiAyMCAvIDEwMCkgfQogICAgICAgIH0gY2F0Y2ggKGU6IEV4Y2VwdGlvbikgeyBlbXB0eUxpc3Q8U2VnbWVudD4oKSB9CiAgICAgICAgZmluYWxseSB7IHRyYW5zY3JpYmVyLnJlbGVhc2UoKSB9CiAgICAgICAgdmFsIHRyYW5zY3JpcHQgPSBzZWdtZW50cy5qb2luVG9TdHJpbmcoIlxuIikgeyAiWyR7aXQuc3RhcnQudG9JbnQoKX1zXSAke2l0LnRleHR9IiB9CgogICAgICAgIC8vIC0tLS0gMy4gRmFjZXM6IHNhbXBsZSAxIGZyYW1lIC8gNXMsIGRldGVjdCwgY2x1c3RlciAtLS0tCiAgICAgICAgcCgiZmFjZSBhbmFseXNpcyIsIDMyKQogICAgICAgIHZhbCBmYWNlS2l0ID0gRmFjZUtpdChjdHgpCiAgICAgICAgdmFsIG1vdmllTGVuID0gcHJvYmVEdXJhdGlvbihzcmNWaWRlbykKICAgICAgICB2YWwgZnJhbWVGaWxlcyA9IHNhbXBsZUZyYW1lcyhzcmNWaWRlbywgd29ya0RpciwgbW92aWVMZW4pCiAgICAgICAgdmFsIGFsbEZhY2VzID0gbXV0YWJsZUxpc3RPZjxGYWNlPigpCiAgICAgICAgdmFsIGZyYW1lRmFjZUlkcyA9IG11dGFibGVMaXN0T2Y8TGlzdDxJbnQ+PigpIC8vIGNsdXN0ZXIgcGVyIGZyYW1lCiAgICAgICAgdHJ5IHsKICAgICAgICAgICAgdmFsIGVtYmVkZGluZ3MgPSBtdXRhYmxlTGlzdE9mPEZsb2F0QXJyYXk+KCkKICAgICAgICAgICAgZm9yICgoaSwgZnApIGluIGZyYW1lRmlsZXMud2l0aEluZGV4KCkpIHsKICAgICAgICAgICAgICAgIHZhbCBmYWNlcyA9IGZhY2VLaXQucHJvY2Vzc0ZyYW1lKGZwKQogICAgICAgICAgICAgICAgYWxsRmFjZXMuYWRkQWxsKGZhY2VzKQogICAgICAgICAgICAgICAgZW1iZWRkaW5ncy5hZGRBbGwoZmFjZXMubWFwIHsgaXQuZW1iZWRkaW5nIH0pCiAgICAgICAgICAgICAgICBwKCJmYWNlIGFuYWx5c2lzIiwgMzIgKyBpICogOCAvIGZyYW1lRmlsZXMuc2l6ZS5jb2VyY2VBdExlYXN0KDEpKQogICAgICAgICAgICB9CiAgICAgICAgICAgIHZhbCBjbHVzdGVycyA9IGlmIChlbWJlZGRpbmdzLmlzTm90RW1wdHkoKSkKICAgICAgICAgICAgICAgIEZhY2VLaXQuY2x1c3RlcihlbWJlZGRpbmdzKS50b0xpc3QoKSBlbHNlIGVtcHR5TGlzdCgpCiAgICAgICAgICAgIC8vIG1hcCBiYWNrIHRvIGZyYW1lcwogICAgICAgICAgICB2YXIgZmkgPSAwCiAgICAgICAgICAgIGZvciAoZnAgaW4gZnJhbWVGaWxlcykgewogICAgICAgICAgICAgICAgLy8gKHNpbXBsaWZpZWQ6IGZhY2VzIHBlciBmcmFtZSBpbiBvcmRlcikKICAgICAgICAgICAgICAgIGZyYW1lRmFjZUlkcy5hZGQoZW1wdHlMaXN0KCkpCiAgICAgICAgICAgICAgICBmaSsrCiAgICAgICAgICAgIH0KICAgICAgICB9IGNhdGNoIChlOiBFeGNlcHRpb24pIHsgLyogZmFjZXMgdW5hdmFpbGFibGUg4oaSIHNraXAgKi8gfQoKICAgICAgICAvLyAtLS0tIDQuIEF1ZGlvIGV2ZW50cyAtLS0tCiAgICAgICAgcCgiYXVkaW8gZXZlbnRzIiwgNDIpCiAgICAgICAgdmFsIGF1ZGlvRXYgPSBBdWRpb0V2ZW50cyhjdHgpCiAgICAgICAgdmFsIGV2ZW50cyA9IHRyeSB7CiAgICAgICAgICAgIGF1ZGlvRXYuYW5hbHl6ZSh3YXYpIHsgcGN0IC0+IHAoImF1ZGlvIGV2ZW50cyIsIDQyICsgcGN0ICogOCAvIDEwMCkgfQogICAgICAgIH0gY2F0Y2ggKGU6IEV4Y2VwdGlvbikgeyBlbXB0eUxpc3Q8QXVkaW9FdmVudD4oKSB9CiAgICAgICAgZmluYWxseSB7IGF1ZGlvRXYucmVsZWFzZSgpIH0KCiAgICAgICAgLy8gLS0tLSA1LiBCdWlsZCBzY2VuZSB3aW5kb3dzICg1cyBlYWNoKSB3aXRoIHNpZ25hbHMgLS0tLQogICAgICAgIHZhbCBzY2VuZXMgPSBidWlsZFNjZW5lcyhtb3ZpZUxlbiwgZXZlbnRzLCBmcmFtZUZhY2VJZHMpCgogICAgICAgIC8vIC0tLS0gNi4gR2VtaW5pIHNjcmlwdCAtLS0tCiAgICAgICAgcCgid3JpdGluZyBzY3JpcHQiLCA1MikKICAgICAgICB2YWwgZXZpZGVuY2UgPSBidWlsZEV2aWRlbmNlU3VtbWFyeShzZWdtZW50cywgZXZlbnRzLCBzY2VuZXMpCiAgICAgICAgdmFsIGdlbWluaSA9IEdlbWluaUNsaWVudChnZW1pbmlLZXkpCiAgICAgICAgdmFsIGJlYXRzID0gZ2VtaW5pLndyaXRlU2NyaXB0KHRyYW5zY3JpcHQsIHN0eWxlLCB0YXJnZXRNaW51dGVzLCBldmlkZW5jZSkKICAgICAgICBwKCJzY3JpcHQgZG9uZTogJHtiZWF0cy5zaXplfSBiZWF0cyIsIDYwKQoKICAgICAgICAvLyAtLS0tIDcuIFNtYXJ0U3luYyBtYXRjaGluZyAtLS0tCiAgICAgICAgcCgic21hcnQgbWF0Y2hpbmciLCA2MikKICAgICAgICB2YWwgbmFtZVRvQ2x1c3RlciA9IGF1dG9OYW1lQ2x1c3RlcnMoc2VnbWVudHMsIGFsbEZhY2VzKQogICAgICAgIHZhbCBtYXRjaGVzID0gU21hcnRTeW5jLnNtYXJ0U2VsZWN0KGJlYXRzLCBzY2VuZXMsIG1vdmllTGVuLCBuYW1lVG9DbHVzdGVyKQogICAgICAgIHAoIm1hdGNoZWQgJHttYXRjaGVzLmNvdW50IHsgaXQuc2NvcmUgPiAwIH19IC8gJHtiZWF0cy5zaXplfSIsIDY2KQoKICAgICAgICAvLyAtLS0tIDguIFRUUyBwZXIgYmVhdCAtLS0tCiAgICAgICAgcCgidm9pY2Ugc3ludGhlc2lzIiwgNjgpCiAgICAgICAgdmFsIHR0cyA9IEVkZ2VUdHNDbGllbnQoY3R4KQogICAgICAgIHZhbCBiZWF0QXVkaW8gPSBtdXRhYmxlTGlzdE9mPFN0cmluZz4oKQogICAgICAgIGZvciAoKGksIGJlYXQpIGluIGJlYXRzLndpdGhJbmRleCgpKSB7CiAgICAgICAgICAgIHZhbCBhcCA9IEZpbGUod29ya0RpciwgImJlYXRfJGkubXAzIikuYWJzb2x1dGVQYXRoCiAgICAgICAgICAgIHRyeSB7CiAgICAgICAgICAgICAgICB0dHMuc3ludGhlc2l6ZShiZWF0LnRleHRNeSwgYXApCiAgICAgICAgICAgIH0gY2F0Y2ggKGU6IEV4Y2VwdGlvbikgewogICAgICAgICAgICAgICAgLy8gVFRTIGZhaWxlZCBmb3IgdGhpcyBiZWF0IOKGkiBzaWxlbmNlIHBsYWNlaG9sZGVyCiAgICAgICAgICAgICAgICBmZm1wZWcoIi15IC1mIGxhdmZpIC1pIGFudWxsc3JjPXI9MjQwMDA6Y2w9bW9ubyAtdCAke2JlYXQuZHVyVGFyZ2V0fSBcIiRhcFwiIikKICAgICAgICAgICAgfQogICAgICAgICAgICBiZWF0QXVkaW8uYWRkKGFwKQogICAgICAgICAgICBwKCJ2b2ljZSBzeW50aGVzaXMiLCA2OCArIGkgKiAxMiAvIGJlYXRzLnNpemUuY29lcmNlQXRMZWFzdCgxKSkKICAgICAgICB9CgogICAgICAgIC8vIC0tLS0gOS4gUmVuZGVyOiBwZXItYmVhdCBjbGlwICsgVk8sIGNvbmNhdCAtLS0tCiAgICAgICAgcCgicmVuZGVyaW5nIiwgODIpCiAgICAgICAgdmFsIG91dCA9IEZpbGUoY3R4LmdldEV4dGVybmFsRmlsZXNEaXIobnVsbCksCiAgICAgICAgICAgICJyZWNhcF8ke1N5c3RlbS5jdXJyZW50VGltZU1pbGxpcygpfS5tcDQiKS5hYnNvbHV0ZVBhdGgKICAgICAgICByZW5kZXJCZWF0cyhzcmNWaWRlbywgbWF0Y2hlcywgYmVhdEF1ZGlvLCB3b3JrRGlyLCBvdXQpIHsgcGN0IC0+CiAgICAgICAgICAgIHAoInJlbmRlcmluZyIsIDgyICsgcGN0ICogMTggLyAxMDApCiAgICAgICAgfQoKICAgICAgICBwKCJkb25lIiwgMTAwKQogICAgICAgIG91dAogICAgfQoKICAgIC8qKgogICAgICogRWRpdG9yIHZlcnNpb246IHJ1bnMgcGlwZWxpbmUgdGhyb3VnaCBUVFMsIHJldHVybnMgSlNPTiBmb3IgVUkuCiAgICAgKiBEb2VzIE5PVCByZW5kZXIg4oCUIHVzZXIgZWRpdHMgdGltZWxpbmUgZmlyc3QsIHRoZW4gaGl0cyAiTWFrZSB2aWRlbyIuCiAgICAgKiBSZXR1cm5zOiB7ImNsaXBzIjpbLi4uXSwgImF1ZGlvU2xvdHMiOlsuLi5dLCAibGlua3MiOntjbGlwSWQ6YXVkaW9JZH19CiAgICAgKi8KICAgIHN1c3BlbmQgZnVuIHJ1bkZvckVkaXRvcigKICAgICAgICBzcmNWaWRlbzogU3RyaW5nLAogICAgICAgIHN0eWxlOiBTdHJpbmcsCiAgICAgICAgdGFyZ2V0TWludXRlczogSW50LAogICAgICAgIGdlbWluaUtleTogU3RyaW5nLAogICAgICAgIG9uUHJvZ3Jlc3M6IChTdHJpbmcsIEludCkgLT4gVW5pdAogICAgKTogU3RyaW5nID0gd2l0aENvbnRleHQoRGlzcGF0Y2hlcnMuSU8pIHsKICAgICAgICB2YWwgd29ya0RpciA9IEZpbGUoY3R4LmdldEV4dGVybmFsRmlsZXNEaXIobnVsbCksICJwaXBlbGluZV8ke1N5c3RlbS5jdXJyZW50VGltZU1pbGxpcygpfSIpCiAgICAgICAgd29ya0Rpci5ta2RpcnMoKQogICAgICAgIGZ1biBwKHM6IFN0cmluZywgcGN0OiBJbnQpID0gb25Qcm9ncmVzcyhzLCBwY3QpCgogICAgICAgIC8vIC0tLS0gMS4gRXh0cmFjdCBhdWRpbyAtLS0tCiAgICAgICAgcCgiYXVkaW8gZXh0cmFjdCIsIDUpCiAgICAgICAgdmFsIHdhdiA9IEZpbGUod29ya0RpciwgImF1ZGlvLndhdiIpLmFic29sdXRlUGF0aAogICAgICAgIGZmbXBlZygiLXkgLWkgXCIkc3JjVmlkZW9cIiAtYXIgMTYwMDAgLWFjIDEgLWM6YSBwY21fczE2bGUgXCIkd2F2XCIiKQoKICAgICAgICAvLyAtLS0tIDIuIFRyYW5zY3JpYmUgKHN0dWIgaW4gUGhhc2UgMSkgLS0tLQogICAgICAgIHAoInRyYW5zY3JpYmluZyIsIDEwKQogICAgICAgIHZhbCBzZWdtZW50cyA9IGVtcHR5TGlzdDxTZWdtZW50PigpCiAgICAgICAgdmFsIHRyYW5zY3JpcHQgPSAiIgoKICAgICAgICAvLyAtLS0tIDMuIEZhY2VzIChzdHViIGluIFBoYXNlIDEpIC0tLS0KICAgICAgICBwKCJmYWNlIGFuYWx5c2lzIiwgMzIpCiAgICAgICAgdmFsIG1vdmllTGVuID0gcHJvYmVEdXJhdGlvbihzcmNWaWRlbykKICAgICAgICB2YWwgYWxsRmFjZXMgPSBlbXB0eUxpc3Q8RmFjZT4oKQoKICAgICAgICAvLyAtLS0tIDQuIEF1ZGlvIGV2ZW50cyAoc3R1YiBpbiBQaGFzZSAxKSAtLS0tCiAgICAgICAgcCgiYXVkaW8gZXZlbnRzIiwgNDIpCiAgICAgICAgdmFsIGV2ZW50cyA9IGVtcHR5TGlzdDxBdWRpb0V2ZW50PigpCgogICAgICAgIC8vIC0tLS0gNS4gQnVpbGQgc2NlbmUgd2luZG93cyAoMi41cyBlYWNoLCBaaXBweS1zdHlsZSkgLS0tLQogICAgICAgIHZhbCBzY2VuZXMgPSBidWlsZFNjZW5lcyhtb3ZpZUxlbiwgZXZlbnRzLCBlbXB0eUxpc3QoKSkKICAgICAgICBwKCJzY2VuZXM6ICR7c2NlbmVzLnNpemV9IiwgNDgpCgogICAgICAgIC8vIC0tLS0gNi4gR2VtaW5pIHNjcmlwdCAtLS0tCiAgICAgICAgcCgid3JpdGluZyBzY3JpcHQiLCA1MikKICAgICAgICB2YWwgZXZpZGVuY2UgPSBidWlsZEV2aWRlbmNlU3VtbWFyeShzZWdtZW50cywgZXZlbnRzLCBzY2VuZXMpCiAgICAgICAgdmFsIGdlbWluaSA9IEdlbWluaUNsaWVudChnZW1pbmlLZXkpCiAgICAgICAgdmFsIGJlYXRzID0gdHJ5IHsKICAgICAgICAgICAgZ2VtaW5pLndyaXRlU2NyaXB0KHRyYW5zY3JpcHQsIHN0eWxlLCB0YXJnZXRNaW51dGVzLCBldmlkZW5jZSkKICAgICAgICB9IGNhdGNoIChlOiBFeGNlcHRpb24pIHsKICAgICAgICAgICAgLy8gRmFsbGJhY2s6IGNyZWF0ZSBwbGFjZWhvbGRlciBiZWF0cyBpZiBHZW1pbmkgZmFpbHMKICAgICAgICAgICAgKDAgdW50aWwgKHRhcmdldE1pbnV0ZXMgKiAxMikpLm1hcCB7IGkgLT4KICAgICAgICAgICAgICAgIEJlYXQoaSwgIuGAh+GArOGAkOGAuuGAnOGAmeGAuuGAuCDhgKHhgJXhgK3hgK/hgIThgLrhgLggJHtpKzF9IiwgInNjZW5lICR7aSsxfSIsIDUuMCkKICAgICAgICAgICAgfQogICAgICAgIH0KICAgICAgICBwKCJzY3JpcHQgZG9uZTogJHtiZWF0cy5zaXplfSBiZWF0cyIsIDYwKQoKICAgICAgICAvLyAtLS0tIDcuIFNtYXJ0U3luYyBtYXRjaGluZyAtLS0tCiAgICAgICAgcCgic21hcnQgbWF0Y2hpbmciLCA2MikKICAgICAgICB2YWwgbWF0Y2hlcyA9IFNtYXJ0U3luYy5zbWFydFNlbGVjdChiZWF0cywgc2NlbmVzLCBtb3ZpZUxlbiwgZW1wdHlNYXAoKSkKICAgICAgICBwKCJtYXRjaGVkICR7bWF0Y2hlcy5jb3VudCB7IGl0LnNjb3JlID4gMCB9fSAvICR7YmVhdHMuc2l6ZX0iLCA2NikKCiAgICAgICAgLy8gLS0tLSA4LiBUVFMgcGVyIGJlYXQgLS0tLQogICAgICAgIHAoInZvaWNlIHN5bnRoZXNpcyIsIDY4KQogICAgICAgIHZhbCB0dHMgPSBFZGdlVHRzQ2xpZW50KGN0eCkKICAgICAgICB2YWwgYmVhdEF1ZGlvID0gbXV0YWJsZUxpc3RPZjxTdHJpbmc+KCkKICAgICAgICBmb3IgKChpLCBiZWF0KSBpbiBiZWF0cy53aXRoSW5kZXgoKSkgewogICAgICAgICAgICB2YWwgYXAgPSBGaWxlKHdvcmtEaXIsICJiZWF0XyRpLm1wMyIpLmFic29sdXRlUGF0aAogICAgICAgICAgICB0cnkgewogICAgICAgICAgICAgICAgdHRzLnN5bnRoZXNpemUoYmVhdC50ZXh0TXksIGFwKQogICAgICAgICAgICB9IGNhdGNoIChlOiBFeGNlcHRpb24pIHsKICAgICAgICAgICAgICAgIGZmbXBlZygiLXkgLWYgbGF2ZmkgLWkgYW51bGxzcmM9cj0yNDAwMDpjbD1tb25vIC10IDUgXCIkYXBcIiIpCiAgICAgICAgICAgIH0KICAgICAgICAgICAgYmVhdEF1ZGlvLmFkZChhcCkKICAgICAgICAgICAgcCgidm9pY2Ugc3ludGhlc2lzIiwgNjggKyBpICogMTIgLyBiZWF0cy5zaXplLmNvZXJjZUF0TGVhc3QoMSkpCiAgICAgICAgfQoKICAgICAgICAvLyAtLS0tIEJ1aWxkIGVkaXRvciBKU09OIChubyByZW5kZXIgeWV0KSAtLS0tCiAgICAgICAgcCgiYnVpbGRpbmcgdGltZWxpbmUiLCA4NSkKICAgICAgICB2YWwgY2xpcHNKc29uID0gc2NlbmVzLm1hcEluZGV4ZWQgeyBpLCBzIC0+CiAgICAgICAgICAgICIiInsiaWQiOiRpLCJzdGFydCI6JHtzLnN0YXJ0fSwiZW5kIjoke3MuZW5kfSwibGFiZWwiOiJDbGlwICRpIn0iIiIKICAgICAgICB9LmpvaW5Ub1N0cmluZygiLCIpCiAgICAgICAgdmFsIGF1ZGlvSnNvbiA9IGJlYXRzLm1hcEluZGV4ZWQgeyBpLCBiIC0+CiAgICAgICAgICAgIHZhbCB0eHQgPSBiLnRleHRNeS5yZXBsYWNlKCJcXCIsICJcXFxcIikucmVwbGFjZSgiXCIiLCAiJyIpLnJlcGxhY2UoIlxuIiwgIiAiKS50YWtlKDYwKQogICAgICAgICAgICAiIiJ7ImlkIjokaSwic3RhcnQiOiR7aSo1LjB9LCJlbmQiOiR7KGkrMSkqNS4wfSwidGV4dCI6IiR0eHQifSIiIgogICAgICAgIH0uam9pblRvU3RyaW5nKCIsIikKICAgICAgICB2YWwgbGlua3NKc29uID0gbWF0Y2hlcy5tYXBOb3ROdWxsIHsgbSAtPgogICAgICAgICAgICB2YWwgY2xpcElkeCA9IHNjZW5lcy5pbmRleE9mKG0uc2NlbmUpCiAgICAgICAgICAgIGlmIChjbGlwSWR4ID49IDApICJcIiRjbGlwSWR4XCI6XCIke20uYmVhdElkfVwiIiBlbHNlIG51bGwKICAgICAgICB9LmpvaW5Ub1N0cmluZygiLCIpCgogICAgICAgIHAoImRvbmUiLCAxMDApCiAgICAgICAgIiIieyJjbGlwcyI6WyRjbGlwc0pzb25dLCJhdWRpb1Nsb3RzIjpbJGF1ZGlvSnNvbl0sImxpbmtzIjp7JGxpbmtzSnNvbn0sIndvcmtEaXIiOiIke3dvcmtEaXIuYWJzb2x1dGVQYXRofSJ9IiIiCiAgICB9CgogICAgLyoqCiAgICAgKiBSZW5kZXIgZWRpdG9yIHRpbWVsaW5lIGZyb20gcGxhbiBKU09OLgogICAgICogUGxhbjoge2NsaXBzOlt7aWQsc3RhcnQsZW5kfV0sIGxpbmtzOntjbGlwSWQ6YXVkaW9JZH0sIHNyYywgd29ya0Rpcn0KICAgICAqIEVhY2ggbGlua2VkIGNsaXAgaXMgcmVuZGVyZWQgd2l0aCBpdHMgVFRTIGF1ZGlvLCB0aGVuIGNvbmNhdGVuYXRlZC4KICAgICAqLwogICAgc3VzcGVuZCBmdW4gcmVuZGVyVGltZWxpbmUoCiAgICAgICAgcGxhbkpzb246IFN0cmluZywKICAgICAgICBvblByb2dyZXNzOiAoSW50LCBTdHJpbmcpIC0+IFVuaXQKICAgICk6IFN0cmluZyA9IHdpdGhDb250ZXh0KERpc3BhdGNoZXJzLklPKSB7CiAgICAgICAgdmFsIHBsYW4gPSBvcmcuanNvbi5KU09OT2JqZWN0KHBsYW5Kc29uKQogICAgICAgIHZhbCBzcmMgPSBwbGFuLmdldFN0cmluZygic3JjIikKICAgICAgICB2YWwgd29ya0RpclBhdGggPSBwbGFuLm9wdFN0cmluZygid29ya0RpciIsICIiKQogICAgICAgIHZhbCB3b3JrRGlyID0gaWYgKHdvcmtEaXJQYXRoLmlzTm90RW1wdHkoKSkgRmlsZSh3b3JrRGlyUGF0aCkKICAgICAgICAgICAgICAgICAgICAgIGVsc2UgRmlsZShjdHguZ2V0RXh0ZXJuYWxGaWxlc0RpcihudWxsKSwgInRpbWVsaW5lXyR7U3lzdGVtLmN1cnJlbnRUaW1lTWlsbGlzKCl9IikuYXBwbHkgeyBta2RpcnMoKSB9CgogICAgICAgIHZhbCBjbGlwc0FyciA9IHBsYW4uZ2V0SlNPTkFycmF5KCJjbGlwcyIpCiAgICAgICAgdmFsIGxpbmtzT2JqID0gcGxhbi5nZXRKU09OT2JqZWN0KCJsaW5rcyIpCgogICAgICAgIC8vIEJ1aWxkIGNsaXAgbWFwOiBpZCAtPiAoc3RhcnQsIGVuZCkKICAgICAgICB2YWwgY2xpcE1hcCA9IG11dGFibGVNYXBPZjxTdHJpbmcsIFBhaXI8RG91YmxlLCBEb3VibGU+PigpCiAgICAgICAgZm9yIChpIGluIDAgdW50aWwgY2xpcHNBcnIubGVuZ3RoKCkpIHsKICAgICAgICAgICAgdmFsIGMgPSBjbGlwc0Fyci5nZXRKU09OT2JqZWN0KGkpCiAgICAgICAgICAgIGNsaXBNYXBbYy5nZXQoImlkIikudG9TdHJpbmcoKV0gPSBQYWlyKGMuZ2V0RG91YmxlKCJzdGFydCIpLCBjLmdldERvdWJsZSgiZW5kIikpCiAgICAgICAgfQoKICAgICAgICAvLyBTb3J0IGxpbmtzIGJ5IGNsaXAgSUQgZm9yIGNocm9ub2xvZ2ljYWwgb3JkZXIKICAgICAgICB2YWwgc29ydGVkTGlua3MgPSBsaW5rc09iai5rZXlzKCkuYXNTZXF1ZW5jZSgpLnRvTGlzdCgpCiAgICAgICAgICAgIC5zb3J0ZWRCeSB7IGl0LnRvSW50T3JOdWxsKCkgPzogMCB9CgogICAgICAgIGlmIChzb3J0ZWRMaW5rcy5pc0VtcHR5KCkpIHRocm93IEV4Y2VwdGlvbigiTm8gbGlua2VkIGNsaXBzIikKCiAgICAgICAgdmFsIHJlbmRlcmVkQ2xpcHMgPSBtdXRhYmxlTGlzdE9mPFN0cmluZz4oKQogICAgICAgIGZvciAoKGlkeCwgY2xpcElkKSBpbiBzb3J0ZWRMaW5rcy53aXRoSW5kZXgoKSkgewogICAgICAgICAgICB2YWwgYXVkaW9JZCA9IGxpbmtzT2JqLmdldFN0cmluZyhjbGlwSWQpCiAgICAgICAgICAgIHZhbCAoc3RhcnQsIGVuZCkgPSBjbGlwTWFwW2NsaXBJZF0gPzogY29udGludWUKICAgICAgICAgICAgdmFsIGR1ciA9IChlbmQgLSBzdGFydCkuY29lcmNlQXRMZWFzdCgxLjApCgogICAgICAgICAgICB2YWwgYXVkaW9GaWxlID0gRmlsZSh3b3JrRGlyLCAiYmVhdF8kYXVkaW9JZC5tcDMiKS5hYnNvbHV0ZVBhdGgKICAgICAgICAgICAgdmFsIGNwID0gRmlsZSh3b3JrRGlyLCAidGltZWxpbmVfY2xpcF8kaWR4Lm1wNCIpLmFic29sdXRlUGF0aAoKICAgICAgICAgICAgb25Qcm9ncmVzcyhpZHggKiA5MCAvIHNvcnRlZExpbmtzLnNpemUsICJyZW5kZXJpbmcgY2xpcCAke2lkeCsxfS8ke3NvcnRlZExpbmtzLnNpemV9IikKCiAgICAgICAgICAgIHZhbCBhdWRpb0V4aXN0cyA9IEZpbGUoYXVkaW9GaWxlKS5leGlzdHMoKQogICAgICAgICAgICB2YWwgYXVkaW9JbnB1dCA9IGlmIChhdWRpb0V4aXN0cykgIi1pIFwiJGF1ZGlvRmlsZVwiIiBlbHNlICItYW4iCiAgICAgICAgICAgIHZhbCBhdWRpb09wdHMgPSBpZiAoYXVkaW9FeGlzdHMpCiAgICAgICAgICAgICAgICAiLWM6YSBhYWMgLWI6YSAxMjhrIC1hZiBcImxvdWRub3JtPUk9LTE2OlRQPS0xLjU6TFJBPTExXCIiCiAgICAgICAgICAgIGVsc2UgIiIKCiAgICAgICAgICAgIC8vIEZhc3Qgc2VlayArIHRyaW0gZmlsdGVyICh2ZXJpZmllZCBwYXR0ZXJuKQogICAgICAgICAgICBmZm1wZWcoIi15IC1zcyAkc3RhcnQgLWkgXCIkc3JjXCIgJGF1ZGlvSW5wdXQgIiArCiAgICAgICAgICAgICAgICAgICAgIi12ZiBcInRyaW09ZHVyYXRpb249JGR1cixzY2FsZT0xMjgwOi0yLHNldHNhcj0xLGZwcz0zMFwiICIgKwogICAgICAgICAgICAgICAgICAgICItYzp2IGxpYngyNjQgLXByZXNldCB2ZXJ5ZmFzdCAtY3JmIDIzICIgKwogICAgICAgICAgICAgICAgICAgICIkYXVkaW9PcHRzIC1zaG9ydGVzdCBcIiRjcFwiIikKICAgICAgICAgICAgcmVuZGVyZWRDbGlwcy5hZGQoY3ApCiAgICAgICAgfQoKICAgICAgICAvLyBDb25jYXQKICAgICAgICBvblByb2dyZXNzKDkyLCAiY29uY2F0ZW5hdGluZyIpCiAgICAgICAgdmFsIGxpc3RGaWxlID0gRmlsZSh3b3JrRGlyLCAidGltZWxpbmVfbGlzdC50eHQiKS5hcHBseSB7CiAgICAgICAgICAgIHdyaXRlVGV4dChyZW5kZXJlZENsaXBzLmpvaW5Ub1N0cmluZygiXG4iKSB7ICJmaWxlICckaXQnIiB9KQogICAgICAgIH0KICAgICAgICB2YWwgb3V0ID0gRmlsZShjdHguZ2V0RXh0ZXJuYWxGaWxlc0RpcihudWxsKSwKICAgICAgICAgICAgInJlY2FwXyR7U3lzdGVtLmN1cnJlbnRUaW1lTWlsbGlzKCl9Lm1wNCIpLmFic29sdXRlUGF0aAogICAgICAgIGZmbXBlZygiLXkgLWYgY29uY2F0IC1zYWZlIDAgLWkgXCIke2xpc3RGaWxlLmFic29sdXRlUGF0aH1cIiAtYyBjb3B5IFwiJG91dFwiIikKCiAgICAgICAgb25Qcm9ncmVzcygxMDAsICJkb25lIikKICAgICAgICBvdXQKICAgIH0KCiAgICAvLyAtLS0tLS0tLS0tIGhlbHBlcnMgLS0tLS0tLS0tLQoKICAgIHByaXZhdGUgZnVuIGZmbXBlZyhjbWQ6IFN0cmluZykgewogICAgICAgIHZhbCBzID0gRkZtcGVnS2l0LmV4ZWN1dGUoY21kKQogICAgICAgIGlmICghUmV0dXJuQ29kZS5pc1N1Y2Nlc3Mocy5yZXR1cm5Db2RlKSkgewogICAgICAgICAgICB2YWwgZXJyID0gcy5mYWlsU3RhY2tUcmFjZT8udGFrZSgyMDApCiAgICAgICAgICAgICAgICA/OiBzLm91dHB1dD8udGFrZUxhc3QoMzAwKQogICAgICAgICAgICAgICAgPzogInJldHVybkNvZGU9JHtzLnJldHVybkNvZGV9IgogICAgICAgICAgICB0aHJvdyBFeGNlcHRpb24oImZmbXBlZyBmYWlsZWQ6ICRlcnIiKQogICAgICAgIH0KICAgIH0KCiAgICBwcml2YXRlIGZ1biBwcm9iZUR1cmF0aW9uKHBhdGg6IFN0cmluZyk6IERvdWJsZSB7CiAgICAgICAgdmFsIHMgPSBjb20uYW50b25rYXJwZW5rby5mZm1wZWdraXQuRkZwcm9iZUtpdC5nZXRNZWRpYUluZm9ybWF0aW9uKHBhdGgpCiAgICAgICAgcmV0dXJuIHRyeSB7CiAgICAgICAgICAgIHMubWVkaWFJbmZvcm1hdGlvbi5kdXJhdGlvbj8udG9Eb3VibGUoKSA/OiAwLjAKICAgICAgICB9IGNhdGNoIChlOiBFeGNlcHRpb24pIHsgMC4wIH0KICAgIH0KCiAgICBwcml2YXRlIGZ1biBzYW1wbGVGcmFtZXMoc3JjOiBTdHJpbmcsIGRpcjogRmlsZSwgbW92aWVMZW46IERvdWJsZSk6IExpc3Q8U3RyaW5nPiB7CiAgICAgICAgdmFsIG91dCA9IG11dGFibGVMaXN0T2Y8U3RyaW5nPigpCiAgICAgICAgdmFyIHQgPSAwLjAKICAgICAgICB2YXIgaSA9IDAKICAgICAgICB3aGlsZSAodCA8IG1vdmllTGVuICYmIGkgPCAyNDApIHsgIC8vIGNhcCAyNDAgZnJhbWVzCiAgICAgICAgICAgIHZhbCBmcCA9IEZpbGUoZGlyLCAiZnJhbWVfJGkuanBnIikuYWJzb2x1dGVQYXRoCiAgICAgICAgICAgIHRyeSB7CiAgICAgICAgICAgICAgICBmZm1wZWcoIi15IC1zcyAkdCAtaSBcIiRzcmNcIiAtdmZyYW1lcyAxIC1xOnYgMyBcIiRmcFwiIikKICAgICAgICAgICAgICAgIG91dC5hZGQoZnApCiAgICAgICAgICAgIH0gY2F0Y2ggKGU6IEV4Y2VwdGlvbikgeyB9CiAgICAgICAgICAgIHQgKz0gNS4wOyBpKysKICAgICAgICB9CiAgICAgICAgcmV0dXJuIG91dAogICAgfQoKICAgIHByaXZhdGUgZnVuIGJ1aWxkU2NlbmVzKG1vdmllTGVuOiBEb3VibGUsIGV2ZW50czogTGlzdDxBdWRpb0V2ZW50PiwKICAgICAgICAgICAgICAgICAgICAgICAgICAgIGZyYW1lRmFjZUlkczogTGlzdDxMaXN0PEludD4+KTogTGlzdDxTY2VuZVdpbmRvdz4gewogICAgICAgIHZhbCBzY2VuZXMgPSBtdXRhYmxlTGlzdE9mPFNjZW5lV2luZG93PigpCiAgICAgICAgdmFyIHQgPSAwLjAKICAgICAgICB3aGlsZSAodCA8IG1vdmllTGVuKSB7CiAgICAgICAgICAgIHZhbCBlbmQgPSBtaW5PZih0ICsgNS4wLCBtb3ZpZUxlbikKICAgICAgICAgICAgdmFsIGxhYmVscyA9IGV2ZW50cy5maWx0ZXIgeyBpdC5zdGFydCA+PSB0ICYmIGl0LnN0YXJ0IDwgZW5kIH0KICAgICAgICAgICAgICAgIC5tYXAgeyBpdC5sYWJlbCB9CiAgICAgICAgICAgIHNjZW5lcy5hZGQoU2NlbmVXaW5kb3codCwgZW5kLCBlbXB0eUxpc3QoKSwgbGFiZWxzLCAwLjUsIDAuNSkpCiAgICAgICAgICAgIHQgKz0gNS4wCiAgICAgICAgfQogICAgICAgIHJldHVybiBzY2VuZXMKICAgIH0KCiAgICBwcml2YXRlIGZ1biBidWlsZEV2aWRlbmNlU3VtbWFyeShzZWdtZW50czogTGlzdDxTZWdtZW50PiwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIGV2ZW50czogTGlzdDxBdWRpb0V2ZW50PiwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIHNjZW5lczogTGlzdDxTY2VuZVdpbmRvdz4pOiBTdHJpbmcgewogICAgICAgIHZhbCBzYiA9IFN0cmluZ0J1aWxkZXIoKQogICAgICAgIHNiLmFwcGVuZCgiU2NlbmVzOiAke3NjZW5lcy5zaXplfSB4IDVzIHdpbmRvd3MuICIpCiAgICAgICAgdmFsIHRvcEF1ZGlvID0gZXZlbnRzLmdyb3VwQnkgeyBpdC5sYWJlbCB9CiAgICAgICAgICAgIC5tYXBWYWx1ZXMgeyBpdC52YWx1ZS5zaXplIH0KICAgICAgICAgICAgLnRvTGlzdCgpLnNvcnRlZEJ5RGVzY2VuZGluZyB7IGl0LnNlY29uZCB9LnRha2UoNSkKICAgICAgICBzYi5hcHBlbmQoIlRvcCBhdWRpbzogJHt0b3BBdWRpby5qb2luVG9TdHJpbmcgeyAiJHtpdC5maXJzdH0oJHtpdC5zZWNvbmR9KSIgfX0uICIpCiAgICAgICAgc2IuYXBwZW5kKCJEaWFsb2d1ZSBzZWdtZW50czogJHtzZWdtZW50cy5zaXplfS4iKQogICAgICAgIHJldHVybiBzYi50b1N0cmluZygpCiAgICB9CgogICAgcHJpdmF0ZSBmdW4gYXV0b05hbWVDbHVzdGVycyhzZWdtZW50czogTGlzdDxTZWdtZW50PiwKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgZmFjZXM6IExpc3Q8RmFjZT4pOiBNYXA8U3RyaW5nLCBJbnQ+IHsKICAgICAgICAvLyBDb25zZXJ2YXRpdmU6IG9ubHkgbWFwIG5hbWVzIHRoYXQgY28tb2NjdXIgd2l0aCBkaWFsb2d1ZS4KICAgICAgICAvLyBGdWxsIGltcGwgaW4gUGhhc2UgMjsgcmV0dXJuIGVtcHR5IGZvciBub3cgKHNhZmUpLgogICAgICAgIHJldHVybiBlbXB0eU1hcCgpCiAgICB9CgogICAgcHJpdmF0ZSBmdW4gcmVuZGVyQmVhdHMoc3JjOiBTdHJpbmcsIG1hdGNoZXM6IExpc3Q8TWF0Y2g+LAogICAgICAgICAgICAgICAgICAgICAgICAgICAgYmVhdEF1ZGlvOiBMaXN0PFN0cmluZz4sIGRpcjogRmlsZSwgb3V0OiBTdHJpbmcsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICBvblByb2dyZXNzOiAoSW50KSAtPiBVbml0KSB7CiAgICAgICAgdmFsIGNsaXBzID0gbXV0YWJsZUxpc3RPZjxTdHJpbmc+KCkKICAgICAgICBmb3IgKChpLCBtKSBpbiBtYXRjaGVzLndpdGhJbmRleCgpKSB7CiAgICAgICAgICAgIHZhbCBjcCA9IEZpbGUoZGlyLCAiY2xpcF8kaS5tcDQiKS5hYnNvbHV0ZVBhdGgKICAgICAgICAgICAgdmFsIGR1ciA9IChtLnNjZW5lLmVuZCAtIG0uc2NlbmUuc3RhcnQpLmNvZXJjZUF0TGVhc3QoMS4wKQogICAgICAgICAgICAvLyDiiaQ1cyBmYWlyLXVzZSBjbGlwLCB0cmFuc2Zvcm1lZCwgbXV0ZWQgc291cmNlIGF1ZGlvCiAgICAgICAgICAgIC8vIFVzZSBmYXN0IGlucHV0IHNlZWsgKyBwcmVjaXNlIHRyaW0gZmlsdGVyICh2ZXJpZmllZCBwYXR0ZXJuIGZyb20gbGFwdG9wKQogICAgICAgICAgICB2YWwgc3MgPSBtLnNjZW5lLnN0YXJ0CiAgICAgICAgICAgIHZhbCBhdWRpb0ZpbGUgPSBiZWF0QXVkaW8uZ2V0T3JOdWxsKGkpID86ICIiCiAgICAgICAgICAgIHZhbCBhdWRpb0lucHV0ID0gaWYgKGF1ZGlvRmlsZS5pc05vdEVtcHR5KCkgJiYgRmlsZShhdWRpb0ZpbGUpLmV4aXN0cygpKQogICAgICAgICAgICAgICAgIi1pIFwiJGF1ZGlvRmlsZVwiIiBlbHNlICItYW4iCiAgICAgICAgICAgIGZmbXBlZygiLXkgLXNzICRzcyAtaSBcIiRzcmNcIiAkYXVkaW9JbnB1dCAiICsKICAgICAgICAgICAgICAgICAgICAiLXZmIFwidHJpbT1kdXJhdGlvbj0kZHVyLHNjYWxlPTEyODA6LTIsc2V0c2FyPTEsZnBzPTMwXCIgIiArCiAgICAgICAgICAgICAgICAgICAgIi1jOnYgbGlieDI2NCAtcHJlc2V0IHZlcnlmYXN0IC1jcmYgMjMgIiArCiAgICAgICAgICAgICAgICAgICAgKGlmIChhdWRpb0ZpbGUuaXNOb3RFbXB0eSgpICYmIEZpbGUoYXVkaW9GaWxlKS5leGlzdHMoKSkKICAgICAgICAgICAgICAgICAgICAgICAgIi1jOmEgYWFjIC1iOmEgMTI4ayAtYWYgXCJsb3Vkbm9ybT1JPS0xNjpUUD0tMS41OkxSQT0xMVwiICIKICAgICAgICAgICAgICAgICAgICBlbHNlICIiKSArCiAgICAgICAgICAgICAgICAgICAgIi1zaG9ydGVzdCBcIiRjcFwiIikKICAgICAgICAgICAgY2xpcHMuYWRkKGNwKQogICAgICAgICAgICBvblByb2dyZXNzKGkgKiAxMDAgLyBtYXRjaGVzLnNpemUuY29lcmNlQXRMZWFzdCgxKSkKICAgICAgICB9CiAgICAgICAgLy8gY29uY2F0CiAgICAgICAgdmFsIGxpc3RGaWxlID0gRmlsZShkaXIsICJsaXN0LnR4dCIpLmFwcGx5IHsKICAgICAgICAgICAgd3JpdGVUZXh0KGNsaXBzLmpvaW5Ub1N0cmluZygiXG4iKSB7ICJmaWxlICckaXQnIiB9KQogICAgICAgIH0KICAgICAgICBmZm1wZWcoIi15IC1mIGNvbmNhdCAtc2FmZSAwIC1pIFwiJHtsaXN0RmlsZS5hYnNvbHV0ZVBhdGh9XCIgLWMgY29weSBcIiRvdXRcIiIpCiAgICAgICAgb25Qcm9ncmVzcygxMDApCiAgICB9CgogICAgLyoqCiAgICAgKiBXaXphcmQgcmVuZGVyOiBmdWxsIHBpcGVsaW5lIHdpdGggdXNlciBjb25maWcgKHN0eWxlLCB2b2ljZSwgcmF0aW8sIHJlcywgdGFyZ2V0TWluLCBvdmVybGF5cykuCiAgICAgKiAyMDI2LTEwLTE3OiBOZXcgd2l6YXJkIFVJIHdvcmtmbG93LgogICAgICovCiAgICBzdXNwZW5kIGZ1biBydW5XaXphcmQoCiAgICAgICAgY2ZnOiBvcmcuanNvbi5KU09OT2JqZWN0LAogICAgICAgIG9uUHJvZ3Jlc3M6IChJbnQsIFN0cmluZykgLT4gVW5pdCwKICAgICAgICBvbkRvbmU6IChTdHJpbmcsIFN0cmluZykgLT4gVW5pdCwKICAgICAgICBvbkVycm9yOiAoU3RyaW5nKSAtPiBVbml0CiAgICApIHsKICAgICAgICB0cnkgewogICAgICAgICAgICB2YWwgdmlkZW8gPSBjZmcuZ2V0U3RyaW5nKCJ2aWRlbyIpCiAgICAgICAgICAgIHZhbCBzdHlsZSA9IGNmZy5vcHRTdHJpbmcoInN0eWxlIiwgImZ1bGxfc3RvcnkiKQogICAgICAgICAgICB2YWwgdm9pY2UgPSBjZmcub3B0U3RyaW5nKCJ2b2ljZSIsICJteS1NTS1UaGloYU5ldXJhbCIpCiAgICAgICAgICAgIHZhbCBzcGVlZCA9IGNmZy5vcHREb3VibGUoInNwZWVkIiwgMS4wKQogICAgICAgICAgICB2YWwgcGl0Y2ggPSBjZmcub3B0SW50KCJwaXRjaCIsIDApCiAgICAgICAgICAgIHZhbCB2b2wgPSBjZmcub3B0SW50KCJ2b2wiLCAxMDApCiAgICAgICAgICAgIHZhbCByYXRpbyA9IGNmZy5vcHRTdHJpbmcoInJhdGlvIiwgIjE2OjkiKQogICAgICAgICAgICB2YWwgcmVzID0gY2ZnLm9wdFN0cmluZygicmVzIiwgIjEwODBwIikKICAgICAgICAgICAgdmFsIHRhcmdldE1pbiA9IGNmZy5vcHRJbnQoInRhcmdldE1pbiIsIDEwKQogICAgICAgICAgICB2YWwgb3ZlcmxheXMgPSBjZmcub3B0SlNPTk9iamVjdCgib3ZlcmxheXMiKQoKICAgICAgICAgICAgZnVuIHAocGN0OiBJbnQsIG1zZzogU3RyaW5nKSA9IG9uUHJvZ3Jlc3MocGN0LCBtc2cpCgogICAgICAgICAgICBwKDUsICLwn46sIFZpZGVvIOGAleGAvOGAhOGAuuGAhuGAhOGAuuGAlOGAseGAkOGAmuGAui4uLiIpCiAgICAgICAgICAgIHZhbCBtb3ZpZUxlbiA9IHByb2JlRHVyYXRpb24odmlkZW8pCgogICAgICAgICAgICBwKDE1LCAi8J+Ome+4jyBTY3JpcHQg4YCb4YCx4YC44YCU4YCx4YCQ4YCa4YC6Li4uIikKICAgICAgICAgICAgdmFsIGdlbWluaUtleSA9IGN0eC5nZXRTaGFyZWRQcmVmZXJlbmNlcygiY2luZXNpcCIsIGFuZHJvaWQuY29udGVudC5Db250ZXh0Lk1PREVfUFJJVkFURSkKICAgICAgICAgICAgICAgIC5nZXRTdHJpbmcoImdlbWluaV9rZXkiLCAiIikgPzogIiIKICAgICAgICAgICAgaWYgKGdlbWluaUtleS5pc0VtcHR5KCkpIHsgb25FcnJvcigi4pqg77iPIFNldHRpbmdzIOGAmeGAvuGArCBHZW1pbmkgQVBJIGtleSDhgJHhgIrhgLfhgLrhgJXhgKsiKTsgcmV0dXJuIH0KCiAgICAgICAgICAgIHZhbCBnZW1pbmkgPSBjb20uY2luZXNpcC5yZWNhcC5hcGkuR2VtaW5pQ2xpZW50KGdlbWluaUtleSkKICAgICAgICAgICAgLy8gVXNlIHRyYW5zY3JpcHQgc3R1YiBmb3Igbm93IChQaGFzZSAyOiByZWFsIHdoaXNwZXIpCiAgICAgICAgICAgIHZhbCBiZWF0cyA9IGdlbWluaS53cml0ZVNjcmlwdCgiKHRyYW5zY3JpcHQpIiwgc3R5bGUsIHRhcmdldE1pbiwgIihldmlkZW5jZSkiKQogICAgICAgICAgICBpZiAoYmVhdHMuaXNFbXB0eSgpKSB7IG9uRXJyb3IoIuKdjCBTY3JpcHQg4YCb4YCx4YC44YCZ4YCb4YCY4YCw4YC4Iik7IHJldHVybiB9CgogICAgICAgICAgICBwKDQwLCAi8J+UiiDhgKHhgJ7hgLYg4YCR4YCv4YCQ4YC64YCU4YCx4YCQ4YCa4YC6Li4uIikKICAgICAgICAgICAgdmFsIHR0cyA9IGNvbS5jaW5lc2lwLnJlY2FwLmFwaS5FZGdlVHRzQ2xpZW50KCkKICAgICAgICAgICAgdmFsIGRpciA9IGphdmEuaW8uRmlsZShjdHguY2FjaGVEaXIsICJ3aXphcmRfJHtTeXN0ZW0uY3VycmVudFRpbWVNaWxsaXMoKX0iKS5hcHBseSB7IG1rZGlycygpIH0KICAgICAgICAgICAgdmFsIGF1ZGlvRmlsZXMgPSBtdXRhYmxlTGlzdE9mPFN0cmluZz4oKQogICAgICAgICAgICBiZWF0cy5mb3JFYWNoSW5kZXhlZCB7IGksIGJlYXQgLT4KICAgICAgICAgICAgICAgIHZhbCBhZiA9IGphdmEuaW8uRmlsZShkaXIsICJiZWF0XyRpLm1wMyIpLmFic29sdXRlUGF0aAogICAgICAgICAgICAgICAgLy8gVW5saW1pdGVkIHRleHQ6IHNwbGl0IGludG8gY2h1bmtzIGlmIG5lZWRlZCAoZWRnZS10dHMgaGFuZGxlcyBsb25nIHRleHQpCiAgICAgICAgICAgICAgICB0dHMuc3ludGhlc2l6ZShiZWF0LnRleHRNeSwgYWYsIHZvaWNlLCBzcGVlZCwgcGl0Y2gsIHZvbCkKICAgICAgICAgICAgICAgIGF1ZGlvRmlsZXMuYWRkKGFmKQogICAgICAgICAgICAgICAgcCg0MCArIGkgKiAzMCAvIGJlYXRzLnNpemUuY29lcmNlQXRMZWFzdCgxKSwgIvCflIog4YCh4YCe4YC2ICR7aSsxfS8ke2JlYXRzLnNpemV9IikKICAgICAgICAgICAgfQoKICAgICAgICAgICAgcCg3NSwgIuKcgu+4jyBWaWRlbyDhgJbhgLzhgJDhgLrhgJThgLHhgJDhgJrhgLouLi4iKQogICAgICAgICAgICAvLyBCdWlsZCBzY2VuZXM6IDVzIGNsaXBzIHdpdGggZmFpci11c2UgdHJhbnNmb3JtcwogICAgICAgICAgICB2YWwgc2NlbmVzID0gYnVpbGRTY2VuZXMobW92aWVMZW4sIGVtcHR5TGlzdCgpLCBiZWF0cy5zaXplKQogICAgICAgICAgICB2YWwgbWF0Y2hlcyA9IGNvbS5jaW5lc2lwLnJlY2FwLmFpLlNtYXJ0U3luYy5zbWFydFNlbGVjdChiZWF0cywgc2NlbmVzLCBlbXB0eUxpc3QoKSwgZW1wdHlMaXN0KCkpCgogICAgICAgICAgICBwKDg1LCAi8J+OqCBPdmVybGF5IOGAkeGAiuGAt+GAuuGAlOGAseGAkOGAmuGAui4uLiIpCiAgICAgICAgICAgIHZhbCBvdXRSZXMgPSB3aGVuIChyZXMpIHsgIjEwODBwIiAtPiAxMDgwOyAiNzIwcCIgLT4gNzIwOyBlbHNlIC0+IDQ4MCB9CiAgICAgICAgICAgIHZhbCAob3V0Vywgb3V0SCkgPSB3aGVuIChyYXRpbykgewogICAgICAgICAgICAgICAgIjk6MTYiIC0+IFBhaXIob3V0UmVzICogOSAvIDE2LCBvdXRSZXMpCiAgICAgICAgICAgICAgICAiMToxIiAtPiBQYWlyKG91dFJlcywgb3V0UmVzKQogICAgICAgICAgICAgICAgZWxzZSAtPiBQYWlyKG91dFJlcywgb3V0UmVzICogOSAvIDE2KQogICAgICAgICAgICB9CgogICAgICAgICAgICB2YWwgb3V0ID0gamF2YS5pby5GaWxlKGN0eC5nZXRFeHRlcm5hbEZpbGVzRGlyKG51bGwpLCAiY2luZXNpcF8ke1N5c3RlbS5jdXJyZW50VGltZU1pbGxpcygpfS5tcDQiKS5hYnNvbHV0ZVBhdGgKICAgICAgICAgICAgcmVuZGVyQmVhdHNXaXRoT3ZlcmxheXModmlkZW8sIG1hdGNoZXMsIGF1ZGlvRmlsZXMsIG91dCwgb3V0Vywgb3V0SCwgb3ZlcmxheXMsIDo6ZmZtcGVnKQoKICAgICAgICAgICAgcCgxMDAsICLinIUg4YCV4YC84YCu4YC44YCV4YC84YCuISIpCiAgICAgICAgICAgIHZhbCBjbGlwc0pzb24gPSBvcmcuanNvbi5KU09OQXJyYXkobWF0Y2hlcy5tYXBJbmRleGVkIHsgaSwgbSAtPgogICAgICAgICAgICAgICAgb3JnLmpzb24uSlNPTk9iamVjdCgpLnB1dCgiZHVyIiwgbS5zY2VuZS5kdXIpLnB1dCgiYmVhdCIsIGkpCiAgICAgICAgICAgIH0pLnRvU3RyaW5nKCkKICAgICAgICAgICAgb25Eb25lKG91dCwgY2xpcHNKc29uKQogICAgICAgIH0gY2F0Y2ggKGU6IEV4Y2VwdGlvbikgewogICAgICAgICAgICBvbkVycm9yKCLinYwgIiArIChlLm1lc3NhZ2UgPzogImVycm9yIikpCiAgICAgICAgfQogICAgfQoKICAgIC8qKgogICAgICogQWRqdXN0IGNsaXAgc3BlZWQgKGZvciBmaW5hbCBwcmV2aWV3IGVkaXRpbmcpLgogICAgICovCiAgICBzdXNwZW5kIGZ1biBhZGp1c3RDbGlwU3BlZWQoaW5kZXg6IEludCwgZmFjdG9yOiBEb3VibGUpOiBEb3VibGUgewogICAgICAgIC8vIFRPRE86IEltcGxlbWVudCBhY3R1YWwgY2xpcCBzcGVlZCBhZGp1c3RtZW50IHZpYSBmZm1wZWcgYXRlbXBvCiAgICAgICAgLy8gRm9yIG5vdywgcmV0dXJuIHRoZSBmYWN0b3IgYXMgdGhlICJuZXcgZHVyYXRpb24iIHBsYWNlaG9sZGVyCiAgICAgICAgcmV0dXJuIGZhY3RvcgogICAgfQoKICAgIHByaXZhdGUgc3VzcGVuZCBmdW4gcmVuZGVyQmVhdHNXaXRoT3ZlcmxheXMoCiAgICAgICAgc3JjOiBTdHJpbmcsIG1hdGNoZXM6IExpc3Q8Y29tLmNpbmVzaXAucmVjYXAuYWkuTWF0Y2g+LAogICAgICAgIGF1ZGlvRmlsZXM6IExpc3Q8U3RyaW5nPiwgb3V0OiBTdHJpbmcsIG91dFc6IEludCwgb3V0SDogSW50LAogICAgICAgIG92ZXJsYXlzOiBvcmcuanNvbi5KU09OT2JqZWN0PywgZmZtcGVnRm46IChTdHJpbmcpIC0+IFVuaXQKICAgICkgewogICAgICAgIHZhbCBkaXIgPSBqYXZhLmlvLkZpbGUoY3R4LmNhY2hlRGlyLCAib3ZfJHtTeXN0ZW0uY3VycmVudFRpbWVNaWxsaXMoKX0iKS5hcHBseSB7IG1rZGlycygpIH0KICAgICAgICB2YWwgY2xpcHMgPSBtdXRhYmxlTGlzdE9mPFN0cmluZz4oKQogICAgICAgIG1hdGNoZXMuZm9yRWFjaEluZGV4ZWQgeyBpLCBtIC0+CiAgICAgICAgICAgIHZhbCBjcCA9IGphdmEuaW8uRmlsZShkaXIsICJjXyRpLm1wNCIpLmFic29sdXRlUGF0aAogICAgICAgICAgICB2YWwgYXVkaW9GaWxlID0gYXVkaW9GaWxlcy5nZXRPck51bGwoaSkgPzogIiIKICAgICAgICAgICAgdmFsIHNzID0gbS5zY2VuZS5zdGFydAogICAgICAgICAgICB2YWwgZHVyID0gbS5zY2VuZS5kdXIKICAgICAgICAgICAgLy8gQmFzZTogdHJpbSArIHNjYWxlICsgZnBzCiAgICAgICAgICAgIHZhciB2ZiA9ICJ0cmltPWR1cmF0aW9uPSRkdXIsc2NhbGU9JHtvdXRXfToke291dEh9OmZvcmNlX29yaWdpbmFsX2FzcGVjdF9yYXRpbz1pbmNyZWFzZSxjcm9wPSR7b3V0V306JHtvdXRIfSxzZXRzYXI9MSxmcHM9MzAiCiAgICAgICAgICAgIC8vIFN1YnRpdGxlIG92ZXJsYXkgKFdZU0lXWUc6IHVzZSBvdmVybGF5IGNvbmZpZykKICAgICAgICAgICAgdmFsIHN1Yk9uID0gb3ZlcmxheXM/Lm9wdEpTT05PYmplY3QoInN1YiIpPy5vcHRCb29sZWFuKCJvbiIsIHRydWUpID86IHRydWUKICAgICAgICAgICAgaWYgKHN1Yk9uKSB7CiAgICAgICAgICAgICAgICB2YWwgc3ViID0gb3ZlcmxheXM/Lm9wdEpTT05PYmplY3QoInN1YiIpCiAgICAgICAgICAgICAgICB2YWwgc3ggPSBzdWI/Lm9wdERvdWJsZSgieCIsIDUwLjApID86IDUwLjAKICAgICAgICAgICAgICAgIHZhbCBzeSA9IHN1Yj8ub3B0RG91YmxlKCJ5IiwgODIuMCkgPzogODIuMAogICAgICAgICAgICAgICAgdmFsIHNTaXplID0gc3ViPy5vcHREb3VibGUoInNpemUiLCA1LjApID86IDUuMAogICAgICAgICAgICAgICAgdmFsIHNDb2xvciA9IChzdWI/Lm9wdFN0cmluZygiY29sb3IiLCAiI0ZGRUIzQiIpID86ICIjRkZFQjNCIikucmVwbGFjZSgiIyIsICIiKQogICAgICAgICAgICAgICAgLy8gRHJhdyBzdWJ0aXRsZSB0ZXh0IChzaW1wbGlmaWVkIC0gcmVhbCBpbXBsIHdvdWxkIHVzZSBkcmF3dGV4dCB3aXRoIGZvbnRmaWxlKQogICAgICAgICAgICAgICAgLy8gRm9yIG5vdywgd2Ugbm90ZSB0aGUgcG9zaXRpb247IGZ1bGwgZHJhd3RleHQgcmVxdWlyZXMgZm9udCBmaWxlCiAgICAgICAgICAgIH0KICAgICAgICAgICAgdmFsIGF1ZGlvSW5wdXQgPSBpZiAoYXVkaW9GaWxlLmlzTm90RW1wdHkoKSAmJiBqYXZhLmlvLkZpbGUoYXVkaW9GaWxlKS5leGlzdHMoKSkKICAgICAgICAgICAgICAgICItaSBcIiRhdWRpb0ZpbGVcIiIgZWxzZSAiLWFuIgogICAgICAgICAgICBmZm1wZWdGbigiLXkgLXNzICRzcyAtaSBcIiRzcmNcIiAkYXVkaW9JbnB1dCAiICsKICAgICAgICAgICAgICAgICAgICAiLXZmIFwiJHZmXCIgIiArCiAgICAgICAgICAgICAgICAgICAgIi1jOnYgbGlieDI2NCAtcHJlc2V0IHZlcnlmYXN0IC1jcmYgMjMgIiArCiAgICAgICAgICAgICAgICAgICAgKGlmIChhdWRpb0ZpbGUuaXNOb3RFbXB0eSgpICYmIGphdmEuaW8uRmlsZShhdWRpb0ZpbGUpLmV4aXN0cygpKQogICAgICAgICAgICAgICAgICAgICAgICAiLWM6YSBhYWMgLWI6YSAxMjhrIC1hZiBcImxvdWRub3JtPUk9LTE2OlRQPS0xLjU6TFJBPTExXCIgIgogICAgICAgICAgICAgICAgICAgIGVsc2UgIiIpICsKICAgICAgICAgICAgICAgICAgICAiLXNob3J0ZXN0IFwiJGNwXCIiKQogICAgICAgICAgICBjbGlwcy5hZGQoY3ApCiAgICAgICAgfQogICAgICAgIHZhbCBsaXN0RmlsZSA9IGphdmEuaW8uRmlsZShkaXIsICJsaXN0LnR4dCIpLmFwcGx5IHsKICAgICAgICAgICAgd3JpdGVUZXh0KGNsaXBzLmpvaW5Ub1N0cmluZygiXG4iKSB7ICJmaWxlICckaXQnIiB9KQogICAgICAgIH0KICAgICAgICBmZm1wZWdGbigiLXkgLWYgY29uY2F0IC1zYWZlIDAgLWkgXCIke2xpc3RGaWxlLmFic29sdXRlUGF0aH1cIiAtYyBjb3B5IFwiJG91dFwiIikKICAgIH0KfQo=
+package com.cinesip.recap.pipeline
+
+import android.content.Context
+import com.antonkarpenko.ffmpegkit.FFmpegKit
+import com.antonkarpenko.ffmpegkit.ReturnCode
+import com.cinesip.recap.ai.*
+import com.cinesip.recap.api.EdgeTtsClient
+import com.cinesip.recap.api.GeminiClient
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.File
+
+/**
+ * Full on-device recap pipeline. 100% phone, no laptop, no server.
+ *
+ * Stages:
+ *  1. Extract audio (16kHz mono wav) via FFmpegKit
+ *  2. Transcribe (sherpa-onnx, on-device)
+ *  3. Sample frames → face detection + clustering (OpenCV, on-device)
+ *  4. Audio events (YAMNet TFLite, on-device)
+ *  5. Gemini script (HTTPS API)
+ *  6. SmartSync beat→scene matching (on-device)
+ *  7. Edge-TTS voice per beat (WebSocket API)
+ *  8. Render final video (FFmpegKit, on-device)
+ *
+ * Every AI stage degrades gracefully — pipeline never hard-fails.
+ */
+class RecapPipeline(private val ctx: Context) {
+
+    data class Progress(val stage: String, val pct: Int)
+
+    suspend fun run(
+        srcVideo: String,
+        style: String,
+        targetMinutes: Int,
+        geminiKey: String,
+        onProgress: (Progress) -> Unit
+    ): String = withContext(Dispatchers.IO) {
+        val workDir = File(ctx.getExternalFilesDir(null), "pipeline_${System.currentTimeMillis()}")
+        workDir.mkdirs()
+        fun p(s: String, pct: Int) = onProgress(Progress(s, pct))
+
+        // ---- 1. Extract audio ----
+        p("audio extract", 5)
+        val wav = File(workDir, "audio.wav").absolutePath
+        ffmpeg("-y -i \"$srcVideo\" -ar 16000 -ac 1 -c:a pcm_s16le \"$wav\"")
+
+        // ---- 2. Transcribe ----
+        p("transcribing", 10)
+        val transcriber = Transcriber(ctx)
+        val segments = try {
+            transcriber.transcribe(wav) { pct -> p("transcribing", 10 + pct * 20 / 100) }
+        } catch (e: Exception) { emptyList<Segment>() }
+        finally { transcriber.release() }
+        val transcript = segments.joinToString("\n") { "[${it.start.toInt()}s] ${it.text}" }
+
+        // ---- 3. Faces: sample 1 frame / 5s, detect, cluster ----
+        p("face analysis", 32)
+        val faceKit = FaceKit(ctx)
+        val movieLen = probeDuration(srcVideo)
+        val frameFiles = sampleFrames(srcVideo, workDir, movieLen)
+        val allFaces = mutableListOf<Face>()
+        val frameFaceIds = mutableListOf<List<Int>>() // cluster per frame
+        try {
+            val embeddings = mutableListOf<FloatArray>()
+            for ((i, fp) in frameFiles.withIndex()) {
+                val faces = faceKit.processFrame(fp)
+                allFaces.addAll(faces)
+                embeddings.addAll(faces.map { it.embedding })
+                p("face analysis", 32 + i * 8 / frameFiles.size.coerceAtLeast(1))
+            }
+            val clusters = if (embeddings.isNotEmpty())
+                FaceKit.cluster(embeddings).toList() else emptyList()
+            // map back to frames
+            var fi = 0
+            for (fp in frameFiles) {
+                // (simplified: faces per frame in order)
+                frameFaceIds.add(emptyList())
+                fi++
+            }
+        } catch (e: Exception) { /* faces unavailable → skip */ }
+
+        // ---- 4. Audio events ----
+        p("audio events", 42)
+        val audioEv = AudioEvents(ctx)
+        val events = try {
+            audioEv.analyze(wav) { pct -> p("audio events", 42 + pct * 8 / 100) }
+        } catch (e: Exception) { emptyList<AudioEvent>() }
+        finally { audioEv.release() }
+
+        // ---- 5. Build scene windows (5s each) with signals ----
+        val scenes = buildScenes(movieLen, events, frameFaceIds)
+
+        // ---- 6. Gemini script ----
+        p("writing script", 52)
+        val evidence = buildEvidenceSummary(segments, events, scenes)
+        val gemini = GeminiClient(geminiKey)
+        val beats = gemini.writeScript(transcript, style, targetMinutes, evidence)
+        p("script done: ${beats.size} beats", 60)
+
+        // ---- 7. SmartSync matching ----
+        p("smart matching", 62)
+        val nameToCluster = autoNameClusters(segments, allFaces)
+        val matches = SmartSync.smartSelect(beats, scenes, movieLen, nameToCluster)
+        p("matched ${matches.count { it.score > 0 }} / ${beats.size}", 66)
+
+        // ---- 8. TTS per beat ----
+        p("voice synthesis", 68)
+        val tts = EdgeTtsClient(ctx)
+        val beatAudio = mutableListOf<String>()
+        for ((i, beat) in beats.withIndex()) {
+            val ap = File(workDir, "beat_$i.mp3").absolutePath
+            try {
+                tts.synthesize(beat.textMy, ap)
+            } catch (e: Exception) {
+                // TTS failed for this beat → silence placeholder
+                ffmpeg("-y -f lavfi -i anullsrc=r=24000:cl=mono -t ${beat.durTarget} \"$ap\"")
+            }
+            beatAudio.add(ap)
+            p("voice synthesis", 68 + i * 12 / beats.size.coerceAtLeast(1))
+        }
+
+        // ---- 9. Render: per-beat clip + VO, concat ----
+        p("rendering", 82)
+        val out = File(ctx.getExternalFilesDir(null),
+            "recap_${System.currentTimeMillis()}.mp4").absolutePath
+        renderBeats(srcVideo, matches, beatAudio, workDir, out) { pct ->
+            p("rendering", 82 + pct * 18 / 100)
+        }
+
+        p("done", 100)
+        out
+    }
+
+    /**
+     * Editor version: runs pipeline through TTS, returns JSON for UI.
+     * Does NOT render — user edits timeline first, then hits "Make video".
+     * Returns: {"clips":[...], "audioSlots":[...], "links":{clipId:audioId}}
+     */
+    suspend fun runForEditor(
+        srcVideo: String,
+        style: String,
+        targetMinutes: Int,
+        geminiKey: String,
+        onProgress: (String, Int) -> Unit
+    ): String = withContext(Dispatchers.IO) {
+        val workDir = File(ctx.getExternalFilesDir(null), "pipeline_${System.currentTimeMillis()}")
+        workDir.mkdirs()
+        fun p(s: String, pct: Int) = onProgress(s, pct)
+
+        // ---- 1. Extract audio ----
+        p("audio extract", 5)
+        val wav = File(workDir, "audio.wav").absolutePath
+        ffmpeg("-y -i \"$srcVideo\" -ar 16000 -ac 1 -c:a pcm_s16le \"$wav\"")
+
+        // ---- 2. Transcribe (stub in Phase 1) ----
+        p("transcribing", 10)
+        val segments = emptyList<Segment>()
+        val transcript = ""
+
+        // ---- 3. Faces (stub in Phase 1) ----
+        p("face analysis", 32)
+        val movieLen = probeDuration(srcVideo)
+        val allFaces = emptyList<Face>()
+
+        // ---- 4. Audio events (stub in Phase 1) ----
+        p("audio events", 42)
+        val events = emptyList<AudioEvent>()
+
+        // ---- 5. Build scene windows (2.5s each, Zippy-style) ----
+        val scenes = buildScenes(movieLen, events, emptyList())
+        p("scenes: ${scenes.size}", 48)
+
+        // ---- 6. Gemini script ----
+        p("writing script", 52)
+        val evidence = buildEvidenceSummary(segments, events, scenes)
+        val gemini = GeminiClient(geminiKey)
+        val beats = try {
+            gemini.writeScript(transcript, style, targetMinutes, evidence)
+        } catch (e: Exception) {
+            // Fallback: create placeholder beats if Gemini fails
+            (0 until (targetMinutes * 12)).map { i ->
+                Beat(i, "ဇာတ်လမ်း အပိုင်း ${i+1}", "scene ${i+1}", 5.0)
+            }
+        }
+        p("script done: ${beats.size} beats", 60)
+
+        // ---- 7. SmartSync matching ----
+        p("smart matching", 62)
+        val matches = SmartSync.smartSelect(beats, scenes, movieLen, emptyMap())
+        p("matched ${matches.count { it.score > 0 }} / ${beats.size}", 66)
+
+        // ---- 8. TTS per beat ----
+        p("voice synthesis", 68)
+        val tts = EdgeTtsClient(ctx)
+        val beatAudio = mutableListOf<String>()
+        for ((i, beat) in beats.withIndex()) {
+            val ap = File(workDir, "beat_$i.mp3").absolutePath
+            try {
+                tts.synthesize(beat.textMy, ap)
+            } catch (e: Exception) {
+                ffmpeg("-y -f lavfi -i anullsrc=r=24000:cl=mono -t 5 \"$ap\"")
+            }
+            beatAudio.add(ap)
+            p("voice synthesis", 68 + i * 12 / beats.size.coerceAtLeast(1))
+        }
+
+        // ---- Build editor JSON (no render yet) ----
+        p("building timeline", 85)
+        val clipsJson = scenes.mapIndexed { i, s ->
+            """{"id":$i,"start":${s.start},"end":${s.end},"label":"Clip $i"}"""
+        }.joinToString(",")
+        val audioJson = beats.mapIndexed { i, b ->
+            val txt = b.textMy.replace("\\", "\\\\").replace("\"", "'").replace("\n", " ").take(60)
+            """{"id":$i,"start":${i*5.0},"end":${(i+1)*5.0},"text":"$txt"}"""
+        }.joinToString(",")
+        val linksJson = matches.mapNotNull { m ->
+            val clipIdx = scenes.indexOf(m.scene)
+            if (clipIdx >= 0) "\"$clipIdx\":\"${m.beatId}\"" else null
+        }.joinToString(",")
+
+        p("done", 100)
+        """{"clips":[$clipsJson],"audioSlots":[$audioJson],"links":{$linksJson},"workDir":"${workDir.absolutePath}"}"""
+    }
+
+    /**
+     * Render editor timeline from plan JSON.
+     * Plan: {clips:[{id,start,end}], links:{clipId:audioId}, src, workDir}
+     * Each linked clip is rendered with its TTS audio, then concatenated.
+     */
+    suspend fun renderTimeline(
+        planJson: String,
+        onProgress: (Int, String) -> Unit
+    ): String = withContext(Dispatchers.IO) {
+        val plan = org.json.JSONObject(planJson)
+        val src = plan.getString("src")
+        val workDirPath = plan.optString("workDir", "")
+        val workDir = if (workDirPath.isNotEmpty()) File(workDirPath)
+                      else File(ctx.getExternalFilesDir(null), "timeline_${System.currentTimeMillis()}").apply { mkdirs() }
+
+        val clipsArr = plan.getJSONArray("clips")
+        val linksObj = plan.getJSONObject("links")
+
+        // Build clip map: id -> (start, end)
+        val clipMap = mutableMapOf<String, Pair<Double, Double>>()
+        for (i in 0 until clipsArr.length()) {
+            val c = clipsArr.getJSONObject(i)
+            clipMap[c.get("id").toString()] = Pair(c.getDouble("start"), c.getDouble("end"))
+        }
+
+        // Sort links by clip ID for chronological order
+        val sortedLinks = linksObj.keys().asSequence().toList()
+            .sortedBy { it.toIntOrNull() ?: 0 }
+
+        if (sortedLinks.isEmpty()) throw Exception("No linked clips")
+
+        val renderedClips = mutableListOf<String>()
+        for ((idx, clipId) in sortedLinks.withIndex()) {
+            val audioId = linksObj.getString(clipId)
+            val (start, end) = clipMap[clipId] ?: continue
+            val dur = (end - start).coerceAtLeast(1.0)
+
+            val audioFile = File(workDir, "beat_$audioId.mp3").absolutePath
+            val cp = File(workDir, "timeline_clip_$idx.mp4").absolutePath
+
+            onProgress(idx * 90 / sortedLinks.size, "rendering clip ${idx+1}/${sortedLinks.size}")
+
+            val audioExists = File(audioFile).exists()
+            val audioInput = if (audioExists) "-i \"$audioFile\"" else "-an"
+            val audioOpts = if (audioExists)
+                "-c:a aac -b:a 128k -af \"loudnorm=I=-16:TP=-1.5:LRA=11\""
+            else ""
+
+            // Fast seek + trim filter (verified pattern)
+            ffmpeg("-y -ss $start -i \"$src\" $audioInput " +
+                    "-vf \"trim=duration=$dur,scale=1280:-2,setsar=1,fps=30\" " +
+                    "-c:v libx264 -preset veryfast -crf 23 " +
+                    "$audioOpts -shortest \"$cp\"")
+            renderedClips.add(cp)
+        }
+
+        // Concat
+        onProgress(92, "concatenating")
+        val listFile = File(workDir, "timeline_list.txt").apply {
+            writeText(renderedClips.joinToString("\n") { "file '$it'" })
+        }
+        val out = File(ctx.getExternalFilesDir(null),
+            "recap_${System.currentTimeMillis()}.mp4").absolutePath
+        ffmpeg("-y -f concat -safe 0 -i \"${listFile.absolutePath}\" -c copy \"$out\"")
+
+        onProgress(100, "done")
+        out
+    }
+
+    // ---------- helpers ----------
+
+    private fun ffmpeg(cmd: String) {
+        val s = FFmpegKit.execute(cmd)
+        if (!ReturnCode.isSuccess(s.returnCode)) {
+            val err = s.failStackTrace?.take(200)
+                ?: s.output?.takeLast(300)
+                ?: "returnCode=${s.returnCode}"
+            throw Exception("ffmpeg failed: $err")
+        }
+    }
+
+    private fun probeDuration(path: String): Double {
+        val s = com.antonkarpenko.ffmpegkit.FFprobeKit.getMediaInformation(path)
+        return try {
+            s.mediaInformation.duration?.toDouble() ?: 0.0
+        } catch (e: Exception) { 0.0 }
+    }
+
+    private fun sampleFrames(src: String, dir: File, movieLen: Double): List<String> {
+        val out = mutableListOf<String>()
+        var t = 0.0
+        var i = 0
+        while (t < movieLen && i < 240) {  // cap 240 frames
+            val fp = File(dir, "frame_$i.jpg").absolutePath
+            try {
+                ffmpeg("-y -ss $t -i \"$src\" -vframes 1 -q:v 3 \"$fp\"")
+                out.add(fp)
+            } catch (e: Exception) { }
+            t += 5.0; i++
+        }
+        return out
+    }
+
+    private fun buildScenes(movieLen: Double, events: List<AudioEvent>,
+                            frameFaceIds: List<List<Int>>): List<SceneWindow> {
+        val scenes = mutableListOf<SceneWindow>()
+        var t = 0.0
+        while (t < movieLen) {
+            val end = minOf(t + 5.0, movieLen)
+            val labels = events.filter { it.start >= t && it.start < end }
+                .map { it.label }
+            scenes.add(SceneWindow(t, end, emptyList(), labels, 0.5, 0.5))
+            t += 5.0
+        }
+        return scenes
+    }
+
+    private fun buildEvidenceSummary(segments: List<Segment>,
+                                     events: List<AudioEvent>,
+                                     scenes: List<SceneWindow>): String {
+        val sb = StringBuilder()
+        sb.append("Scenes: ${scenes.size} x 5s windows. ")
+        val topAudio = events.groupBy { it.label }
+            .mapValues { it.value.size }
+            .toList().sortedByDescending { it.second }.take(5)
+        sb.append("Top audio: ${topAudio.joinToString { "${it.first}(${it.second})" }}. ")
+        sb.append("Dialogue segments: ${segments.size}.")
+        return sb.toString()
+    }
+
+    private fun autoNameClusters(segments: List<Segment>,
+                                 faces: List<Face>): Map<String, Int> {
+        // Conservative: only map names that co-occur with dialogue.
+        // Full impl in Phase 2; return empty for now (safe).
+        return emptyMap()
+    }
+
+    private fun renderBeats(src: String, matches: List<Match>,
+                            beatAudio: List<String>, dir: File, out: String,
+                            onProgress: (Int) -> Unit) {
+        val clips = mutableListOf<String>()
+        for ((i, m) in matches.withIndex()) {
+            val cp = File(dir, "clip_$i.mp4").absolutePath
+            val dur = (m.scene.end - m.scene.start).coerceAtLeast(1.0)
+            // ≤5s fair-use clip, transformed, muted source audio
+            // Use fast input seek + precise trim filter (verified pattern from laptop)
+            val ss = m.scene.start
+            val audioFile = beatAudio.getOrNull(i) ?: ""
+            val audioInput = if (audioFile.isNotEmpty() && File(audioFile).exists())
+                "-i \"$audioFile\"" else "-an"
+            ffmpeg("-y -ss $ss -i \"$src\" $audioInput " +
+                    "-vf \"trim=duration=$dur,scale=1280:-2,setsar=1,fps=30\" " +
+                    "-c:v libx264 -preset veryfast -crf 23 " +
+                    (if (audioFile.isNotEmpty() && File(audioFile).exists())
+                        "-c:a aac -b:a 128k -af \"loudnorm=I=-16:TP=-1.5:LRA=11\" "
+                    else "") +
+                    "-shortest \"$cp\"")
+            clips.add(cp)
+            onProgress(i * 100 / matches.size.coerceAtLeast(1))
+        }
+        // concat
+        val listFile = File(dir, "list.txt").apply {
+            writeText(clips.joinToString("\n") { "file '$it'" })
+        }
+        ffmpeg("-y -f concat -safe 0 -i \"${listFile.absolutePath}\" -c copy \"$out\"")
+        onProgress(100)
+    }
+
+    /**
+     * Wizard render: full pipeline with user config (style, voice, ratio, res, targetMin, overlays).
+     * 2026-10-17: New wizard UI workflow.
+     */
+    suspend fun runWizard(
+        cfg: org.json.JSONObject,
+        onProgress: (Int, String) -> Unit,
+        onDone: (String, String) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        try {
+            val video = cfg.getString("video")
+            val style = cfg.optString("style", "full_story")
+            val voice = cfg.optString("voice", "my-MM-ThihaNeural")
+            val speed = cfg.optDouble("speed", 1.0)
+            val pitch = cfg.optInt("pitch", 0)
+            val vol = cfg.optInt("vol", 100)
+            val ratio = cfg.optString("ratio", "16:9")
+            val res = cfg.optString("res", "1080p")
+            val targetMin = cfg.optInt("targetMin", 10)
+            val overlays = cfg.optJSONObject("overlays")
+
+            fun p(pct: Int, msg: String) = onProgress(pct, msg)
+
+            p(5, "🎬 Video ပြင်ဆင်နေတယ်...")
+            val movieLen = probeDuration(video)
+
+            p(15, "🎙️ Script ရေးနေတယ်...")
+            val geminiKey = ctx.getSharedPreferences("cinesip", android.content.Context.MODE_PRIVATE)
+                .getString("gemini_key", "") ?: ""
+            if (geminiKey.isEmpty()) { onError("⚠️ Settings မှာ Gemini API key ထည့်ပါ"); return }
+
+            val gemini = com.cinesip.recap.api.GeminiClient(geminiKey)
+            // Use transcript stub for now (Phase 2: real whisper)
+            val beats = gemini.writeScript("(transcript)", style, targetMin, "(evidence)")
+            if (beats.isEmpty()) { onError("❌ Script ရေးမရဘူး"); return }
+
+            p(40, "🔊 အသံ ထုတ်နေတယ်...")
+            val tts = com.cinesip.recap.api.EdgeTtsClient()
+            val dir = java.io.File(ctx.cacheDir, "wizard_${System.currentTimeMillis()}").apply { mkdirs() }
+            val audioFiles = mutableListOf<String>()
+            beats.forEachIndexed { i, beat ->
+                val af = java.io.File(dir, "beat_$i.mp3").absolutePath
+                // Unlimited text: split into chunks if needed (edge-tts handles long text)
+                tts.synthesize(beat.textMy, af, voice, speed, pitch, vol)
+                audioFiles.add(af)
+                p(40 + i * 30 / beats.size.coerceAtLeast(1), "🔊 အသံ ${i+1}/${beats.size}")
+            }
+
+            p(75, "✂️ Video ဖြတ်နေတယ်...")
+            // Build scenes: 5s clips with fair-use transforms
+            val scenes = buildScenes(movieLen, emptyList(), beats.size)
+            val matches = com.cinesip.recap.ai.SmartSync.smartSelect(beats, scenes, emptyList(), emptyList())
+
+            p(85, "🎨 Overlay ထည့်နေတယ်...")
+            val outRes = when (res) { "1080p" -> 1080; "720p" -> 720; else -> 480 }
+            val (outW, outH) = when (ratio) {
+                "9:16" -> Pair(outRes * 9 / 16, outRes)
+                "1:1" -> Pair(outRes, outRes)
+                else -> Pair(outRes, outRes * 9 / 16)
+            }
+
+            val out = java.io.File(ctx.getExternalFilesDir(null), "cinesip_${System.currentTimeMillis()}.mp4").absolutePath
+            renderBeatsWithOverlays(video, matches, audioFiles, out, outW, outH, overlays, ::ffmpeg)
+
+            p(100, "✅ ပြီးပြီ!")
+            val clipsJson = org.json.JSONArray(matches.mapIndexed { i, m ->
+                org.json.JSONObject().put("dur", m.scene.dur).put("beat", i)
+            }).toString()
+            onDone(out, clipsJson)
+        } catch (e: Exception) {
+            onError("❌ " + (e.message ?: "error"))
+        }
+    }
+
+    /**
+     * Adjust clip speed (for final preview editing).
+     */
+    suspend fun adjustClipSpeed(index: Int, factor: Double): Double {
+        // TODO: Implement actual clip speed adjustment via ffmpeg atempo
+        // For now, return the factor as the "new duration" placeholder
+        return factor
+    }
+
+    private suspend fun renderBeatsWithOverlays(
+        src: String, matches: List<com.cinesip.recap.ai.Match>,
+        audioFiles: List<String>, out: String, outW: Int, outH: Int,
+        overlays: org.json.JSONObject?, ffmpegFn: (String) -> Unit
+    ) {
+        val dir = java.io.File(ctx.cacheDir, "ov_${System.currentTimeMillis()}").apply { mkdirs() }
+        val clips = mutableListOf<String>()
+        matches.forEachIndexed { i, m ->
+            val cp = java.io.File(dir, "c_$i.mp4").absolutePath
+            val audioFile = audioFiles.getOrNull(i) ?: ""
+            val ss = m.scene.start
+            val dur = m.scene.dur
+            // Base: trim + scale + fps
+            var vf = "trim=duration=$dur,scale=${outW}:${outH}:force_original_aspect_ratio=increase,crop=${outW}:${outH},setsar=1,fps=30"
+            // Subtitle overlay (WYSIWYG: use overlay config)
+            val subOn = overlays?.optJSONObject("sub")?.optBoolean("on", true) ?: true
+            if (subOn) {
+                val sub = overlays?.optJSONObject("sub")
+                val sx = sub?.optDouble("x", 50.0) ?: 50.0
+                val sy = sub?.optDouble("y", 82.0) ?: 82.0
+                val sSize = sub?.optDouble("size", 5.0) ?: 5.0
+                val sColor = (sub?.optString("color", "#FFEB3B") ?: "#FFEB3B").replace("#", "")
+                // Draw subtitle text (simplified - real impl would use drawtext with fontfile)
+                // For now, we note the position; full drawtext requires font file
+            }
+            val audioInput = if (audioFile.isNotEmpty() && java.io.File(audioFile).exists())
+                "-i \"$audioFile\"" else "-an"
+            ffmpegFn("-y -ss $ss -i \"$src\" $audioInput " +
+                    "-vf \"$vf\" " +
+                    "-c:v libx264 -preset veryfast -crf 23 " +
+                    (if (audioFile.isNotEmpty() && java.io.File(audioFile).exists())
+                        "-c:a aac -b:a 128k -af \"loudnorm=I=-16:TP=-1.5:LRA=11\" "
+                    else "") +
+                    "-shortest \"$cp\"")
+            clips.add(cp)
+        }
+        val listFile = java.io.File(dir, "list.txt").apply {
+            writeText(clips.joinToString("\n") { "file '$it'" })
+        }
+        ffmpegFn("-y -f concat -safe 0 -i \"${listFile.absolutePath}\" -c copy \"$out\"")
+    }
+}
