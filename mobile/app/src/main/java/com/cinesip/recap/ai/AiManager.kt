@@ -21,10 +21,18 @@ object AiManager {
 
     // Models hosted on GitHub releases / HuggingFace (free, no key)
     private val MODELS = listOf(
-        // sherpa-onnx whisper tiny multilingual (int8, ~40MB)
+        // Whisper tiny multilingual int8 (sherpa-onnx) — encoder
         ModelSpec("whisper-encoder",
-            "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-whisper-tiny.en.tar.bz2",
-            "whisper-encoder.onnx", 40.0),
+            "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-whisper-tiny.tar.bz2",
+            "whisper-encoder.int8.onnx", 40.0),
+        // Whisper tiny multilingual int8 — decoder
+        ModelSpec("whisper-decoder",
+            "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-whisper-tiny.tar.bz2",
+            "whisper-decoder.int8.onnx", 40.0),
+        // Whisper tokens
+        ModelSpec("whisper-tokens",
+            "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-whisper-tiny.tar.bz2",
+            "whisper-tokens.txt", 1.0),
         // YuNet face detection (337KB)
         ModelSpec("yunet",
             "https://github.com/opencv/opencv_zoo/raw/master/models/face_detection_yunet/face_detection_yunet_2023mar.onnx",
@@ -87,7 +95,9 @@ object AiManager {
 
     /** Capability report — UI shows what's available. */
     fun capabilities(ctx: Context): Map<String, Boolean> = mapOf(
-        "transcribe" to isReady(ctx, "whisper-encoder"),
+        "transcribe" to (isReady(ctx, "whisper-encoder") &&
+                         isReady(ctx, "whisper-decoder") &&
+                         isReady(ctx, "whisper-tokens")),
         "faces" to (isReady(ctx, "yunet") && isReady(ctx, "sface")),
         "audio_events" to isReady(ctx, "yamnet")
     )
