@@ -93,9 +93,36 @@ class CinesipBridge(private val act: MainActivity) {
     @JavascriptInterface
     fun startRender(cfgJson: String) {
         act.toast("Render starting…")
+        // Check if this is an editor plan (with clips/links) or simple config
+        try {
+            val cfg = org.json.JSONObject(cfgJson)
+            if (cfg.has("clips") && cfg.has("links")) {
+                // Editor timeline plan — render linked clips
+                renderTimeline(cfgJson)
+                return
+            }
+        } catch (e: Exception) { /* fall through to simple render */ }
         RenderWorker.run(act, cfgJson,
             onProg = { p, s -> act.onProgress(p, s) },
             onDone = { path -> act.onRenderDone(path) })
+    }
+
+    /** Render editor timeline: linked clips in order, each with its TTS audio. */
+    private fun renderTimeline(planJson: String) {
+        scope.launch(Dispatchers.IO) {
+            try {
+                val pipeline = RecapPipeline(act)
+                val out = pipeline.renderTimeline(planJson) { pct, stage ->
+                    act.runOnUiThread { act.webEval("onRecapProgress($pct,'$stage')") }
+                }
+                RenderWorker.lastOutput = out
+                act.runOnUiThread { act.webEval("onRenderDone('$out')") }
+            } catch (e: Exception) {
+                act.runOnUiThread {
+                    act.webEval("onRecapError('Render failed: ${e.message?.take(80)?.replace("'", "")}')")
+                }
+            }
+        }
     }
 
     @JavascriptInterface fun shareOutput(): Boolean {
