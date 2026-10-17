@@ -1,8 +1,8 @@
 package com.cinesip.recap
 
-import com.arthenica.ffmpegkit.FFmpegKit
-import com.arthenica.ffmpegkit.FFprobeKit
-import com.arthenica.ffmpegkit.ReturnCode
+import com.antonkarpenko.ffmpegkit.FFmpegKit
+import com.antonkarpenko.ffmpegkit.FFprobeKit
+import com.antonkarpenko.ffmpegkit.ReturnCode
 import java.io.File
 import java.util.concurrent.Executors
 
