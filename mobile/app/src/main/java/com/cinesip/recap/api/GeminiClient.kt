@@ -1,1 +1,120 @@
-cGFja2FnZSBjb20uY2luZXNpcC5yZWNhcC5hcGkKCmltcG9ydCBjb20uY2luZXNpcC5yZWNhcC5haS5CZWF0CmltcG9ydCBrb3RsaW54LmNvcm91dGluZXMuRGlzcGF0Y2hlcnMKaW1wb3J0IGtvdGxpbnguY29yb3V0aW5lcy53aXRoQ29udGV4dAppbXBvcnQgb2todHRwMy5NZWRpYVR5cGUuQ29tcGFuaW9uLnRvTWVkaWFUeXBlCmltcG9ydCBva2h0dHAzLk9rSHR0cENsaWVudAppbXBvcnQgb2todHRwMy5SZXF1ZXN0CmltcG9ydCBva2h0dHAzLlJlcXVlc3RCb2R5LkNvbXBhbmlvbi50b1JlcXVlc3RCb2R5CmltcG9ydCBvcmcuanNvbi5KU09OQXJyYXkKaW1wb3J0IG9yZy5qc29uLkpTT05PYmplY3QKaW1wb3J0IGphdmEudXRpbC5jb25jdXJyZW50LlRpbWVVbml0CgovKioKICogR2VtaW5pIHNjcmlwdCBnZW5lcmF0aW9uIOKAlCBwbGFpbiBIVFRQUywgd29ya3MgZnJvbSBwaG9uZSB1bmNoYW5nZWQuCiAqIEZyZWUgdGllciwgc2FtZSBHT09HTEVfQVBJX0tFWS4gSG9vay1maXJzdCBCdXJtZXNlIHJlY2FwIHNjcmlwdHMuCiAqLwpjbGFzcyBHZW1pbmlDbGllbnQocHJpdmF0ZSB2YWwgYXBpS2V5OiBTdHJpbmcpIHsKICAgIHByaXZhdGUgdmFsIGh0dHAgPSBPa0h0dHBDbGllbnQuQnVpbGRlcigpCiAgICAgICAgLmNvbm5lY3RUaW1lb3V0KDYwLCBUaW1lVW5pdC5TRUNPTkRTKQogICAgICAgIC5yZWFkVGltZW91dCgxMjAsIFRpbWVVbml0LlNFQ09ORFMpCiAgICAgICAgLmJ1aWxkKCkKCiAgICAvLyAyMDI2LTEwLTE3OiBnZW1pbmktMi41LWZsYXNoIHJldHVybnMgNDA0IGZvciBuZXcgQVBJIGtleXMgKEdvb2dsZSByZXRpcmVkIGl0CiAgICAvLyBmb3IgbmV3IHVzZXJzLCBPY3QgMjAyNikuIFVzZSB0aGUgMy54IGxpbmUg4oCUIHZlcmlmaWVkIHdvcmtpbmcgb24gZnJlZSB0aWVyLgogICAgcHJpdmF0ZSB2YWwgbW9kZWxzID0gbGlzdE9mKAogICAgICAgICJnZW1pbmktMy44LWZsYXNoIiwgImdlbWluaS0zLjYtZmxhc2giLCAiZ2VtaW5pLTMuNS1mbGFzaC1saXRlIiwgImdlbWluaS0zLjctZmxhc2giCiAgICApCgogICAgLyoqCiAgICAgKiBHZW5lcmF0ZSByZWNhcCBzY3JpcHQgYmVhdHMgZnJvbSB0cmFuc2NyaXB0ICsgZXZpZGVuY2Ugc3VtbWFyeS4KICAgICAqIFJldHVybnMgYmVhdHMgd2l0aCBCdXJtZXNlIHRleHQgKyBFbmdsaXNoIHZpc3VhbCBxdWVyeSBwZXIgYmVhdC4KICAgICAqLwogICAgc3VzcGVuZCBmdW4gd3JpdGVTY3JpcHQoCiAgICAgICAgdHJhbnNjcmlwdDogU3RyaW5nLAogICAgICAgIHN0eWxlOiBTdHJpbmcsCiAgICAgICAgdGFyZ2V0TWludXRlczogSW50LAogICAgICAgIGV2aWRlbmNlU3VtbWFyeTogU3RyaW5nCiAgICApOiBMaXN0PEJlYXQ+ID0gd2l0aENvbnRleHQoRGlzcGF0Y2hlcnMuSU8pIHsKICAgICAgICB2YWwgcHJvbXB0ID0gYnVpbGRQcm9tcHQodHJhbnNjcmlwdCwgc3R5bGUsIHRhcmdldE1pbnV0ZXMsIGV2aWRlbmNlU3VtbWFyeSkKICAgICAgICB2YXIgbGFzdEVycjogRXhjZXB0aW9uPyA9IG51bGwKICAgICAgICBmb3IgKG1vZGVsIGluIG1vZGVscykgewogICAgICAgICAgICB0cnkgewogICAgICAgICAgICAgICAgcmV0dXJuQHdpdGhDb250ZXh0IGNhbGwobW9kZWwsIHByb21wdCkKICAgICAgICAgICAgfSBjYXRjaCAoZTogRXhjZXB0aW9uKSB7CiAgICAgICAgICAgICAgICBsYXN0RXJyID0gZQogICAgICAgICAgICB9CiAgICAgICAgfQogICAgICAgIHRocm93IGxhc3RFcnIgPzogRXhjZXB0aW9uKCJHZW1pbmkgZmFpbGVkIikKICAgIH0KCiAgICBwcml2YXRlIGZ1biBidWlsZFByb21wdCh0cmFuc2NyaXB0OiBTdHJpbmcsIHN0eWxlOiBTdHJpbmcsCiAgICAgICAgICAgICAgICAgICAgICAgICAgICBtaW5zOiBJbnQsIGV2aWRlbmNlOiBTdHJpbmcpOiBTdHJpbmcgewogICAgICAgIHJldHVybiAiIiIKWW91IGFyZSBhIEJ1cm1lc2UgbW92aWUtcmVjYXAgc2NyaXB0d3JpdGVyIChTb2xvUmVjYXAgc3R5bGUpLgpXcml0ZSBhICRtaW5zLW1pbnV0ZSAkc3R5bGUgcmVjYXAgc2NyaXB0IGluIEJVUk1FU0UuCgpSVUxFUyAobXVzdCBmb2xsb3cpOgoxMy4gTk8gREVBRCBBSVIg4oCUIGV2ZXJ5IHNlY29uZCBoYXMgbmFycmF0aW9uIG9yIHNvdW5kLgoxNC4gT1BFTi1MT09QIEVORElORyDigJQgZW5kIHdpdGggYSBob29rLCBub3QgYSBzdW1tYXJ5LgotIENvbGQgb3BlbiBpbiBmaXJzdCAyMCBzZWNvbmRzIChpbi1tZWRpYXMtcmVzICsgcmV3aW5kLCBvciBzZXR1cCArIG9wZW4gbG9vcCkuCi0gMjAtMzUlIGNvbW1lbnRhcnkgKG1vcmFsL3JhdGluZy9odW1vciksIGhvc3QgcGVyc29uYSB2b2ljZS4KLSBQdXJlIEJ1cm1lc2UsIHNwb2lsZXItaG9vayBlbmVyZ3kuCgpFVklERU5DRSAoc2NlbmUgYW5hbHlzaXMpOgokZXZpZGVuY2UKClRSQU5TQ1JJUFQgKHRydW5jYXRlZCk6CiR7dHJhbnNjcmlwdC50YWtlKDgwMDApfQoKUmV0dXJuIE9OTFkgYSBKU09OIGFycmF5LiBFYWNoIGJlYXQ6CnsiaWQiOjEsInRleHRfbXkiOiJCdXJtZXNlIG5hcnJhdGlvbi4uLiIsInZpc3VhbF9xdWVyeV9lbiI6ImVuZ2xpc2ggdmlzdWFsIGRlc2NyaXB0aW9uLCBlLmcuIGEgd29tYW4gY3J5aW5nIGluIHRoZSByYWluIGNsb3NlLXVwIiwiZHVyX3RhcmdldCI6OC41fQoKQWltIGZvciB+JHttaW5zICogNn0gYmVhdHMuIGR1cl90YXJnZXQgaW4gc2Vjb25kcywgc3VtIOKJiCAke21pbnMgKiA2MH0uCiIiIi50cmltSW5kZW50KCkKICAgIH0KCiAgICBwcml2YXRlIGZ1biBjYWxsKG1vZGVsOiBTdHJpbmcsIHByb21wdDogU3RyaW5nKTogTGlzdDxCZWF0PiB7CiAgICAgICAgdmFsIGJvZHkgPSBKU09OT2JqZWN0KCkKICAgICAgICAgICAgLnB1dCgiY29udGVudHMiLCBKU09OQXJyYXkoKS5wdXQoCiAgICAgICAgICAgICAgICBKU09OT2JqZWN0KCkucHV0KCJwYXJ0cyIsIEpTT05BcnJheSgpLnB1dCgKICAgICAgICAgICAgICAgICAgICBKU09OT2JqZWN0KCkucHV0KCJ0ZXh0IiwgcHJvbXB0KSkpKSkKICAgICAgICAgICAgLnB1dCgiZ2VuZXJhdGlvbkNvbmZpZyIsIEpTT05PYmplY3QoKQogICAgICAgICAgICAgICAgLnB1dCgidGVtcGVyYXR1cmUiLCAwLjgpCiAgICAgICAgICAgICAgICAucHV0KCJtYXhPdXRwdXRUb2tlbnMiLCA4MTkyKSkKICAgICAgICAgICAgLnRvU3RyaW5nKCkKICAgICAgICAgICAgLnRvUmVxdWVzdEJvZHkoImFwcGxpY2F0aW9uL2pzb24iLnRvTWVkaWFUeXBlKCkpCgogICAgICAgIHZhbCByZXEgPSBSZXF1ZXN0LkJ1aWxkZXIoKQogICAgICAgICAgICAudXJsKCJodHRwczovL2dlbmVyYXRpdmVsYW5ndWFnZS5nb29nbGVhcGlzLmNvbS92MWJldGEvbW9kZWxzLyRtb2RlbDpnZW5lcmF0ZUNvbnRlbnQ/a2V5PSRhcGlLZXkiKQogICAgICAgICAgICAucG9zdChib2R5KQogICAgICAgICAgICAuYnVpbGQoKQoKICAgICAgICBodHRwLm5ld0NhbGwocmVxKS5leGVjdXRlKCkudXNlIHsgcmVzcCAtPgogICAgICAgICAgICBpZiAoIXJlc3AuaXNTdWNjZXNzZnVsKSB0aHJvdyBFeGNlcHRpb24oIkdlbWluaSAke3Jlc3AuY29kZX0iKQogICAgICAgICAgICB2YWwgdGV4dCA9IEpTT05PYmplY3QocmVzcC5ib2R5ISEuc3RyaW5nKCkpCiAgICAgICAgICAgICAgICAuZ2V0SlNPTkFycmF5KCJjYW5kaWRhdGVzIikuZ2V0SlNPTk9iamVjdCgwKQogICAgICAgICAgICAgICAgLmdldEpTT05PYmplY3QoImNvbnRlbnQiKS5nZXRKU09OQXJyYXkoInBhcnRzIikKICAgICAgICAgICAgICAgIC5nZXRKU09OT2JqZWN0KDApLmdldFN0cmluZygidGV4dCIpCiAgICAgICAgICAgIHJldHVybiBwYXJzZUJlYXRzKHRleHQpCiAgICAgICAgfQogICAgfQoKICAgIHByaXZhdGUgZnVuIHBhcnNlQmVhdHMocmF3OiBTdHJpbmcpOiBMaXN0PEJlYXQ+IHsKICAgICAgICAvLyBleHRyYWN0IEpTT04gYXJyYXkgKG1heSBiZSB3cmFwcGVkIGluIG1hcmtkb3duIGZlbmNlcykKICAgICAgICB2YWwgc3RhcnQgPSByYXcuaW5kZXhPZignWycpCiAgICAgICAgdmFsIGVuZCA9IHJhdy5sYXN0SW5kZXhPZignXScpCiAgICAgICAgaWYgKHN0YXJ0IDwgMCB8fCBlbmQgPCAwKSB0aHJvdyBFeGNlcHRpb24oIk5vIEpTT04gaW4gR2VtaW5pIHJlc3BvbnNlIikKICAgICAgICB2YWwgYXJyID0gSlNPTkFycmF5KHJhdy5zdWJzdHJpbmcoc3RhcnQsIGVuZCArIDEpKQogICAgICAgIHJldHVybiAoMCB1bnRpbCBhcnIubGVuZ3RoKCkpLm1hcCB7IGkgLT4KICAgICAgICAgICAgdmFsIG8gPSBhcnIuZ2V0SlNPTk9iamVjdChpKQogICAgICAgICAgICBCZWF0KAogICAgICAgICAgICAgICAgaWQgPSBvLm9wdEludCgiaWQiLCBpICsgMSksCiAgICAgICAgICAgICAgICB0ZXh0TXkgPSBvLmdldFN0cmluZygidGV4dF9teSIpLAogICAgICAgICAgICAgICAgdmlzdWFsUXVlcnlFbiA9IG8ub3B0U3RyaW5nKCJ2aXN1YWxfcXVlcnlfZW4iLCAiIiksCiAgICAgICAgICAgICAgICBkdXJUYXJnZXQgPSBvLm9wdERvdWJsZSgiZHVyX3RhcmdldCIsIDguMCkKICAgICAgICAgICAgKQogICAgICAgIH0KICAgIH0KfQo=
+package com.cinesip.recap.api
+
+import com.cinesip.recap.ai.Beat
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONArray
+import org.json.JSONObject
+import java.util.concurrent.TimeUnit
+
+/**
+ * Gemini script generation — plain HTTPS, works from phone unchanged.
+ * Free tier, same GOOGLE_API_KEY. Hook-first Burmese recap scripts.
+ */
+class GeminiClient(private val apiKey: String) {
+    private val http = OkHttpClient.Builder()
+        .connectTimeout(60, TimeUnit.SECONDS)
+        .readTimeout(120, TimeUnit.SECONDS)
+        .build()
+
+    // 2026-10-17: gemini-2.5-flash returns 404 for new API keys (Google retired it
+    // for new users, Oct 2026). Use the 3.x line — verified working on free tier.
+    private val models = listOf(
+        "gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.7-flash"
+    )
+
+    /**
+     * Generate recap script beats from transcript + evidence summary.
+     * Returns beats with Burmese text + English visual query per beat.
+     */
+    suspend fun writeScript(
+        transcript: String,
+        style: String,
+        targetMinutes: Int,
+        evidenceSummary: String
+    ): List<Beat> = withContext(Dispatchers.IO) {
+        val prompt = buildPrompt(transcript, style, targetMinutes, evidenceSummary)
+        var lastErr: Exception? = null
+        for (model in models) {
+            try {
+                return@withContext call(model, prompt)
+            } catch (e: Exception) {
+                lastErr = e
+            }
+        }
+        throw lastErr ?: Exception("Gemini failed")
+    }
+
+    private fun buildPrompt(transcript: String, style: String,
+                            mins: Int, evidence: String): String {
+        return """
+You are a Burmese movie-recap scriptwriter (SoloRecap style).
+Write a $mins-minute $style recap script in BURMESE.
+
+RULES (must follow):
+13. NO DEAD AIR — every second has narration or sound.
+14. OPEN-LOOP ENDING — end with a hook, not a summary.
+- Cold open in first 20 seconds (in-medias-res + rewind, or setup + open loop).
+- 20-35% commentary (moral/rating/humor), host persona voice.
+- Pure Burmese, spoiler-hook energy.
+
+EVIDENCE (scene analysis):
+$evidence
+
+TRANSCRIPT (truncated):
+${transcript.take(8000)}
+
+Return ONLY a JSON array. Each beat:
+{"id":1,"text_my":"Burmese narration...","visual_query_en":"english visual description, e.g. a woman crying in the rain close-up","dur_target":8.5}
+
+Aim for ~${mins * 6} beats. dur_target in seconds, sum ≈ ${mins * 60}.
+""".trimIndent()
+    }
+
+    private fun call(model: String, prompt: String): List<Beat> {
+        val body = JSONObject()
+            .put("contents", JSONArray().put(
+                JSONObject().put("parts", JSONArray().put(
+                    JSONObject().put("text", prompt)))))
+            .put("generationConfig", JSONObject()
+                .put("temperature", 0.8)
+                .put("maxOutputTokens", 8192))
+            .toString()
+            .toRequestBody("application/json".toMediaType())
+
+        val req = Request.Builder()
+            .url("https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey")
+            .post(body)
+            .build()
+
+        http.newCall(req).execute().use { resp ->
+            if (!resp.isSuccessful) throw Exception("Gemini ${resp.code}")
+            val text = JSONObject(resp.body!!.string())
+                .getJSONArray("candidates").getJSONObject(0)
+                .getJSONObject("content").getJSONArray("parts")
+                .getJSONObject(0).getString("text")
+            return parseBeats(text)
+        }
+    }
+
+    private fun parseBeats(raw: String): List<Beat> {
+        // extract JSON array (may be wrapped in markdown fences)
+        val start = raw.indexOf('[')
+        val end = raw.lastIndexOf(']')
+        if (start < 0 || end < 0) throw Exception("No JSON in Gemini response")
+        val arr = JSONArray(raw.substring(start, end + 1))
+        return (0 until arr.length()).map { i ->
+            val o = arr.getJSONObject(i)
+            Beat(
+                id = o.optInt("id", i + 1),
+                textMy = o.getString("text_my"),
+                visualQueryEn = o.optString("visual_query_en", ""),
+                durTarget = o.optDouble("dur_target", 8.0)
+            )
+        }
+    }
+}
