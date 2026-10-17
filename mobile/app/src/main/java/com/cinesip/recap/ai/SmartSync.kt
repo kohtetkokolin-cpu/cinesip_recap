@@ -160,9 +160,10 @@ object SmartSync {
                 val (sc, reason) = score(beat, scene, expectedStart, movieDuration, nameToCluster)
                 if (sc > bestScore) { bestScore = sc; best = scene; bestReason = reason }
             }
-            if (best != null && bestScore >= minScore) {
-                used.add(scenes.indexOf(best))
-                Match(beat.id, best, bestScore, bestReason)
+            val finalBest: SceneWindow? = best
+            if (finalBest != null && bestScore >= minScore) {
+                used.add(scenes.indexOf(finalBest))
+                Match(beat.id, finalBest, bestScore, bestReason)
             } else {
                 // Fallback: sequential (never worse than before)
                 val si = (bi * scenes.size / beats.size.coerceAtLeast(1))
