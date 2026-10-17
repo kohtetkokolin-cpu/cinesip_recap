@@ -206,6 +206,7 @@ input[type=text]{width:100%;padding:12px;border-radius:10px;border:1px solid var
 // ===== State =====
 let S = {
   videoPath: null,
+  workDir: null,
   clips: [],        // {id, start, end, thumb, linkedAudio}
   audioSlots: [],   // {id, start, end, text, linkedClip}
   links: {},        // clipId -> audioId
@@ -366,10 +367,11 @@ function onRecapProgress(pct, msg){
 function onRecapDone(resultJson){
   closeOverlay('ovRecap');
   const r = JSON.parse(resultJson);
-  // r = {clips, audioSlots, links}
+  // r = {clips, audioSlots, links, workDir}
   if(r.clips) S.clips = r.clips;
   if(r.audioSlots) S.audioSlots = r.audioSlots;
   if(r.links) S.links = r.links;
+  if(r.workDir) S.workDir = r.workDir;
   renderClips(); renderAudio(); updateCount();
   document.getElementById('stageEmpty').style.display = 'none';
   document.getElementById('videoSections').style.display = 'block';
@@ -382,11 +384,20 @@ function onRecapError(msg){
 }
 
 // ===== Render =====
+function onProgress(pct, msg){
+  // Called by native MainActivity.onProgress
+  onRenderProgress(pct, msg);
+}
+function onRenderProgress(pct, msg){
+  document.getElementById('recapProg').style.width = pct + '%';
+  document.getElementById('recapStatus').textContent = msg;
+}
 function makeVideo(){
   if(Object.keys(S.links).length === 0){ toast('Clip တွေ အရင် ချိတ်ပါ'); return; }
-  const plan = { clips: S.clips, audioSlots: S.audioSlots, links: S.links, src: S.videoPath };
+  const plan = { clips: S.clips, audioSlots: S.audioSlots, links: S.links, src: S.videoPath, workDir: S.workDir };
   B.startRender(JSON.stringify(plan));
-  toast('Render စတယ်...');
+  show('ovRecap');
+  document.getElementById('recapStatus').textContent = 'Render စတယ်...';
 }
 function onRenderProgress(pct, msg){
   document.getElementById('recapProg').style.width = pct + '%';
