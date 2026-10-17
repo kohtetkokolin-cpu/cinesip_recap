@@ -136,8 +136,12 @@ class RecapPipeline(private val ctx: Context) {
 
     private fun ffmpeg(cmd: String) {
         val s = FFmpegKit.execute(cmd)
-        if (!ReturnCode.isSuccess(s.returnCode))
-            throw Exception("ffmpeg failed: ${s.failStackTrace?.take(120)}")
+        if (!ReturnCode.isSuccess(s.returnCode)) {
+            val err = s.failStackTrace?.take(200)
+                ?: s.output?.takeLast(300)
+                ?: "returnCode=${s.returnCode}"
+            throw Exception("ffmpeg failed: $err")
+        }
     }
 
     private fun probeDuration(path: String): Double {
@@ -204,12 +208,17 @@ class RecapPipeline(private val ctx: Context) {
             val cp = File(dir, "clip_$i.mp4").absolutePath
             val dur = (m.scene.end - m.scene.start).coerceAtLeast(1.0)
             // ≤5s fair-use clip, transformed, muted source audio
+            // Use fast input seek + precise trim filter (verified pattern from laptop)
             val ss = m.scene.start
-            ffmpeg("-y -ss $ss -i \"$src\" -i \"${beatAudio[i]}\" " +
-                    "-t $dur " +
-                    "-vf \"scale=1280:-2,setsar=1,fps=30\" " +
+            val audioFile = beatAudio.getOrNull(i) ?: ""
+            val audioInput = if (audioFile.isNotEmpty() && File(audioFile).exists())
+                "-i \"$audioFile\"" else "-an"
+            ffmpeg("-y -ss $ss -i \"$src\" $audioInput " +
+                    "-vf \"trim=duration=$dur,scale=1280:-2,setsar=1,fps=30\" " +
                     "-c:v libx264 -preset veryfast -crf 23 " +
-                    "-c:a aac -b:a 128k -af \"loudnorm=I=-16:TP=-1.5:LRA=11\" " +
+                    (if (audioFile.isNotEmpty() && File(audioFile).exists())
+                        "-c:a aac -b:a 128k -af \"loudnorm=I=-16:TP=-1.5:LRA=11\" "
+                    else "") +
                     "-shortest \"$cp\"")
             clips.add(cp)
             onProgress(i * 100 / matches.size.coerceAtLeast(1))
