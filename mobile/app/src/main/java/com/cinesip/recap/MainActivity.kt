@@ -18,9 +18,15 @@ class MainActivity : AppCompatActivity() {
         ActivityResultContracts.GetContent()) { uri: Uri? ->
         uri?.let {
             pickedPath = FileUtil.getPath(this, it) ?: it.toString()
-            web.evaluateJavascript(
-                "document.getElementById('fileInfo').textContent='✓ '+${pickedPath!!.length}+' chars';",
-                null)
+            web.evaluateJavascript("onVideoPicked('$pickedPath')", null)
+        }
+    }
+
+    private val pickAudio = registerForActivityResult(
+        ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let {
+            val path = FileUtil.getPath(this, it) ?: it.toString()
+            web.evaluateJavascript("onAudioPicked('$path')", null)
         }
     }
 
@@ -41,6 +47,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun openPicker() = pickVideo.launch("video/*")
+    fun openAudioPicker() = pickAudio.launch("audio/*")
     fun getPicked(): String? = pickedPath
     fun webEval(js: String) { web.evaluateJavascript(js, null) }
     fun prefs(key: String): String? =

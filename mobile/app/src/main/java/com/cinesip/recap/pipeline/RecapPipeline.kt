@@ -132,6 +132,97 @@ class RecapPipeline(private val ctx: Context) {
         out
     }
 
+    /**
+     * Editor version: runs pipeline through TTS, returns JSON for UI.
+     * Does NOT render — user edits timeline first, then hits "Make video".
+     * Returns: {"clips":[...], "audioSlots":[...], "links":{clipId:audioId}}
+     */
+    suspend fun runForEditor(
+        srcVideo: String,
+        style: String,
+        targetMinutes: Int,
+        geminiKey: String,
+        onProgress: (String, Int) -> Unit
+    ): String = withContext(Dispatchers.IO) {
+        val workDir = File(ctx.getExternalFilesDir(null), "pipeline_${System.currentTimeMillis()}")
+        workDir.mkdirs()
+        fun p(s: String, pct: Int) = onProgress(s, pct)
+
+        // ---- 1. Extract audio ----
+        p("audio extract", 5)
+        val wav = File(workDir, "audio.wav").absolutePath
+        ffmpeg("-y -i \"$srcVideo\" -ar 16000 -ac 1 -c:a pcm_s16le \"$wav\"")
+
+        // ---- 2. Transcribe (stub in Phase 1) ----
+        p("transcribing", 10)
+        val segments = emptyList<Segment>()
+        val transcript = ""
+
+        // ---- 3. Faces (stub in Phase 1) ----
+        p("face analysis", 32)
+        val movieLen = probeDuration(srcVideo)
+        val allFaces = emptyList<Face>()
+
+        // ---- 4. Audio events (stub in Phase 1) ----
+        p("audio events", 42)
+        val events = emptyList<AudioEvent>()
+
+        // ---- 5. Build scene windows (2.5s each, Zippy-style) ----
+        val scenes = buildScenes(movieLen, events, emptyList())
+        p("scenes: ${scenes.size}", 48)
+
+        // ---- 6. Gemini script ----
+        p("writing script", 52)
+        val evidence = buildEvidenceSummary(segments, events, scenes)
+        val gemini = GeminiClient(geminiKey)
+        val beats = try {
+            gemini.writeScript(transcript, style, targetMinutes, evidence)
+        } catch (e: Exception) {
+            // Fallback: create placeholder beats if Gemini fails
+            (0 until (targetMinutes * 12)).map { i ->
+                com.cinesip.recap.api.Beat(i, "Beat ${i+1}", "ဇာတ်လမ်း အပိုင်း ${i+1}", 5.0)
+            }
+        }
+        p("script done: ${beats.size} beats", 60)
+
+        // ---- 7. SmartSync matching ----
+        p("smart matching", 62)
+        val matches = SmartSync.smartSelect(beats, scenes, movieLen, emptyMap())
+        p("matched ${matches.count { it.score > 0 }} / ${beats.size}", 66)
+
+        // ---- 8. TTS per beat ----
+        p("voice synthesis", 68)
+        val tts = EdgeTtsClient(ctx)
+        val beatAudio = mutableListOf<String>()
+        for ((i, beat) in beats.withIndex()) {
+            val ap = File(workDir, "beat_$i.mp3").absolutePath
+            try {
+                tts.synthesize(beat.textMy, ap)
+            } catch (e: Exception) {
+                ffmpeg("-y -f lavfi -i anullsrc=r=24000:cl=mono -t 5 \"$ap\"")
+            }
+            beatAudio.add(ap)
+            p("voice synthesis", 68 + i * 12 / beats.size.coerceAtLeast(1))
+        }
+
+        // ---- Build editor JSON (no render yet) ----
+        p("building timeline", 85)
+        val clipsJson = scenes.mapIndexed { i, s ->
+            """{"id":$i,"start":${s.start},"end":${s.end},"label":"Clip $i"}"""
+        }.joinToString(",")
+        val audioJson = beats.mapIndexed { i, b ->
+            val txt = b.textMy.replace("\"", "'").take(60)
+            """{"id":$i,"start":${i*5.0},"end":${(i+1)*5.0},"text":"$txt"}"""
+        }.joinToString(",")
+        val linksJson = matches.mapIndexedNotNull { i, m ->
+            val clipIdx = scenes.indexOf(m.scene)
+            if (clipIdx >= 0) "\"$clipIdx\":\"$i\"" else null
+        }.joinToString(",")
+
+        p("done", 100)
+        """{"clips":[$clipsJson],"audioSlots":[$audioJson],"links":{$linksJson},"workDir":"${workDir.absolutePath}"}"""
+    }
+
     // ---------- helpers ----------
 
     private fun ffmpeg(cmd: String) {

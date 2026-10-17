@@ -20,6 +20,10 @@ class CinesipBridge(private val act: MainActivity) {
         act.openPicker()
         return ""
     }
+    @JavascriptInterface fun pickAudio(): String {
+        act.openAudioPicker()
+        return ""
+    }
     @JavascriptInterface fun getPickedPath(): String = act.getPicked() ?: ""
 
     /** Check/download AI models. JS calls this on startup. */
@@ -45,30 +49,41 @@ class CinesipBridge(private val act: MainActivity) {
     /**
      * Full on-device recap: transcribe → faces → audio → Gemini script
      * → SmartSync → TTS → render. 100% phone, no laptop.
+     * Editor version: populates timeline, does NOT auto-render.
      */
+    @JavascriptInterface
+    fun startAutoRecap() {
+        val srcPath = act.getPicked() ?: ""
+        if (srcPath.isEmpty()) {
+            act.runOnUiThread { act.webEval("onRecapError('ဗီဒီယို အရင် ရွေးပါ')") }
+            return
+        }
+        startAutoRecap(srcPath, "full_story", 10, act.prefs("gemini_key") ?: "")
+    }
+
     @JavascriptInterface
     fun startAutoRecap(srcPath: String, style: String,
                        targetMinutes: Int, geminiKey: String) {
         scope.launch(Dispatchers.IO) {
             try {
                 val pipeline = RecapPipeline(act)
-                val out = pipeline.run(
+                // Run pipeline but capture intermediate results for editor
+                val result = pipeline.runForEditor(
                     srcVideo = srcPath.ifEmpty { act.getPicked() ?: "" },
                     style = style,
                     targetMinutes = targetMinutes,
                     geminiKey = geminiKey.ifEmpty {
                         act.prefs("gemini_key") ?: ""
                     }
-                ) { prog ->
+                ) { stage, pct ->
                     act.runOnUiThread {
-                        act.webEval("onPipelineProgress('${prog.stage}',${prog.pct})")
+                        act.webEval("onRecapProgress($pct,'$stage')")
                     }
                 }
-                RenderWorker.lastOutput = out
-                act.runOnUiThread { act.webEval("onRenderDone('$out')") }
+                act.runOnUiThread { act.webEval("onRecapDone('$result')") }
             } catch (e: Exception) {
                 act.runOnUiThread {
-                    act.webEval("onPipelineError('${e.message?.take(100)?.replace("'", "")}')")
+                    act.webEval("onRecapError('${e.message?.take(100)?.replace("'", "")}')")
                 }
             }
         }
