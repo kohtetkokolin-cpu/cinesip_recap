@@ -12,8 +12,9 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "0.1.0"
-        // Universal ABIs: arm64 (modern) + arm32 (older phones)
-        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
+        // Universal ABIs: arm64-v8a (all modern phones, 95%+)
+        // Note: ffmpeg-kit-min only ships arm64-v8a native libs
+        ndk { abiFilters += listOf("arm64-v8a") }
     }
     buildTypes {
         release { isMinifyEnabled = false }
