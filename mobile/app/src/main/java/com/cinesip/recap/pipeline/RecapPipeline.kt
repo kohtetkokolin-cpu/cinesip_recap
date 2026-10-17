@@ -430,8 +430,7 @@ class RecapPipeline(private val ctx: Context) {
             if (beats.isEmpty()) { onError("❌ Script ရေးမရဘူး"); return }
 
             p(40, "🔊 အသံ ထုတ်နေတယ်...")
-            val geminiKey = ctx.getSharedPreferences("cinesip", android.content.Context.MODE_PRIVATE)
-                .getString("gemini_key", "") ?: ""
+            // Reuse geminiKey from above (already checked)
             val dir = java.io.File(ctx.cacheDir, "wizard_${System.currentTimeMillis()}").apply { mkdirs() }
             val audioFiles = mutableListOf<String>()
             beats.forEachIndexed { i, beat ->
