@@ -297,10 +297,13 @@ class RecapPipeline(private val ctx: Context) {
     private fun ffmpeg(cmd: String) {
         val s = FFmpegKit.execute(cmd)
         if (!ReturnCode.isSuccess(s.returnCode)) {
-            val err = s.failStackTrace?.take(200)
-                ?: s.output?.takeLast(300)
-                ?: "returnCode=${s.returnCode}"
-            throw Exception("ffmpeg failed: $err")
+            val stack = s.failStackTrace?.take(500) ?: ""
+            val out = s.output?.takeLast(500) ?: ""
+            val err = listOf(stack, out).filter { it.isNotBlank() }.joinToString(" | ")
+                .ifBlank { "returnCode=${s.returnCode}, no output captured" }
+            // Log full command for debugging (truncate path-heavy parts)
+            android.util.Log.e("CinesipFFmpeg", "FAILED: $err\nCMD: ${cmd.take(300)}")
+            throw Exception("ffmpeg failed [${s.returnCode}]: ${err.take(300)}")
         }
     }
 
