@@ -3,7 +3,7 @@ name: Build Cinesip Mobile APK
 on:
   push:
     branches: [main]
-    paths: ['mobile/**', '.github/workflows/build-apk.yml']
+    paths: ['mobile/**', '.github/workflows/build-apk-bulletproof.yml']
   workflow_dispatch:
 
 jobs:
@@ -34,7 +34,7 @@ jobs:
 
       - name: Build debug APK
         working-directory: mobile
-        run: gradle assembleDebug --no-daemon --stacktrace
+        run: gradle assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log; exit ${PIPESTATUS[0]}
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
 
@@ -44,13 +44,6 @@ jobs:
         with:
           name: cinesip-recap-apk
           path: mobile/app/build/outputs/apk/debug/app-debug.apk
-
-          
-      - name: Build debug APK
-        working-directory: mobile
-        run: gradle assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/build.log; exit ${PIPESTATUS[0]}
-        env:
-          ANDROID_HOME: /usr/local/lib/android/sdk
 
       - name: Upload build log on failure
         if: failure()
