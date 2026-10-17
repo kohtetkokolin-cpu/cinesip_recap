@@ -507,13 +507,14 @@ class RecapPipeline(private val ctx: Context) {
         audioFiles: List<String>, out: String, outW: Int, outH: Int,
         overlays: org.json.JSONObject?, ffmpegFn: (String) -> Unit
     ) {
+        if (matches.isEmpty()) throw Exception("No clips to render (matches empty)")
         val dir = java.io.File(ctx.cacheDir, "ov_${System.currentTimeMillis()}").apply { mkdirs() }
         val clips = mutableListOf<String>()
         matches.forEachIndexed { i, m ->
             val cp = java.io.File(dir, "c_$i.mp4").absolutePath
             val audioFile = audioFiles.getOrNull(i) ?: ""
             val ss = m.scene.start
-            val dur = m.scene.end - m.scene.start
+            val dur = (m.scene.end - m.scene.start).coerceAtLeast(0.5)
             // Base: trim + scale + fps
             var vf = "trim=duration=$dur,scale=${outW}:${outH}:force_original_aspect_ratio=increase,crop=${outW}:${outH},setsar=1,fps=30"
             // Subtitle overlay (WYSIWYG: use overlay config)
@@ -527,14 +528,15 @@ class RecapPipeline(private val ctx: Context) {
                 // Draw subtitle text (simplified - real impl would use drawtext with fontfile)
                 // For now, we note the position; full drawtext requires font file
             }
-            val audioInput = if (audioFile.isNotEmpty() && java.io.File(audioFile).exists())
-                "-i \"$audioFile\"" else "-an"
+            // CRITICAL FIX: ALL clips must have identical streams for concat.
+            // If no TTS audio, generate silent audio so every clip has audio.
+            val hasAudio = audioFile.isNotEmpty() && java.io.File(audioFile).exists()
+            val audioInput = if (hasAudio)
+                "-i \"$audioFile\"" else "-f lavfi -i \"anullsrc=r=44100:cl=stereo:d=$dur\""
             ffmpegFn("-y -ss $ss -i \"$src\" $audioInput " +
                     "-vf \"$vf\" " +
                     "-c:v libx264 -preset veryfast -crf 23 " +
-                    (if (audioFile.isNotEmpty() && java.io.File(audioFile).exists())
-                        "-c:a aac -b:a 128k -af \"loudnorm=I=-16:TP=-1.5:LRA=11\" "
-                    else "") +
+                    "-c:a aac -b:a 128k -af \"loudnorm=I=-16:TP=-1.5:LRA=11\" " +
                     "-shortest \"$cp\"")
             clips.add(cp)
         }
