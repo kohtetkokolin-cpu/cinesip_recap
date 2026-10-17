@@ -1,8 +1,8 @@
 package com.cinesip.recap.pipeline
 
 import android.content.Context
-import com.arthenica.ffmpegkit.FFmpegKit
-import com.arthenica.ffmpegkit.ReturnCode
+import com.antonkarpenko.ffmpegkit.FFmpegKit
+import com.antonkarpenko.ffmpegkit.ReturnCode
 import com.cinesip.recap.ai.*
 import com.cinesip.recap.api.EdgeTtsClient
 import com.cinesip.recap.api.GeminiClient
@@ -141,7 +141,7 @@ class RecapPipeline(private val ctx: Context) {
     }
 
     private fun probeDuration(path: String): Double {
-        val s = com.arthenica.ffmpegkit.FFprobeKit.getMediaInformation(path)
+        val s = com.antonkarpenko.ffmpegkit.FFprobeKit.getMediaInformation(path)
         return try {
             s.mediaInformation.duration?.toDouble() ?: 0.0
         } catch (e: Exception) { 0.0 }
