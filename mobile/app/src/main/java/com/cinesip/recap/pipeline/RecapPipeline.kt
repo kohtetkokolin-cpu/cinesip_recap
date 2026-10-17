@@ -429,7 +429,7 @@ class RecapPipeline(private val ctx: Context) {
             if (beats.isEmpty()) { onError("❌ Script ရေးမရဘူး"); return }
 
             p(40, "🔊 အသံ ထုတ်နေတယ်...")
-            val tts = com.cinesip.recap.api.EdgeTtsClient()
+            val tts = com.cinesip.recap.api.EdgeTtsClient(ctx)
             val dir = java.io.File(ctx.cacheDir, "wizard_${System.currentTimeMillis()}").apply { mkdirs() }
             val audioFiles = mutableListOf<String>()
             beats.forEachIndexed { i, beat ->
@@ -442,8 +442,8 @@ class RecapPipeline(private val ctx: Context) {
 
             p(75, "✂️ Video ဖြတ်နေတယ်...")
             // Build scenes: 5s clips with fair-use transforms
-            val scenes = buildScenes(movieLen, emptyList(), beats.size)
-            val matches = com.cinesip.recap.ai.SmartSync.smartSelect(beats, scenes, emptyList(), emptyList())
+            val scenes = buildScenes(movieLen, emptyList(), emptyList())
+            val matches = com.cinesip.recap.ai.SmartSync.smartSelect(beats, scenes, movieLen)
 
             p(85, "🎨 Overlay ထည့်နေတယ်...")
             val outRes = when (res) { "1080p" -> 1080; "720p" -> 720; else -> 480 }
@@ -458,7 +458,7 @@ class RecapPipeline(private val ctx: Context) {
 
             p(100, "✅ ပြီးပြီ!")
             val clipsJson = org.json.JSONArray(matches.mapIndexed { i, m ->
-                org.json.JSONObject().put("dur", m.scene.dur).put("beat", i)
+                org.json.JSONObject().put("dur", m.scene.end - m.scene.start).put("beat", i)
             }).toString()
             onDone(out, clipsJson)
         } catch (e: Exception) {
@@ -486,7 +486,7 @@ class RecapPipeline(private val ctx: Context) {
             val cp = java.io.File(dir, "c_$i.mp4").absolutePath
             val audioFile = audioFiles.getOrNull(i) ?: ""
             val ss = m.scene.start
-            val dur = m.scene.dur
+            val dur = m.scene.end - m.scene.start
             // Base: trim + scale + fps
             var vf = "trim=duration=$dur,scale=${outW}:${outH}:force_original_aspect_ratio=increase,crop=${outW}:${outH},setsar=1,fps=30"
             // Subtitle overlay (WYSIWYG: use overlay config)
