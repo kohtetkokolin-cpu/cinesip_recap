@@ -180,7 +180,7 @@ class RecapPipeline(private val ctx: Context) {
         } catch (e: Exception) {
             // Fallback: create placeholder beats if Gemini fails
             (0 until (targetMinutes * 12)).map { i ->
-                com.cinesip.recap.api.Beat(i, "Beat ${i+1}", "ဇာတ်လမ်း အပိုင်း ${i+1}", 5.0)
+                Beat(i, "ဇာတ်လမ်း အပိုင်း ${i+1}", "scene ${i+1}", 5.0)
             }
         }
         p("script done: ${beats.size} beats", 60)
