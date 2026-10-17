@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Cinesip Recap Wizard</title>
 <style>
-:root { --bg:#0a0e14; --card:#141a24; --green:#38f26d; --orange:#ff9f43; --text:#e8edf3; --dim:#8a94a6; }
+:root { --bg:#0a0e14; --card:#141a24; --green:#38f26d; --orange:#ff9f43; --text:#e8edf3; --dim:#8a94a6; --red:#ff5252; }
 * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,'Noto Sans Myanmar',sans-serif; font-size:15px; }
 .step { display:none; padding:16px; padding-bottom:90px; }
@@ -44,14 +44,34 @@ h3 { font-size:15px; margin:14px 0 8px; color:var(--green); }
 .nav-bar { position:fixed; bottom:0; left:0; right:0; background:#0d1119; padding:12px 16px; display:flex; gap:10px; border-top:1px solid #1e2635; }
 .nav-bar .btn { margin:0; }
 .hidden { display:none !important; }
-#toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:#232c3d; padding:10px 20px; border-radius:8px; display:none; z-index:999; }
+#toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:#232c3d; padding:10px 20px; border-radius:8px; display:none; z-index:999; max-width:90%; }
 .steps-indicator { display:flex; justify-content:center; gap:8px; margin:10px 0; }
 .dot { width:10px; height:10px; border-radius:50%; background:#2a3446; }
 .dot.active { background:var(--green); }
 .dot.done { background:var(--orange); }
+.top-bar { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:#0d1119; }
+.top-bar h1 { font-size:18px; margin:0; }
+.icon-btn { background:#232c3d; border:none; border-radius:8px; color:var(--text); font-size:20px; padding:8px 12px; cursor:pointer; }
+#bridgeStatus { font-size:11px; padding:4px 8px; border-radius:4px; }
+#bridgeStatus.ok { background:#1a2f22; color:var(--green); }
+#bridgeStatus.fail { background:#3a1a1a; color:var(--red); }
+/* Settings overlay */
+.overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); z-index:100; padding:20px; }
+.overlay.show { display:block; }
+.overlay .card { margin-top:60px; }
+.overlay input[type=text] { width:100%; padding:12px; border-radius:8px; border:1px solid #333; background:#1a2230; color:#fff; font-size:14px; margin:8px 0; }
+#debugLog { font-size:11px; color:var(--dim); background:#0a0e14; padding:8px; border-radius:8px; max-height:100px; overflow-y:auto; margin-top:8px; font-family:monospace; }
 </style>
 </head>
 <body>
+
+<div class="top-bar">
+  <h1>🎬 Cinesip Recap</h1>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <span id="bridgeStatus" class="fail">Bridge: ?</span>
+    <button class="icon-btn" onclick="showSettings()">⚙️</button>
+  </div>
+</div>
 
 <div class="steps-indicator">
   <div class="dot active" id="dot1"></div>
@@ -63,7 +83,7 @@ h3 { font-size:15px; margin:14px 0 8px; color:var(--green); }
 <div class="step active" id="step1">
   <h2>🎬 ဗီဒီယို ရွေးမယ်</h2>
   <div class="card">
-    <button class="btn btn-secondary" onclick="pickVideo()">📁 ဗီဒီယို ရွေးမယ်</button>
+    <button class="btn btn-secondary" id="btnPickVideo">📁 ဗီဒီယို ရွေးမယ်</button>
     <video id="videoPreview" class="hidden" controls playsinline></video>
     <div id="videoInfo" class="hidden" style="font-size:12px;color:var(--dim);margin-top:8px;"></div>
   </div>
@@ -75,10 +95,10 @@ h3 { font-size:15px; margin:14px 0 8px; color:var(--green); }
   <div class="card">
     <div class="grid2" id="voiceGrid"></div>
     <h3>အသံ ချိန်ညှိမယ်</h3>
-    <div class="slider-row"><label>Speed</label><input type="range" id="voiceSpeed" min="0.5" max="2.0" step="0.05" value="1.0" oninput="updVoiceLabel()"><span id="voiceSpeedV">1.00x</span></div>
-    <div class="slider-row"><label>Pitch</label><input type="range" id="voicePitch" min="-50" max="50" step="1" value="0" oninput="updVoiceLabel()"><span id="voicePitchV">+0%</span></div>
-    <div class="slider-row"><label>Volume</label><input type="range" id="voiceVol" min="0" max="100" step="1" value="100" oninput="updVoiceLabel()"><span id="voiceVolV">100%</span></div>
-    <button class="btn btn-secondary" onclick="previewVoice()">🔊 အသံ စမ်းမယ်</button>
+    <div class="slider-row"><label>Speed</label><input type="range" id="voiceSpeed" min="0.5" max="2.0" step="0.05" value="1.0"><span id="voiceSpeedV">1.00x</span></div>
+    <div class="slider-row"><label>Pitch</label><input type="range" id="voicePitch" min="-50" max="50" step="1" value="0"><span id="voicePitchV">+0%</span></div>
+    <div class="slider-row"><label>Volume</label><input type="range" id="voiceVol" min="0" max="100" step="1" value="100"><span id="voiceVolV">100%</span></div>
+    <button class="btn btn-secondary" id="btnPreviewVoice">🔊 အသံ စမ်းမယ်</button>
   </div>
 
   <h2>📐 Ratio & Resolution</h2>
@@ -106,6 +126,12 @@ h3 { font-size:15px; margin:14px 0 8px; color:var(--green); }
     <div class="opt" data-v="30"><div class="nm">30 မိနစ်</div></div>
     <div class="opt" data-v="60"><div class="nm">1 နာရီ</div></div>
   </div></div>
+
+  <div class="card">
+    <h3>🔧 Debug</h3>
+    <div id="debugLog"></div>
+    <button class="btn btn-secondary" id="btnTestBridge" style="margin-top:8px;">🧪 Bridge စမ်းမယ်</button>
+  </div>
 </div>
 
 <!-- ============ STEP 2: Overlay Editor ============ -->
@@ -113,7 +139,7 @@ h3 { font-size:15px; margin:14px 0 8px; color:var(--green); }
   <h2>🎨 Overlay ပြင်မယ်</h2>
   <div class="card">
     <canvas id="overlayCanvas" width="540" height="960"></canvas>
-    <div style="font-size:11px;color:var(--dim);margin-top:6px;">👆 နှိပ်+ဆွဲ = ရွှေ့ &nbsp;|&nbsp; ထောင့်ကနေ ဆွဲ = အကြီးအသေး</div>
+    <div style="font-size:11px;color:var(--dim);margin-top:6px;">👆 နှိပ်+ဆွဲ = ရွှေ့</div>
   </div>
   <div class="card">
     <div class="ov-toolbar">
@@ -138,194 +164,419 @@ h3 { font-size:15px; margin:14px 0 8px; color:var(--green); }
   <div class="card hidden" id="finalCard">
     <h3>🎬 Final Video</h3>
     <video id="finalVideo" controls playsinline style="width:100%;background:#000;border-radius:8px;"></video>
-    <h3>✂️ Clips ပြင်မယ်</h3>
-    <div id="clipList"></div>
-    <button class="btn btn-primary" onclick="downloadFinal()">⬇️ Download</button>
+    <button class="btn btn-primary" id="btnDownload">⬇️ Download</button>
+  </div>
+</div>
+
+<!-- ============ Settings Overlay ============ -->
+<div class="overlay" id="ovSettings">
+  <div class="card">
+    <h2>⚙️ Settings</h2>
+    <p style="font-size:13px;color:var(--dim);">Gemini API Key (script ရေးဖို့)</p>
+    <input type="text" id="inpKey" placeholder="AIza...">
+    <button class="btn btn-primary" id="btnSaveKey">💾 သိမ်းမယ်</button>
+    <button class="btn btn-secondary" id="btnCloseSettings">ပိတ်မယ်</button>
+    <p style="font-size:11px;color:var(--dim);margin-top:8px;">
+      Key ယူနည်း: aistudio.google.com → Get API key → Create API key<br>
+      အခမဲ့၊ card မလိုပါ
+    </p>
   </div>
 </div>
 
 <div class="nav-bar">
-  <button class="btn btn-secondary" id="backBtn" onclick="goStep(cur-1)" style="display:none;">◀ နောက်</button>
-  <button class="btn btn-primary" id="nextBtn" onclick="goStep(cur+1)">ရှေ့ဆက် ▶</button>
+  <button class="btn btn-secondary" id="backBtn" style="display:none;">◀ နောက်</button>
+  <button class="btn btn-primary" id="nextBtn">ရှေ့ဆက် ▶</button>
 </div>
 
 <div id="toast"></div>
 
 <script>
-let cur = 1;
-let videoPath = null, videoDur = 0;
-let cfg = { style:'full_story', voice:'thiha', speed:1.0, pitch:0, vol:100, ratio:'16:9', res:'1080p', len:10 };
-let overlays = { sub:{x:50,y:82,size:5,color:'#FFEB3B',on:true}, blur:[], logo:null, wm:{text:'',x:50,y:5,on:false}, frame:{on:false,color:'#FFD700',w:2} };
-let finalPath = null, clips = [];
+// ===== Debug logging =====
+function dbg(msg){
+  var el = document.getElementById('debugLog');
+  var d = new Date().toLocaleTimeString();
+  el.innerHTML += '<div>[' + d + '] ' + msg + '</div>';
+  el.scrollTop = el.scrollHeight;
+  console.log('[Cinesip] ' + msg);
+}
 
-// 14 script styles (from laptop)
-const STYLES = [
- {id:'full_story',nm:'🎞️ ဇာတ်ကားတစ်ကားလုံး',ds:'အစကနေအဆုံးထိ စွဲဆောင်မှုရှိရှိ'},
- {id:'cold_open',nm:'⚡ အထွတ်အထိပ်နဲ့စ',ds:'Burmese Top Movie စတိုင်'},
- {id:'dub_dialog',nm:'🎭 ဒိုင်ယာလော့+ဇာတ်ပြော',ds:'မြန်မာလို dub'},
+// ===== Bridge wrapper with debug =====
+function B(method){
+  var args = Array.prototype.slice.call(arguments, 1);
+  dbg('→ Bridge.' + method + '(' + args.join(', ') + ')');
+  try {
+    if (typeof window.CinesipBridge === 'undefined') {
+      dbg('❌ CinesipBridge is UNDEFINED!');
+      toast('❌ Bridge မရှိဘူး!');
+      return null;
+    }
+    var fn = window.CinesipBridge[method];
+    if (typeof fn !== 'function') {
+      dbg('❌ Method ' + method + ' not found!');
+      return null;
+    }
+    var result = fn.apply(window.CinesipBridge, args);
+    dbg('✓ ' + method + ' called');
+    return result;
+  } catch(e) {
+    dbg('❌ Error: ' + e.message);
+    toast('❌ ' + e.message);
+    return null;
+  }
+}
+
+function toast(m){
+  var t = document.getElementById('toast');
+  t.textContent = m; t.style.display = 'block';
+  setTimeout(function(){ t.style.display = 'none'; }, 2500);
+}
+
+// ===== State =====
+var cur = 1;
+var videoPath = null;
+var cfg = { style:'full_story', voice:'thiha', speed:1.0, pitch:0, vol:100, ratio:'16:9', res:'1080p', len:10 };
+var overlays = { sub:{x:50,y:82,size:5,color:'#FFEB3B',on:true}, blur:[], logo:null, wm:{text:'',x:50,y:5,on:false}, frame:{on:false,color:'#FFD700',w:2} };
+var finalPath = null;
+
+var STYLES = [
+ {id:'full_story',nm:'🎞️ ဇာတ်ကားတစ်ကားလုံး',ds:'အစကနေအဆုံးထိ'},
+ {id:'cold_open',nm:'⚡ အထွတ်အထိပ်နဲ့စ',ds:'Top Movie စတိုင်'},
+ {id:'dub_dialog',nm:'🎭 ဒိုင်ယာလော့',ds:'မြန်မာလို dub'},
  {id:'open_loop',nm:'❓ မေးခွန်းနဲ့စ',ds:'TV Myanmar စတိုင်'},
  {id:'mystery',nm:'🔍 လျှို့ဝှက်ချက်',ds:'Twist သိမ်းထား'},
- {id:'host_kwee',nm:'🎙️ Host စတိုင်',ds:'"ကွီး" ပထမပုဂ္ဂိုလ်'},
+ {id:'host_kwee',nm:'🎙️ Host စတိုင်',ds:'"ကွီး" စတိုင်'},
  {id:'series_host',nm:'📺 စီးရီး Host',ds:'အပိုင်းလိုက်'},
- {id:'horror',nm:'👻 သရဲ/Thriller',ds:'လန့်စရာ တည်ဆောက်မှု'},
+ {id:'horror',nm:'👻 သရဲ/Thriller',ds:'လန့်စရာ'},
  {id:'comedy',nm:'😂 ဟာသ',ds:'ပေါ့ပေါ့ပါးပါး'},
- {id:'speedrun',nm:'⏩ အမြန်ဇာတ်လမ်း',ds:'အတိုချုပ်'},
+ {id:'speedrun',nm:'⏩ အမြန်',ds:'အတိုချုပ်'},
  {id:'moral',nm:'📖 သင်ခန်းစာ',ds:'အသိအမြင်'},
- {id:'docu',nm:'🗓️ Year/Place',ds:'Million Recap စတိုင်'},
- {id:'neutral',nm:'📰 ရိုးရိုး Recap',ds:'ရှင်းလင်းတဲ့ ဇာတ်လမ်း'},
- {id:'binge',nm:'🎬 Compilation',ds:'1-3 နာရီ အစဆုံး'},
+ {id:'docu',nm:'🗓️ Year/Place',ds:'Million Recap'},
+ {id:'neutral',nm:'📰 ရိုးရိုး',ds:'ရှင်းလင်းတဲ့'},
+ {id:'binge',nm:'🎬 Compilation',ds:'အစဆုံး'},
 ];
 
-// 10 edge-tts voices via pitch/speed variations
-const VOICES = [
+var VOICES = [
  {id:'thiha',nm:'ကိုသီဟ',ds:'နက်နဲတဲ့အသံ',v:'my-MM-ThihaNeural',p:0,s:1.0},
  {id:'nilar',nm:'မနီလာ',ds:'နွေးထွေးတဲ့အသံ',v:'my-MM-NilarNeural',p:0,s:1.0},
- {id:'thiha_deep',nm:'ကိုသီဟ (နက်)',ds:'လေးနက်နှေးကွေး',v:'my-MM-ThihaNeural',p:-20,s:0.85},
- {id:'thiha_young',nm:'ကိုသီဟ (ငယ်)',ds:'တက်ကြွမြန်ဆန်',v:'my-MM-ThihaNeural',p:15,s:1.15},
- {id:'nilar_deep',nm:'မနီလာ (နက်)',ds:'လေးနက်နှေးကွေး',v:'my-MM-NilarNeural',p:-20,s:0.85},
- {id:'nilar_young',nm:'မနီလာ (ငယ်)',ds:'တက်ကြွမြန်ဆန်',v:'my-MM-NilarNeural',p:15,s:1.15},
- {id:'thiha_fun',nm:'ကိုသီဟ (ဟာသ)',ds:'ပေါ့ပေါ့ပါးပါး',v:'my-MM-ThihaNeural',p:8,s:1.25},
- {id:'nilar_fun',nm:'မနီလာ (ဟာသ)',ds:'ပေါ့ပေါ့ပါးပါး',v:'my-MM-NilarNeural',p:8,s:1.25},
- {id:'thiha_calm',nm:'ကိုသီဟ (တည်)',ds:'တည်ငြိမ်လေးနက်',v:'my-MM-ThihaNeural',p:-10,s:0.9},
- {id:'nilar_calm',nm:'မနီလာ (တည်)',ds:'တည်ငြိမ်လေးနက်',v:'my-MM-NilarNeural',p:-10,s:0.9},
+ {id:'thiha_deep',nm:'ကိုသီဟ (နက်)',ds:'လေးနက်',v:'my-MM-ThihaNeural',p:-20,s:0.85},
+ {id:'thiha_young',nm:'ကိုသီဟ (ငယ်)',ds:'တက်ကြွ',v:'my-MM-ThihaNeural',p:15,s:1.15},
+ {id:'nilar_deep',nm:'မနီလာ (နက်)',ds:'လေးနက်',v:'my-MM-NilarNeural',p:-20,s:0.85},
+ {id:'nilar_young',nm:'မနီလာ (ငယ်)',ds:'တက်ကြွ',v:'my-MM-NilarNeural',p:15,s:1.15},
+ {id:'thiha_fun',nm:'ကိုသီဟ (ဟာသ)',ds:'ပေါ့ပေါ့',v:'my-MM-ThihaNeural',p:8,s:1.25},
+ {id:'nilar_fun',nm:'မနီလာ (ဟာသ)',ds:'ပေါ့ပေါ့',v:'my-MM-NilarNeural',p:8,s:1.25},
+ {id:'thiha_calm',nm:'ကိုသီဟ (တည်)',ds:'တည်ငြိမ်',v:'my-MM-ThihaNeural',p:-10,s:0.9},
+ {id:'nilar_calm',nm:'မနီလာ (တည်)',ds:'တည်ငြိမ်',v:'my-MM-NilarNeural',p:-10,s:0.9},
 ];
 
-function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.style.display='block'; setTimeout(()=>t.style.display='none',2000); }
-function B(m){ try{ return window.CinesipBridge[m].apply(null,[].slice.call(arguments,1)); }catch(e){ return null; } }
-
+// ===== Init =====
 function init(){
- // styles
- document.getElementById('styleGrid').innerHTML = STYLES.map(s=>
-  `<div class="style-opt${s.id===cfg.style?' sel':''}" data-v="${s.id}" onclick="selStyle('${s.id}')"><div class="nm">${s.nm}</div><div class="ds">${s.ds}</div></div>`).join('');
- // voices
- document.getElementById('voiceGrid').innerHTML = VOICES.map(v=>
-  `<div class="opt${v.id===cfg.voice?' sel':''}" data-v="${v.id}" onclick="selVoice('${v.id}')"><div class="nm">${v.nm}</div><div class="ds">${v.ds}</div></div>`).join('');
- // option grids
- ['ratioGrid','resGrid','lenGrid'].forEach(id=>{
-  document.getElementById(id).querySelectorAll('.opt').forEach(o=>o.onclick=()=>{
-   document.getElementById(id).querySelectorAll('.opt').forEach(x=>x.classList.remove('sel'));
-   o.classList.add('sel');
-   const k = id==='ratioGrid'?'ratio':id==='resGrid'?'res':'len';
-   cfg[k] = k==='len'?parseInt(o.dataset.v):o.dataset.v;
+  dbg('init() started');
+  
+  // Check bridge
+  checkBridge();
+  
+  // Build style grid
+  var sg = document.getElementById('styleGrid');
+  sg.innerHTML = STYLES.map(function(s){
+    return '<div class="style-opt' + (s.id===cfg.style?' sel':'') + '" data-v="' + s.id + '">' +
+           '<div class="nm">' + s.nm + '</div><div class="ds">' + s.ds + '</div></div>';
+  }).join('');
+  sg.querySelectorAll('.style-opt').forEach(function(o){
+    o.addEventListener('click', function(){ selStyle(o.dataset.v); });
   });
- });
- // overlay toolbar
- document.querySelectorAll('.ov-btn').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('.ov-btn').forEach(x=>x.classList.remove('active'));
-  b.classList.add('active'); showOvControls(b.dataset.t);
- });
- showOvControls('sub');
+  
+  // Build voice grid
+  var vg = document.getElementById('voiceGrid');
+  vg.innerHTML = VOICES.map(function(v){
+    return '<div class="opt' + (v.id===cfg.voice?' sel':'') + '" data-v="' + v.id + '">' +
+           '<div class="nm">' + v.nm + '</div><div class="ds">' + v.ds + '</div></div>';
+  }).join('');
+  vg.querySelectorAll('.opt').forEach(function(o){
+    o.addEventListener('click', function(){ selVoice(o.dataset.v); });
+  });
+  
+  // Option grids
+  ['ratioGrid','resGrid','lenGrid'].forEach(function(id){
+    document.getElementById(id).querySelectorAll('.opt').forEach(function(o){
+      o.addEventListener('click', function(){
+        document.getElementById(id).querySelectorAll('.opt').forEach(function(x){ x.classList.remove('sel'); });
+        o.classList.add('sel');
+        var k = id==='ratioGrid'?'ratio':id==='resGrid'?'res':'len';
+        cfg[k] = k==='len' ? parseInt(o.dataset.v) : o.dataset.v;
+        dbg('Set ' + k + ' = ' + cfg[k]);
+      });
+    });
+  });
+  
+  // Sliders
+  document.getElementById('voiceSpeed').addEventListener('input', updVoiceLabel);
+  document.getElementById('voicePitch').addEventListener('input', updVoiceLabel);
+  document.getElementById('voiceVol').addEventListener('input', updVoiceLabel);
+  
+  // Buttons - use addEventListener instead of onclick for reliability
+  document.getElementById('btnPickVideo').addEventListener('click', function(){
+    dbg('Pick video button clicked');
+    B('pickVideo');
+  });
+  
+  document.getElementById('btnPreviewVoice').addEventListener('click', function(){
+    dbg('Preview voice button clicked');
+    var v = VOICES.find(function(x){ return x.id===cfg.voice; });
+    B('previewVoice', v.v, cfg.speed, cfg.pitch, cfg.vol);
+    toast('🔊 အသံ ထုတ်နေတယ်...');
+  });
+  
+  document.getElementById('btnTestBridge').addEventListener('click', function(){
+    dbg('Test bridge button clicked');
+    checkBridge();
+    B('toast', 'Bridge test OK!');
+  });
+  
+  // Nav buttons
+  document.getElementById('backBtn').addEventListener('click', function(){ goStep(cur-1); });
+  document.getElementById('nextBtn').addEventListener('click', function(){ goStep(cur+1); });
+  
+  // Settings
+  document.getElementById('btnSaveKey').addEventListener('click', saveKey);
+  document.getElementById('btnCloseSettings').addEventListener('click', function(){
+    document.getElementById('ovSettings').classList.remove('show');
+  });
+  
+  // Download
+  document.getElementById('btnDownload').addEventListener('click', function(){
+    if (finalPath) B('shareOutput');
+  });
+  
+  // Overlay toolbar
+  document.querySelectorAll('.ov-btn').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('.ov-btn').forEach(function(x){ x.classList.remove('active'); });
+      b.classList.add('active');
+      showOvControls(b.dataset.t);
+    });
+  });
+  showOvControls('sub');
+  
+  dbg('init() completed');
 }
-function selStyle(id){ cfg.style=id; document.querySelectorAll('#styleGrid .style-opt').forEach(o=>o.classList.toggle('sel',o.dataset.v===id)); }
-function selVoice(id){ cfg.voice=id; const v=VOICES.find(x=>x.id===id);
- document.getElementById('voiceSpeed').value=v.s; document.getElementById('voicePitch').value=v.p; updVoiceLabel();
- document.querySelectorAll('#voiceGrid .opt').forEach(o=>o.classList.toggle('sel',o.dataset.v===id)); }
-function updVoiceLabel(){ cfg.speed=parseFloat(document.getElementById('voiceSpeed').value);
- cfg.pitch=parseInt(document.getElementById('voicePitch').value); cfg.vol=parseInt(document.getElementById('voiceVol').value);
- document.getElementById('voiceSpeedV').textContent=cfg.speed.toFixed(2)+'x';
- document.getElementById('voicePitchV').textContent=(cfg.pitch>=0?'+':'')+cfg.pitch+'%';
- document.getElementById('voiceVolV').textContent=cfg.vol+'%'; }
-function previewVoice(){ const v=VOICES.find(x=>x.id===cfg.voice); B('previewVoice',v.v,cfg.speed,cfg.pitch,cfg.vol); toast('🔊 အသံ စမ်းနေတယ်...'); }
-function pickVideo(){ B('pickVideo'); }
-function onVideoPicked(path,dur){ videoPath=path; videoDur=dur||0;
- const vp=document.getElementById('videoPreview'); vp.src='file://'+path; vp.classList.remove('hidden');
- document.getElementById('videoInfo').textContent='⏱️ '+(videoDur/60).toFixed(1)+' မိနစ်'; document.getElementById('videoInfo').classList.remove('hidden');
- toast('✅ ဗီဒီယို ရွေးပြီးပြီ'); }
 
+function checkBridge(){
+  var el = document.getElementById('bridgeStatus');
+  if (typeof window.CinesipBridge !== 'undefined') {
+    el.textContent = 'Bridge: ✅';
+    el.className = 'ok';
+    dbg('✓ CinesipBridge found');
+    // List available methods
+    var methods = [];
+    for (var k in window.CinesipBridge) { methods.push(k); }
+    dbg('Methods: ' + methods.slice(0, 10).join(', ') + '...');
+  } else {
+    el.textContent = 'Bridge: ❌';
+    el.className = 'fail';
+    dbg('❌ CinesipBridge NOT FOUND!');
+  }
+}
+
+function selStyle(id){
+  cfg.style = id;
+  document.querySelectorAll('#styleGrid .style-opt').forEach(function(o){
+    o.classList.toggle('sel', o.dataset.v===id);
+  });
+  dbg('Style: ' + id);
+}
+
+function selVoice(id){
+  cfg.voice = id;
+  var v = VOICES.find(function(x){ return x.id===id; });
+  document.getElementById('voiceSpeed').value = v.s;
+  document.getElementById('voicePitch').value = v.p;
+  updVoiceLabel();
+  document.querySelectorAll('#voiceGrid .opt').forEach(function(o){
+    o.classList.toggle('sel', o.dataset.v===id);
+  });
+  dbg('Voice: ' + id);
+}
+
+function updVoiceLabel(){
+  cfg.speed = parseFloat(document.getElementById('voiceSpeed').value);
+  cfg.pitch = parseInt(document.getElementById('voicePitch').value);
+  cfg.vol = parseInt(document.getElementById('voiceVol').value);
+  document.getElementById('voiceSpeedV').textContent = cfg.speed.toFixed(2)+'x';
+  document.getElementById('voicePitchV').textContent = (cfg.pitch>=0?'+':'')+cfg.pitch+'%';
+  document.getElementById('voiceVolV').textContent = cfg.vol+'%';
+}
+
+// ===== Settings =====
+function showSettings(){
+  dbg('showSettings()');
+  var key = B('getGeminiKey');
+  if (key) document.getElementById('inpKey').value = key;
+  document.getElementById('ovSettings').classList.add('show');
+}
+
+function saveKey(){
+  var key = document.getElementById('inpKey').value.trim();
+  if (!key) { toast('⚠️ Key ထည့်ပါ'); return; }
+  B('saveGeminiKey', key);
+  document.getElementById('ovSettings').classList.remove('show');
+  toast('✅ Key သိမ်းပြီးပြီ');
+  dbg('Key saved');
+}
+
+// ===== Video pick callback (called from native) =====
+function onVideoPicked(path){
+  dbg('onVideoPicked: ' + path);
+  videoPath = path;
+  var vp = document.getElementById('videoPreview');
+  vp.src = 'file://' + path;
+  vp.classList.remove('hidden');
+  document.getElementById('videoInfo').classList.remove('hidden');
+  document.getElementById('videoInfo').textContent = '✅ ' + path.split('/').pop();
+  toast('✅ ဗီဒီယို ရွေးပြီးပြီ');
+}
+
+function onAudioPicked(path){
+  dbg('onAudioPicked: ' + path);
+  toast('✅ Audio: ' + path.split('/').pop());
+}
+
+// ===== Navigation =====
 function goStep(n){
- if(n<1||n>3) return;
- if(n===2 && !videoPath){ toast('⚠️ အရင် ဗီဒီယို ရွေးပါ'); return; }
- if(n===3){ if(!confirm('Render စမလား?')) return; }
- cur=n;
- document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
- document.getElementById('step'+n).classList.add('active');
- [1,2,3].forEach(i=>{ const d=document.getElementById('dot'+i); d.className='dot'+(i===n?' active':i<n?' done':''); });
- document.getElementById('backBtn').style.display=n===1?'none':'block';
- document.getElementById('nextBtn').textContent=n===3?'✓ ပြီးပြီ':'ရှေ့ဆက် ▶';
- document.getElementById('nextBtn').style.display=n===3?'none':'block';
- if(n===2) initOverlay();
- if(n===3) startRender();
- window.scrollTo(0,0);
+  dbg('goStep(' + n + ')');
+  if (n < 1 || n > 3) return;
+  if (n === 2 && !videoPath) { toast('⚠️ အရင် ဗီဒီယို ရွေးပါ'); return; }
+  if (n === 3) {
+    var key = B('getGeminiKey');
+    if (!key) { toast('⚠️ Settings မှာ Gemini Key ထည့်ပါ'); showSettings(); return; }
+    if (!confirm('Render စမလား?')) return;
+  }
+  cur = n;
+  document.querySelectorAll('.step').forEach(function(s){ s.classList.remove('active'); });
+  document.getElementById('step'+n).classList.add('active');
+  [1,2,3].forEach(function(i){
+    var d = document.getElementById('dot'+i);
+    d.className = 'dot' + (i===n?' active':i<n?' done':'');
+  });
+  document.getElementById('backBtn').style.display = n===1?'none':'block';
+  document.getElementById('nextBtn').style.display = n===3?'none':'block';
+  if (n === 2) initOverlay();
+  if (n === 3) startRender();
+  window.scrollTo(0,0);
 }
 
-// ============ Overlay Editor ============
-let ovCanvas, ovCtx, dragTarget=null, dragMode=null;
+// ===== Overlay Editor =====
+var ovCanvas, ovCtx;
 function initOverlay(){
- ovCanvas=document.getElementById('overlayCanvas'); ovCtx=ovCanvas.getContext('2d');
- drawOverlay();
- ovCanvas.onpointerdown=e=>{ const p=getPos(e); dragTarget=hitTest(p); if(dragTarget) dragMode='move'; };
- ovCanvas.onpointermove=e=>{ if(!dragTarget) return; const p=getPos(e); moveOverlay(dragTarget,p); drawOverlay(); };
- ovCanvas.onpointerup=()=>{ dragTarget=null; };
+  dbg('initOverlay()');
+  ovCanvas = document.getElementById('overlayCanvas');
+  ovCtx = ovCanvas.getContext('2d');
+  drawOverlay();
 }
-function getPos(e){ const r=ovCanvas.getBoundingClientRect(); return {x:(e.clientX-r.left)/r.width*100, y:(e.clientY-r.top)/r.height*100}; }
-function hitTest(p){
- if(overlays.sub.on && Math.abs(p.y-overlays.sub.y)<6) return 'sub';
- return null;
-}
-function moveOverlay(t,p){ if(t==='sub'){ overlays.sub.x=Math.max(5,Math.min(95,p.x)); overlays.sub.y=Math.max(5,Math.min(95,p.y)); } }
+
 function drawOverlay(){
- const c=ovCtx, W=ovCanvas.width, H=ovCanvas.height;
- c.fillStyle='#111'; c.fillRect(0,0,W,H);
- c.fillStyle='#333'; c.font='14px sans-serif'; c.textAlign='center';
- c.fillText('Video Preview',W/2,H/2);
- // frame
- if(overlays.frame.on){ c.strokeStyle=overlays.frame.color; c.lineWidth=W*overlays.frame.w/100; c.strokeRect(0,0,W,H); }
- // blur regions
- overlays.blur.forEach(b=>{ c.fillStyle='rgba(100,100,255,0.3)'; c.fillRect(W*b.x/100,W*b.y/100,W*b.w/100,H*b.h/100); });
- // subtitle
- if(overlays.sub.on){ c.font=`bold ${W*overlays.sub.size/100}px sans-serif`;
-  c.lineWidth=4; c.strokeStyle='#000'; c.fillStyle=overlays.sub.color; c.textAlign='center';
-  const tx=W*overlays.sub.x/100, ty=H*overlays.sub.y/100;
-  c.strokeText('နမူနာ စာတန်းထိုး',tx,ty); c.fillText('နမူနာ စာတန်းထိုး',tx,ty); }
- // watermark
- if(overlays.wm.on&&overlays.wm.text){ c.font='16px sans-serif'; c.fillStyle='rgba(255,255,255,0.6)'; c.textAlign='center';
-  c.fillText(overlays.wm.text,W*overlays.wm.x/100,H*overlays.wm.y/100); }
+  var c = ovCtx, W = ovCanvas.width, H = ovCanvas.height;
+  c.fillStyle = '#111'; c.fillRect(0,0,W,H);
+  c.fillStyle = '#333'; c.font = '14px sans-serif'; c.textAlign = 'center';
+  c.fillText('Video Preview', W/2, H/2);
+  if (overlays.frame.on) {
+    c.strokeStyle = overlays.frame.color;
+    c.lineWidth = W * overlays.frame.w / 100;
+    c.strokeRect(0,0,W,H);
+  }
+  if (overlays.sub.on) {
+    c.font = 'bold ' + (W * overlays.sub.size / 100) + 'px sans-serif';
+    c.lineWidth = 4; c.strokeStyle = '#000'; c.fillStyle = overlays.sub.color;
+    c.textAlign = 'center';
+    var tx = W * overlays.sub.x / 100, ty = H * overlays.sub.y / 100;
+    c.strokeText('နမူနာ စာတန်းထိုး', tx, ty);
+    c.fillText('နမူနာ စာတန်းထိုး', tx, ty);
+  }
+  if (overlays.wm.on && overlays.wm.text) {
+    c.font = '16px sans-serif'; c.fillStyle = 'rgba(255,255,255,0.6)';
+    c.textAlign = 'center';
+    c.fillText(overlays.wm.text, W*overlays.wm.x/100, H*overlays.wm.y/100);
+  }
 }
+
 function showOvControls(t){
- const el=document.getElementById('ovControls');
- if(t==='sub') el.innerHTML=`
-  <div class="slider-row"><label>Size</label><input type="range" min="2" max="10" value="${overlays.sub.size}" oninput="overlays.sub.size=this.value;drawOverlay()"><span>${overlays.sub.size}%</span></div>
-  <div class="slider-row"><label>Color</label><input type="color" value="${overlays.sub.color}" oninput="overlays.sub.color=this.value;drawOverlay()"></div>
-  <label><input type="checkbox" ${overlays.sub.on?'checked':''} onchange="overlays.sub.on=this.checked;drawOverlay()"> ပြမယ်</label>`;
- else if(t==='blur') el.innerHTML=`<button class="btn btn-secondary" onclick="addBlur()">+ Blur ထည့်မယ်</button><div id="blurList"></div>`;
- else if(t==='wm') el.innerHTML=`
-  <input type="text" id="wmText" placeholder="Watermark စာသား" value="${overlays.wm.text}" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333;background:#1a2230;color:#fff;" oninput="overlays.wm.text=this.value;overlays.wm.on=true;drawOverlay()">
-  <label><input type="checkbox" ${overlays.wm.on?'checked':''} onchange="overlays.wm.on=this.checked;drawOverlay()"> ပြမယ်</label>`;
- else if(t==='frame') el.innerHTML=`
-  <label><input type="checkbox" ${overlays.frame.on?'checked':''} onchange="overlays.frame.on=this.checked;drawOverlay()"> Frame ပြမယ်</label>
-  <div class="slider-row"><label>အထူ</label><input type="range" min="0.5" max="8" step="0.5" value="${overlays.frame.w}" oninput="overlays.frame.w=this.value;drawOverlay()"><span>${overlays.frame.w}%</span></div>
-  <div class="slider-row"><label>အရောင်</label><input type="color" value="${overlays.frame.color}" oninput="overlays.frame.color=this.value;drawOverlay()"></div>`;
- else if(t==='logo') el.innerHTML=`<button class="btn btn-secondary" onclick="B('pickLogo')">🖼️ Logo ရွေးမယ်</button>`;
+  var el = document.getElementById('ovControls');
+  if (t === 'sub') {
+    el.innerHTML =
+      '<div class="slider-row"><label>Size</label><input type="range" id="ovSubSize" min="2" max="10" value="' + overlays.sub.size + '"><span>' + overlays.sub.size + '%</span></div>' +
+      '<div class="slider-row"><label>Color</label><input type="color" id="ovSubColor" value="' + overlays.sub.color + '"></div>' +
+      '<label><input type="checkbox" id="ovSubOn" ' + (overlays.sub.on?'checked':'') + '> ပြမယ်</label>';
+    document.getElementById('ovSubSize').addEventListener('input', function(){
+      overlays.sub.size = this.value; drawOverlay();
+    });
+    document.getElementById('ovSubColor').addEventListener('input', function(){
+      overlays.sub.color = this.value; drawOverlay();
+    });
+    document.getElementById('ovSubOn').addEventListener('change', function(){
+      overlays.sub.on = this.checked; drawOverlay();
+    });
+  } else if (t === 'wm') {
+    el.innerHTML =
+      '<input type="text" id="ovWmText" placeholder="Watermark စာသား" value="' + overlays.wm.text + '" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333;background:#1a2230;color:#fff;">' +
+      '<label><input type="checkbox" id="ovWmOn" ' + (overlays.wm.on?'checked':'') + '> ပြမယ်</label>';
+    document.getElementById('ovWmText').addEventListener('input', function(){
+      overlays.wm.text = this.value; overlays.wm.on = true; drawOverlay();
+    });
+    document.getElementById('ovWmOn').addEventListener('change', function(){
+      overlays.wm.on = this.checked; drawOverlay();
+    });
+  } else if (t === 'frame') {
+    el.innerHTML =
+      '<label><input type="checkbox" id="ovFrameOn" ' + (overlays.frame.on?'checked':'') + '> Frame ပြမယ်</label>' +
+      '<div class="slider-row"><label>အထူ</label><input type="range" id="ovFrameW" min="0.5" max="8" step="0.5" value="' + overlays.frame.w + '"><span>' + overlays.frame.w + '%</span></div>';
+    document.getElementById('ovFrameOn').addEventListener('change', function(){
+      overlays.frame.on = this.checked; drawOverlay();
+    });
+    document.getElementById('ovFrameW').addEventListener('input', function(){
+      overlays.frame.w = this.value; drawOverlay();
+    });
+  } else {
+    el.innerHTML = '<p style="color:var(--dim);font-size:13px;">မကြာခင် ရမယ်</p>';
+  }
 }
-function addBlur(){ overlays.blur.push({x:30,y:30,w:40,h:20}); drawOverlay(); toast('🫧 Blur ထည့်ပြီးပြီ (canvas ပေါ်မှာ ဆွဲရွှေ့နိုင်တယ်)'); }
 
-// ============ Render ============
+// ===== Render =====
 function startRender(){
- document.getElementById('renderStatus').textContent='🔄 Render လုပ်နေတယ်...';
- const v=VOICES.find(x=>x.id===cfg.voice);
- const req={ video:videoPath, style:cfg.style, voice:v.v, speed:cfg.speed, pitch:cfg.pitch, vol:cfg.vol,
-  ratio:cfg.ratio, res:cfg.res, targetMin:cfg.len, overlays:overlays };
- B('startWizardRender', JSON.stringify(req));
+  dbg('startRender()');
+  document.getElementById('renderStatus').textContent = '🔄 Render လုပ်နေတယ်...';
+  var v = VOICES.find(function(x){ return x.id===cfg.voice; });
+  var req = {
+    video: videoPath, style: cfg.style, voice: v.v,
+    speed: cfg.speed, pitch: cfg.pitch, vol: cfg.vol,
+    ratio: cfg.ratio, res: cfg.res, targetMin: cfg.len,
+    overlays: overlays
+  };
+  dbg('Config: ' + JSON.stringify(req).substring(0, 200));
+  B('startWizardRender', JSON.stringify(req));
 }
-function onRenderProgress(p,msg){ document.getElementById('renderBar').style.width=p+'%';
- document.getElementById('renderStatus').textContent=msg||('🔄 '+p+'%');
- const log=document.getElementById('renderLog'); if(msg){ log.innerHTML+='<div>'+msg+'</div>'; log.scrollTop=log.scrollHeight; } }
-function onRenderDone(path,clipJson){ finalPath=path; clips=JSON.parse(clipJson||'[]');
- document.getElementById('renderStatus').textContent='✅ ပြီးပြီ!';
- document.getElementById('finalVideo').src='file://'+path;
- document.getElementById('finalCard').classList.remove('hidden');
- renderClipList(); toast('✅ Video ရပြီ!'); }
-function onRenderError(msg){ document.getElementById('renderStatus').textContent='❌ '+msg; toast('❌ '+msg); }
-function renderClipList(){
- document.getElementById('clipList').innerHTML=clips.map((c,i)=>
-  `<div class="clip-item"><div class="info">Clip ${i+1}: ${c.dur?.toFixed(1)}s</div>
-   <button class="ov-btn" onclick="adjClip(${i},0.9)">🐢 နှေး</button>
-   <button class="ov-btn" onclick="adjClip(${i},1.1)">🐇 မြန်</button></div>`).join('');
-}
-function adjClip(i,f){ B('adjustClip',i,f); toast('✂️ Clip '+(i+1)+' ပြင်နေတယ်...'); }
-function onClipAdjusted(i,newDur){ if(clips[i]) clips[i].dur=newDur; renderClipList(); }
-function downloadFinal(){ if(finalPath) B('shareOutput'); }
 
+function onRenderProgress(p, msg){
+  document.getElementById('renderBar').style.width = p + '%';
+  document.getElementById('renderStatus').textContent = msg || ('🔄 ' + p + '%');
+  dbg('Progress: ' + p + '% - ' + msg);
+}
+
+function onRenderDone(path){
+  dbg('onRenderDone: ' + path);
+  finalPath = path;
+  document.getElementById('renderStatus').textContent = '✅ ပြီးပြီ!';
+  document.getElementById('finalVideo').src = 'file://' + path;
+  document.getElementById('finalCard').classList.remove('hidden');
+  toast('✅ Video ရပြီ!');
+}
+
+function onRenderError(msg){
+  dbg('❌ Render error: ' + msg);
+  document.getElementById('renderStatus').textContent = '❌ ' + msg;
+  toast('❌ ' + msg);
+}
+
+// ===== Start =====
+dbg('Script loaded, calling init()...');
 init();
 </script>
 </body>
