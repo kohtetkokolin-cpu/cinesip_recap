@@ -40,14 +40,13 @@ dependencies {
     // Original FFmpegKit retired Apr 2025 → antonkarpenko fork (Maven Central)
     implementation("com.antonkarpenko:ffmpeg-kit-min:2.2.3")
 
-    // === On-device AI (all CPU-only for universal compatibility) ===
-    // Transcription: ONNX Runtime + Whisper ONNX model (Maven Central)
-    // (sherpa-onnx AAR not on JitPack; ORT is the reliable path)
-    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.18.0")
-    // Face detection/clustering: OpenCV (YuNet 337KB + SFace 38MB)
-    implementation("org.opencv:opencv:4.10.0")
-    // Audio events: TFLite (YAMNet ~16MB)
-    implementation("org.tensorflow:tensorflow-lite:2.14.0")
+    // === On-device AI (Phase 2 — added incrementally after base APK builds) ===
+    // Transcription: ONNX Runtime + Whisper (temporarily disabled for build stability)
+    // implementation("com.microsoft.onnxruntime:onnxruntime-android:1.18.0")
+    // Face detection: OpenCV (temporarily disabled)
+    // implementation("org.opencv:opencv:4.10.0")
+    // Audio events: TFLite (temporarily disabled)
+    // implementation("org.tensorflow:tensorflow-lite:2.14.0")
 
     // === Cloud AI (plain HTTP — works from phone unchanged) ===
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
