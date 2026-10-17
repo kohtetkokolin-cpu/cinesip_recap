@@ -139,7 +139,8 @@ h3 { font-size:15px; margin:14px 0 8px; color:var(--green); }
   <h2>🎨 Overlay ပြင်မယ်</h2>
   <div class="card">
     <canvas id="overlayCanvas" width="540" height="960"></canvas>
-    <div style="font-size:11px;color:var(--dim);margin-top:6px;">👆 နှိပ်+ဆွဲ = ရွှေ့</div>
+    <video id="ovVideo" muted loop playsinline style="width:100%;max-height:160px;background:#000;border-radius:8px;margin-top:8px;"></video>
+    <div style="font-size:11px;color:var(--dim);margin-top:6px;">👆 နှိပ်+ဆွဲ = ရွှေ့ · 🔇 preview အသံပိတ်</div>
   </div>
   <div class="card">
     <div class="ov-toolbar">
@@ -321,8 +322,7 @@ function init(){
   
   document.getElementById('btnPreviewVoice').addEventListener('click', function(){
     dbg('Preview voice button clicked');
-    var v = VOICES.find(function(x){ return x.id===cfg.voice; });
-    B('previewVoice', v.v, cfg.speed, cfg.pitch, cfg.vol);
+    B('previewVoice', cfg.voice, cfg.speed, cfg.pitch, cfg.vol);
     toast('🔊 အသံ ထုတ်နေတယ်...');
   });
   
@@ -459,7 +459,15 @@ function goStep(n){
   });
   document.getElementById('backBtn').style.display = n===1?'none':'block';
   document.getElementById('nextBtn').style.display = n===3?'none':'block';
-  if (n === 2) initOverlay();
+  if (n === 2) {
+    var ov = document.getElementById('ovVideo');
+    if (videoPath && ov.getAttribute('data-src') !== videoPath) {
+      ov.src = 'file://' + videoPath;
+      ov.setAttribute('data-src', videoPath);
+    }
+    if (ov.src) ov.play().catch(function(){});
+    initOverlay();
+  }
   if (n === 3) startRender();
   window.scrollTo(0,0);
 }
@@ -471,13 +479,72 @@ function initOverlay(){
   ovCanvas = document.getElementById('overlayCanvas');
   ovCtx = ovCanvas.getContext('2d');
   drawOverlay();
+  
+  // Make subtitle draggable
+  var dragging = false;
+  ovCanvas.addEventListener('pointerdown', function(e){
+    var r = ovCanvas.getBoundingClientRect();
+    var x = (e.clientX - r.left) / r.width * 100;
+    var y = (e.clientY - r.top) / r.height * 100;
+    // Check if touching subtitle area
+    if (overlays.sub.on && Math.abs(y - overlays.sub.y) < 10 && Math.abs(x - overlays.sub.x) < 30) {
+      dragging = 'sub';
+      dbg('Dragging subtitle');
+    }
+  });
+  ovCanvas.addEventListener('pointermove', function(e){
+    if (!dragging) return;
+    var r = ovCanvas.getBoundingClientRect();
+    var x = (e.clientX - r.left) / r.width * 100;
+    var y = (e.clientY - r.top) / r.height * 100;
+    if (dragging === 'sub') {
+      overlays.sub.x = Math.max(5, Math.min(95, x));
+      overlays.sub.y = Math.max(5, Math.min(95, y));
+      drawOverlay();
+    }
+  });
+  ovCanvas.addEventListener('pointerup', function(){ dragging = false; });
+  
+  // Continuously redraw to show video frames
+  if (window._ovTimer) clearInterval(window._ovTimer);
+  window._ovTimer = setInterval(function(){
+    if (document.getElementById('step2').classList.contains('active')) {
+      drawOverlay();
+    }
+  }, 100);
 }
 
 function drawOverlay(){
   var c = ovCtx, W = ovCanvas.width, H = ovCanvas.height;
-  c.fillStyle = '#111'; c.fillRect(0,0,W,H);
-  c.fillStyle = '#333'; c.font = '14px sans-serif'; c.textAlign = 'center';
-  c.fillText('Video Preview', W/2, H/2);
+  // Draw from dedicated ovVideo (visible element) instead of hidden videoPreview
+  var vp = document.getElementById('ovVideo');
+  var drewVideo = false;
+  if (vp && vp.videoWidth > 0) {
+    try {
+      var vw = vp.videoWidth, vh = vp.videoHeight;
+      var scale = Math.max(W / vw, H / vh);
+      var dw = vw * scale, dh = vh * scale;
+      c.drawImage(vp, (W - dw) / 2, (H - dh) / 2, dw, dh);
+      drewVideo = true;
+    } catch (e) { /* fall through */ }
+  }
+  if (!drewVideo) {
+    c.fillStyle = '#111'; c.fillRect(0,0,W,H);
+    c.fillStyle = '#666'; c.font = '14px sans-serif'; c.textAlign = 'center';
+    c.fillText('ဗီဒီယို ရွေးပြီးမှ preview ပေါ်မယ်', W/2, H/2);
+  }
+  // Blur regions
+  (overlays.blur || []).forEach(function(b){
+    var bx = W*b.x/100, by = H*b.y/100, bw = W*b.w/100, bh = H*b.h/100;
+    c.save();
+    try { c.filter = 'blur(8px)'; } catch(e){}
+    // Blur by re-drawing the region onto itself
+    try { c.drawImage(ovCanvas, bx, by, bw, bh, bx, by, bw, bh); } catch(e){}
+    c.restore();
+    c.strokeStyle = 'rgba(120,180,255,0.6)';
+    c.lineWidth = 2;
+    c.strokeRect(bx, by, bw, bh);
+  });
   if (overlays.frame.on) {
     c.strokeStyle = overlays.frame.color;
     c.lineWidth = W * overlays.frame.w / 100;
@@ -496,6 +563,27 @@ function drawOverlay(){
     c.textAlign = 'center';
     c.fillText(overlays.wm.text, W*overlays.wm.x/100, H*overlays.wm.y/100);
   }
+  // Logo
+  if (overlays.logo && overlays.logo.on && window._logoImg && window._logoImg.complete) {
+    var lw = W * overlays.logo.w / 100;
+    var lh = lw * window._logoImg.height / window._logoImg.width;
+    c.drawImage(window._logoImg, W*overlays.logo.x/100 - lw/2, H*overlays.logo.y/100 - lh/2, lw, lh);
+  }
+}
+
+var _logoImg = null;
+function onLogoPicked(path){
+  dbg('onLogoPicked: ' + path);
+  _logoImg = new Image();
+  _logoImg.onload = function(){
+    window._logoImg = _logoImg;
+    overlays.logo = { path:path, x:85, y:10, w:15, on:true };
+    drawOverlay();
+    toast('✅ Logo ရပြီ');
+    dbg('Logo loaded');
+  };
+  _logoImg.onerror = function(){ toast('❌ Logo ဖတ်မရဘူး'); dbg('Logo load failed'); };
+  _logoImg.src = 'file://' + path;
 }
 
 function showOvControls(t){
@@ -534,6 +622,59 @@ function showOvControls(t){
     document.getElementById('ovFrameW').addEventListener('input', function(){
       overlays.frame.w = this.value; drawOverlay();
     });
+  } else if (t === 'blur') {
+    var html = '<button class="btn btn-secondary" id="btnAddBlur">➕ Blur area ထည့်မယ်</button>';
+    html += '<div id="blurList" style="margin-top:8px;"></div>';
+    if ((overlays.blur||[]).length > 0) {
+      html += '<button class="btn btn-secondary" id="btnClearBlur" style="margin-top:8px;">🧹 အားလုံး ဖျက်မယ်</button>';
+    }
+    el.innerHTML = html;
+    document.getElementById('btnAddBlur').addEventListener('click', function(){
+      overlays.blur = overlays.blur || [];
+      overlays.blur.push({x:30, y:30, w:40, h:20});
+      drawOverlay(); showOvControls('blur');
+      toast('🫧 Blur ထည့်ပြီ — canvas ပေါ်မှာ အရွယ်ပြင်နိုင်တယ်');
+    });
+    var cb = document.getElementById('btnClearBlur');
+    if (cb) cb.addEventListener('click', function(){
+      overlays.blur = []; drawOverlay(); showOvControls('blur');
+    });
+    var bl = document.getElementById('blurList');
+    (overlays.blur||[]).forEach(function(b, i){
+      var d = document.createElement('div');
+      d.style.cssText = 'font-size:12px;color:var(--dim);padding:4px;';
+      d.innerHTML = 'Blur ' + (i+1) + ' <button class="ov-btn" data-i="' + i + '" style="padding:2px 8px;">❌</button>';
+      d.querySelector('button').addEventListener('click', function(){
+        overlays.blur.splice(parseInt(this.dataset.i), 1);
+        drawOverlay(); showOvControls('blur');
+      });
+      bl.appendChild(d);
+    });
+  } else if (t === 'logo') {
+    var lh = '<button class="btn btn-secondary" id="btnPickLogo">🖼️ Logo ရွေးမယ်</button>';
+    if (overlays.logo) {
+      lh += '<div class="slider-row"><label>Size</label><input type="range" id="ovLogoW" min="5" max="40" value="' + overlays.logo.w + '"><span>' + overlays.logo.w + '%</span></div>';
+      lh += '<label><input type="checkbox" id="ovLogoOn" ' + (overlays.logo.on?'checked':'') + '> ပြမယ်</label> ';
+      lh += '<button class="ov-btn" id="btnRmLogo">❌ ဖျက်မယ်</button>';
+    }
+    el.innerHTML = lh;
+    document.getElementById('btnPickLogo').addEventListener('click', function(){
+      dbg('Pick logo clicked');
+      B('pickLogo');
+    });
+    var lw = document.getElementById('ovLogoW');
+    if (lw) lw.addEventListener('input', function(){
+      overlays.logo.w = this.value; drawOverlay();
+    });
+    var lo = document.getElementById('ovLogoOn');
+    if (lo) lo.addEventListener('change', function(){
+      overlays.logo.on = this.checked; drawOverlay();
+    });
+    var rl = document.getElementById('btnRmLogo');
+    if (rl) rl.addEventListener('click', function(){
+      overlays.logo = null; window._logoImg = null;
+      drawOverlay(); showOvControls('logo');
+    });
   } else {
     el.innerHTML = '<p style="color:var(--dim);font-size:13px;">မကြာခင် ရမယ်</p>';
   }
@@ -545,7 +686,7 @@ function startRender(){
   document.getElementById('renderStatus').textContent = '🔄 Render လုပ်နေတယ်...';
   var v = VOICES.find(function(x){ return x.id===cfg.voice; });
   var req = {
-    video: videoPath, style: cfg.style, voice: v.v,
+    video: videoPath, style: cfg.style, voice: v.v, voicePreset: cfg.voice,
     speed: cfg.speed, pitch: cfg.pitch, vol: cfg.vol,
     ratio: cfg.ratio, res: cfg.res, targetMin: cfg.len,
     overlays: overlays
