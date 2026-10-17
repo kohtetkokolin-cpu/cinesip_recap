@@ -211,16 +211,85 @@ class RecapPipeline(private val ctx: Context) {
             """{"id":$i,"start":${s.start},"end":${s.end},"label":"Clip $i"}"""
         }.joinToString(",")
         val audioJson = beats.mapIndexed { i, b ->
-            val txt = b.textMy.replace("\"", "'").take(60)
+            val txt = b.textMy.replace("\\", "\\\\").replace("\"", "'").replace("\n", " ").take(60)
             """{"id":$i,"start":${i*5.0},"end":${(i+1)*5.0},"text":"$txt"}"""
         }.joinToString(",")
-        val linksJson = matches.mapIndexedNotNull { i, m ->
+        val linksJson = matches.mapNotNull { m ->
             val clipIdx = scenes.indexOf(m.scene)
-            if (clipIdx >= 0) "\"$clipIdx\":\"$i\"" else null
+            if (clipIdx >= 0) "\"$clipIdx\":\"${m.beatId}\"" else null
         }.joinToString(",")
 
         p("done", 100)
         """{"clips":[$clipsJson],"audioSlots":[$audioJson],"links":{$linksJson},"workDir":"${workDir.absolutePath}"}"""
+    }
+
+    /**
+     * Render editor timeline from plan JSON.
+     * Plan: {clips:[{id,start,end}], links:{clipId:audioId}, src, workDir}
+     * Each linked clip is rendered with its TTS audio, then concatenated.
+     */
+    suspend fun renderTimeline(
+        planJson: String,
+        onProgress: (Int, String) -> Unit
+    ): String = withContext(Dispatchers.IO) {
+        val plan = org.json.JSONObject(planJson)
+        val src = plan.getString("src")
+        val workDirPath = plan.optString("workDir", "")
+        val workDir = if (workDirPath.isNotEmpty()) File(workDirPath)
+                      else File(ctx.getExternalFilesDir(null), "timeline_${System.currentTimeMillis()}").apply { mkdirs() }
+
+        val clipsArr = plan.getJSONArray("clips")
+        val linksObj = plan.getJSONObject("links")
+
+        // Build clip map: id -> (start, end)
+        val clipMap = mutableMapOf<String, Pair<Double, Double>>()
+        for (i in 0 until clipsArr.length()) {
+            val c = clipsArr.getJSONObject(i)
+            clipMap[c.get("id").toString()] = Pair(c.getDouble("start"), c.getDouble("end"))
+        }
+
+        // Sort links by clip ID for chronological order
+        val sortedLinks = linksObj.keys().asSequence().toList()
+            .sortedBy { it.toIntOrNull() ?: 0 }
+
+        if (sortedLinks.isEmpty()) throw Exception("No linked clips")
+
+        val renderedClips = mutableListOf<String>()
+        for ((idx, clipId) in sortedLinks.withIndex()) {
+            val audioId = linksObj.getString(clipId)
+            val (start, end) = clipMap[clipId] ?: continue
+            val dur = (end - start).coerceAtLeast(1.0)
+
+            val audioFile = File(workDir, "beat_$audioId.mp3").absolutePath
+            val cp = File(workDir, "timeline_clip_$idx.mp4").absolutePath
+
+            onProgress(idx * 90 / sortedLinks.size, "rendering clip ${idx+1}/${sortedLinks.size}")
+
+            val audioExists = File(audioFile).exists()
+            val audioInput = if (audioExists) "-i \"$audioFile\"" else "-an"
+            val audioOpts = if (audioExists)
+                "-c:a aac -b:a 128k -af \"loudnorm=I=-16:TP=-1.5:LRA=11\""
+            else ""
+
+            // Fast seek + trim filter (verified pattern)
+            ffmpeg("-y -ss $start -i \"$src\" $audioInput " +
+                    "-vf \"trim=duration=$dur,scale=1280:-2,setsar=1,fps=30\" " +
+                    "-c:v libx264 -preset veryfast -crf 23 " +
+                    "$audioOpts -shortest \"$cp\"")
+            renderedClips.add(cp)
+        }
+
+        // Concat
+        onProgress(92, "concatenating")
+        val listFile = File(workDir, "timeline_list.txt").apply {
+            writeText(renderedClips.joinToString("\n") { "file '$it'" })
+        }
+        val out = File(ctx.getExternalFilesDir(null),
+            "recap_${System.currentTimeMillis()}.mp4").absolutePath
+        ffmpeg("-y -f concat -safe 0 -i \"${listFile.absolutePath}\" -c copy \"$out\"")
+
+        onProgress(100, "done")
+        out
     }
 
     // ---------- helpers ----------
