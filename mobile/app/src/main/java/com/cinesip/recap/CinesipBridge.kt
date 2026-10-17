@@ -160,24 +160,44 @@ class CinesipBridge(private val act: MainActivity) {
 
     // ===== Wizard methods (2026-10-17) =====
 
-    @JavascriptInterface fun previewVoice(voice: String, speed: Double, pitch: Int, vol: Int) {
+    @JavascriptInterface fun previewVoice(presetId: String, speed: Double, pitch: Int, vol: Int) {
         act.runOnUiThread { act.toast("🔊 အသံ ထုတ်နေတယ်...") }
         act.scope().launch(kotlinx.coroutines.Dispatchers.IO) {
-            try {
-                val tts = com.cinesip.recap.api.EdgeTtsClient(act)
-                val out = java.io.File(act.cacheDir, "voice_preview.mp3")
-                // "မင်္ဂလာပါ" sample with pitch/speed/volume
-                tts.synthesize("မင်္ဂလာပါ ပရိတ်သတ်တို့", out.absolutePath, voice, speed, pitch, vol)
-                act.runOnUiThread {
-                    if (out.exists() && out.length() > 0) {
-                        act.playAudio(out.absolutePath)
-                    } else {
-                        act.toast("❌ အသံဖိုင် မရဘူး")
-                    }
+            val out = java.io.File(act.cacheDir, "voice_preview.wav")
+            // Try Gemini TTS first (primary), edge-tts as fallback
+            val key = act.prefs("gemini_key") ?: ""
+            var success = false
+            if (key.isNotBlank()) {
+                try {
+                    com.cinesip.recap.api.GeminiTtsClient(act, key)
+                        .synthesize("မင်္ဂလာပါ ပရိတ်သတ်တို့", out.absolutePath, presetId, speed)
+                    success = out.exists() && out.length() > 0
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                act.runOnUiThread { act.toast("❌ " + (e.message ?: "အသံ ထုတ်မရဘူး")) }
+            }
+            // Fallback to edge-tts
+            if (!success) {
+                try {
+                    // Map preset to edge voice
+                    val edgeVoice = if (presetId.startsWith("nilar")) "my-MM-NilarNeural" else "my-MM-ThihaNeural"
+                    val mp3out = java.io.File(act.cacheDir, "voice_preview.mp3")
+                    com.cinesip.recap.api.EdgeTtsClient(act)
+                        .synthesize("မင်္ဂလာပါ ပရိတ်သတ်တို့", mp3out.absolutePath, edgeVoice, speed, pitch, vol)
+                    if (mp3out.exists() && mp3out.length() > 0) {
+                        act.runOnUiThread { act.playAudio(mp3out.absolutePath) }
+                        return@launch
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+            act.runOnUiThread {
+                if (success && out.exists()) {
+                    act.playAudio(out.absolutePath)
+                } else {
+                    act.toast("❌ အသံ ထုတ်မရဘူး" + if (key.isBlank()) " — Settings မှာ Key ထည့်ပါ" else "")
+                }
             }
         }
     }
