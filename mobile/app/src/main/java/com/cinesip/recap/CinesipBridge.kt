@@ -163,7 +163,7 @@ class CinesipBridge(private val act: MainActivity) {
     @JavascriptInterface fun previewVoice(voice: String, speed: Double, pitch: Int, vol: Int) {
         act.scope().launch {
             try {
-                val tts = com.cinesip.recap.api.EdgeTtsClient()
+                val tts = com.cinesip.recap.api.EdgeTtsClient(act)
                 val out = java.io.File(act.cacheDir, "voice_preview.mp3")
                 // "မင်္ဂလာပါ" sample with pitch/speed/volume
                 tts.synthesize("မင်္ဂလာပါ ပရိတ်သတ်တို့", out.absolutePath, voice, speed, pitch, vol)
