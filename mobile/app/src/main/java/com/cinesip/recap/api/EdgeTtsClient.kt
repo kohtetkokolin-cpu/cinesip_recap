@@ -36,6 +36,8 @@ class EdgeTtsClient(private val ctx: Context) {
         // v2 endpoint (Microsoft migrated in 2026, v1 now returns 403)
         private const val WSS_URL = "wss://api.msedgeservices.com/tts/cognitiveservices/websocket/v1"
         private const val SUBSCRIPTION_KEY = "6A5AA1D4EAFF4E9FB37E23D68491D6F4"
+        // Updated Edge version (working implementations use 155.x, not 140.x)
+        private const val SEC_MS_GEC_VERSION = "1-155.0.4283.45"
     }
 
     /**
@@ -65,10 +67,8 @@ class EdgeTtsClient(private val ctx: Context) {
 
             val ws = http.newWebSocket(
                 Request.Builder()
-                    .url("$WSS_URL?Ocp-Apim-Subscription-Key=$SUBSCRIPTION_KEY")
+                    .url("$WSS_URL?Ocp-Apim-Subscription-Key=$SUBSCRIPTION_KEY&Sec-MS-GEC=${generateSecMsGec()}&Sec-MS-GEC-Version=$SEC_MS_GEC_VERSION&ConnectionId=$reqId")
                     .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0")
-                    .header("Sec-MS-GEC", generateSecMsGec())
-                    .header("Sec-MS-GEC-Version", "1-140.0.3485.14")
                     .build(),
                 object : WebSocketListener() {
                     override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
