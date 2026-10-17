@@ -17,11 +17,11 @@ class CinesipBridge(private val act: MainActivity) {
     @JavascriptInterface fun toast(m: String) = act.toast(m)
 
     @JavascriptInterface fun pickVideo(): String {
-        act.openPicker()
+        act.runOnUiThread { act.openPicker() }
         return ""
     }
     @JavascriptInterface fun pickAudio(): String {
-        act.openAudioPicker()
+        act.runOnUiThread { act.openAudioPicker() }
         return ""
     }
     @JavascriptInterface fun getPickedPath(): String = act.getPicked() ?: ""
@@ -161,15 +161,23 @@ class CinesipBridge(private val act: MainActivity) {
     // ===== Wizard methods (2026-10-17) =====
 
     @JavascriptInterface fun previewVoice(voice: String, speed: Double, pitch: Int, vol: Int) {
-        act.scope().launch {
+        act.runOnUiThread { act.toast("🔊 အသံ ထုတ်နေတယ်...") }
+        act.scope().launch(kotlinx.coroutines.Dispatchers.IO) {
             try {
                 val tts = com.cinesip.recap.api.EdgeTtsClient(act)
                 val out = java.io.File(act.cacheDir, "voice_preview.mp3")
                 // "မင်္ဂလာပါ" sample with pitch/speed/volume
                 tts.synthesize("မင်္ဂလာပါ ပရိတ်သတ်တို့", out.absolutePath, voice, speed, pitch, vol)
-                act.runOnUiThread { act.playAudio(out.absolutePath) }
+                act.runOnUiThread {
+                    if (out.exists() && out.length() > 0) {
+                        act.playAudio(out.absolutePath)
+                    } else {
+                        act.toast("❌ အသံဖိုင် မရဘူး")
+                    }
+                }
             } catch (e: Exception) {
-                act.runOnUiThread { act.toast("❌ " + (e.message ?: "error")) }
+                e.printStackTrace()
+                act.runOnUiThread { act.toast("❌ " + (e.message ?: "အသံ ထုတ်မရဘူး")) }
             }
         }
     }
