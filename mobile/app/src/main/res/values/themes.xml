@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.CinesipRecap" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">#0b0e12</item>
+        <item name="android:statusBarColor">#0d1218</item>
+        <item name="android:navigationBarColor">#0b0e12</item>
+    </style>
+</resources>
