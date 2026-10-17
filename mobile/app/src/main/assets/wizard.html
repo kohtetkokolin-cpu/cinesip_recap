@@ -139,8 +139,8 @@ h3 { font-size:15px; margin:14px 0 8px; color:var(--green); }
   <h2>🎨 Overlay ပြင်မယ်</h2>
   <div class="card">
     <canvas id="overlayCanvas" width="540" height="960"></canvas>
-    <video id="ovVideo" muted loop playsinline style="width:100%;max-height:160px;background:#000;border-radius:8px;margin-top:8px;"></video>
-    <div style="font-size:11px;color:var(--dim);margin-top:6px;">👆 နှိပ်+ဆွဲ = ရွှေ့ · 🔇 preview အသံပိတ်</div>
+    <video id="ovVideo" muted loop playsinline style="display:none;"></video>
+    <div style="font-size:11px;color:var(--dim);margin-top:6px;">👆 စာတန်းထိုး/Blur/Logo ကို နှိပ်+ဆွဲ = ရွှေ့</div>
   </div>
   <div class="card">
     <div class="ov-toolbar">
@@ -480,16 +480,41 @@ function initOverlay(){
   ovCtx = ovCanvas.getContext('2d');
   drawOverlay();
   
-  // Make subtitle draggable
+  // Make subtitle/blur/logo draggable
   var dragging = false;
+  var dragData = null;
+  // Guard against duplicate bindings
+  if (window._ovBound) { drawOverlay(); return; }
+  window._ovBound = true;
   ovCanvas.addEventListener('pointerdown', function(e){
     var r = ovCanvas.getBoundingClientRect();
     var x = (e.clientX - r.left) / r.width * 100;
     var y = (e.clientY - r.top) / r.height * 100;
-    // Check if touching subtitle area
+    // Check blur rects first (topmost)
+    for (var i = (overlays.blur||[]).length - 1; i >= 0; i--) {
+      var b = overlays.blur[i];
+      if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) {
+        dragging = 'blur'; dragData = {i:i, dx:x-b.x, dy:y-b.y};
+        dbg('Dragging blur ' + i);
+        e.preventDefault();
+        return;
+      }
+    }
+    // Check logo
+    if (overlays.logo && overlays.logo.on) {
+      var lw = overlays.logo.w, lh = lw * 0.5;
+      if (Math.abs(x - overlays.logo.x) < lw/2 + 5 && Math.abs(y - overlays.logo.y) < lh/2 + 5) {
+        dragging = 'logo'; dragData = {dx:x-overlays.logo.x, dy:y-overlays.logo.y};
+        dbg('Dragging logo');
+        e.preventDefault();
+        return;
+      }
+    }
+    // Check subtitle area
     if (overlays.sub.on && Math.abs(y - overlays.sub.y) < 10 && Math.abs(x - overlays.sub.x) < 30) {
       dragging = 'sub';
       dbg('Dragging subtitle');
+      e.preventDefault();
     }
   });
   ovCanvas.addEventListener('pointermove', function(e){
@@ -501,9 +526,20 @@ function initOverlay(){
       overlays.sub.x = Math.max(5, Math.min(95, x));
       overlays.sub.y = Math.max(5, Math.min(95, y));
       drawOverlay();
+    } else if (dragging === 'blur' && dragData) {
+      var b = overlays.blur[dragData.i];
+      b.x = Math.max(0, Math.min(100 - b.w, x - dragData.dx));
+      b.y = Math.max(0, Math.min(100 - b.h, y - dragData.dy));
+      drawOverlay();
+    } else if (dragging === 'logo' && dragData) {
+      overlays.logo.x = Math.max(5, Math.min(95, x - dragData.dx));
+      overlays.logo.y = Math.max(5, Math.min(95, y - dragData.dy));
+      drawOverlay();
     }
+    e.preventDefault();
   });
-  ovCanvas.addEventListener('pointerup', function(){ dragging = false; });
+  ovCanvas.addEventListener('pointerup', function(){ dragging = false; dragData = null; });
+  ovCanvas.addEventListener('pointercancel', function(){ dragging = false; dragData = null; });
   
   // Continuously redraw to show video frames
   if (window._ovTimer) clearInterval(window._ovTimer);
