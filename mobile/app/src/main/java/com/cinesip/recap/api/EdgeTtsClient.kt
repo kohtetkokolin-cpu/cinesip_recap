@@ -52,7 +52,33 @@ class EdgeTtsClient(private val ctx: Context) {
         pitch: Int = 0,
         volume: Int = 100
     ): String = withContext(Dispatchers.IO) {
-        suspendCoroutine { cont ->
+        // Retry with exponential backoff on 429 rate-limit
+        var lastErr: Exception? = null
+        for (attempt in 0..3) {
+            try {
+                // Small delay between attempts to be gentle on the server
+                if (attempt > 0) kotlinx.coroutines.delay(2000L * attempt)
+                return@withContext synthesizeOnce(text, outPath, voice, rate, pitch, volume)
+            } catch (e: Exception) {
+                lastErr = e
+                val is429 = e.message?.contains("429") == true
+                if (!is429 || attempt == 3) throw e
+                // 429: wait longer before retry
+                kotlinx.coroutines.delay(3000L * (attempt + 1))
+            }
+        }
+        throw lastErr ?: Exception("Edge TTS failed")
+    }
+
+    private suspend fun synthesizeOnce(
+        text: String,
+        outPath: String,
+        voice: String = VOICE_FEMALE,
+        rate: Double = 1.0,
+        pitch: Int = 0,
+        volume: Int = 100
+    ): String {
+        return suspendCoroutine { cont ->
             val audioBytes = mutableListOf<Byte>()
             val done = CountDownLatch(1)
             var failed: Exception? = null
