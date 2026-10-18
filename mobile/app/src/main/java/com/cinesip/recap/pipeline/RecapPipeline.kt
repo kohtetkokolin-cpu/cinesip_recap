@@ -314,6 +314,52 @@ class RecapPipeline(private val ctx: Context) {
         } catch (e: Exception) { 0.0 }
     }
 
+    /**
+     * Render Burmese text to a transparent PNG using Android Canvas.
+     * This handles Myanmar glyph shaping correctly (ffmpeg drawtext does not).
+     * Returns the PNG file path, or null on failure.
+     */
+    private fun renderTextPng(
+        text: String, outPath: String,
+        fontSizePx: Float, colorHex: String, strokeWidthPx: Float = 4f
+    ): String? {
+        return try {
+            val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                textSize = fontSizePx
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                textAlign = android.graphics.Paint.Align.CENTER
+            }
+            // Measure text
+            val bounds = android.graphics.Rect()
+            paint.getTextBounds(text, 0, text.length, bounds)
+            val pad = (fontSizePx * 0.6).toInt()
+            val w = bounds.width() + pad * 2 + (strokeWidthPx * 2).toInt()
+            val h = bounds.height() + pad * 2 + (strokeWidthPx * 2).toInt()
+            if (w <= 0 || h <= 0) return null
+            val bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888)
+            val canvas = android.graphics.Canvas(bmp)
+            val cx = w / 2f
+            val cy = h / 2f - (paint.descent() + paint.ascent()) / 2f
+            // Black outline (stroke)
+            paint.style = android.graphics.Paint.Style.STROKE
+            paint.strokeWidth = strokeWidthPx
+            paint.color = android.graphics.Color.BLACK
+            canvas.drawText(text, cx, cy, paint)
+            // Fill
+            paint.style = android.graphics.Paint.Style.FILL
+            paint.color = try {
+                android.graphics.Color.parseColor(colorHex)
+            } catch (_: Exception) { android.graphics.Color.YELLOW }
+            canvas.drawText(text, cx, cy, paint)
+            java.io.FileOutputStream(outPath).use { bmp.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+            bmp.recycle()
+            outPath
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
     private fun sampleFrames(src: String, dir: File, movieLen: Double): List<String> {
         val out = mutableListOf<String>()
         var t = 0.0
@@ -409,6 +455,7 @@ class RecapPipeline(private val ctx: Context) {
             val style = cfg.optString("style", "full_story")
             val voice = cfg.optString("voice", "my-MM-ThihaNeural")
             val voicePreset = cfg.optString("voicePreset", "thiha")
+            val ttsProvider = cfg.optString("ttsProvider", "edge")
             val speed = cfg.optDouble("speed", 1.0)
             val pitch = cfg.optInt("pitch", 0)
             val vol = cfg.optInt("vol", 100)
@@ -437,32 +484,30 @@ class RecapPipeline(private val ctx: Context) {
             val dir = java.io.File(ctx.cacheDir, "wizard_${System.currentTimeMillis()}").apply { mkdirs() }
             val audioFiles = mutableListOf<String>()
             beats.forEachIndexed { i, beat ->
-                val af = java.io.File(dir, "beat_$i.wav").absolutePath
-                var ok = false
-                // Try Gemini TTS first (primary)
-                if (geminiKey.isNotBlank()) {
+                // Explicit provider choice — no silent fallback (user's request)
+                if (ttsProvider == "gemini") {
+                    val af = java.io.File(dir, "beat_$i.wav").absolutePath
                     try {
                         com.cinesip.recap.api.GeminiTtsClient(ctx, geminiKey)
                             .synthesize(beat.textMy, af, voicePreset, speed)
-                        ok = java.io.File(af).exists() && java.io.File(af).length() > 0
-                    } catch (e: Exception) { e.printStackTrace() }
-                }
-                // Fallback to edge-tts
-                if (!ok) {
+                        audioFiles.add(if (java.io.File(af).exists() && java.io.File(af).length() > 0) af else "")
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        onError("❌ Gemini TTS beat ${i+1} မရဘူး: ${e.message?.take(80)}")
+                        return
+                    }
+                } else {
+                    // Edge TTS — no key needed
                     try {
                         val mp3af = java.io.File(dir, "beat_$i.mp3").absolutePath
                         com.cinesip.recap.api.EdgeTtsClient(ctx)
                             .synthesize(beat.textMy, mp3af, voice, speed, pitch, vol)
-                        if (java.io.File(mp3af).exists()) {
-                            audioFiles.add(mp3af)
-                        } else {
-                            audioFiles.add("") // silent placeholder
-                        }
+                        audioFiles.add(if (java.io.File(mp3af).exists() && java.io.File(mp3af).length() > 0) mp3af else "")
                     } catch (e: Exception) {
-                        audioFiles.add("") // silent placeholder
+                        e.printStackTrace()
+                        onError("❌ Edge TTS beat ${i+1} မရဘူး: ${e.message?.take(80)}")
+                        return
                     }
-                } else {
-                    audioFiles.add(af)
                 }
                 p(40 + i * 30 / beats.size.coerceAtLeast(1), "🔊 အသံ ${i+1}/${beats.size}")
             }
@@ -481,7 +526,7 @@ class RecapPipeline(private val ctx: Context) {
             }
 
             val out = java.io.File(ctx.getExternalFilesDir(null), "cinesip_${System.currentTimeMillis()}.mp4").absolutePath
-            renderBeatsWithOverlays(video, matches, audioFiles, out, outW, outH, overlays, ::ffmpeg)
+            renderBeatsWithOverlays(video, matches, audioFiles, out, outW, outH, overlays, ::ffmpeg, beats)
 
             p(100, "✅ ပြီးပြီ!")
             val clipsJson = org.json.JSONArray(matches.mapIndexed { i, m ->
@@ -505,38 +550,149 @@ class RecapPipeline(private val ctx: Context) {
     private suspend fun renderBeatsWithOverlays(
         src: String, matches: List<com.cinesip.recap.ai.Match>,
         audioFiles: List<String>, out: String, outW: Int, outH: Int,
-        overlays: org.json.JSONObject?, ffmpegFn: (String) -> Unit
+        overlays: org.json.JSONObject?, ffmpegFn: (String) -> Unit,
+        beats: List<com.cinesip.recap.ai.Beat> = emptyList()
     ) {
         if (matches.isEmpty()) throw Exception("No clips to render (matches empty)")
         val dir = java.io.File(ctx.cacheDir, "ov_${System.currentTimeMillis()}").apply { mkdirs() }
+        val movieLen = probeDuration(src)
+        // Get beat texts for subtitles (passed via matches — use audioFiles index)
         val clips = mutableListOf<String>()
         matches.forEachIndexed { i, m ->
             val cp = java.io.File(dir, "c_$i.mp4").absolutePath
             val audioFile = audioFiles.getOrNull(i) ?: ""
-            val ss = m.scene.start
-            val dur = (m.scene.end - m.scene.start).coerceAtLeast(0.5)
-            // Base: trim + scale + fps
-            var vf = "trim=duration=$dur,scale=${outW}:${outH}:force_original_aspect_ratio=increase,crop=${outW}:${outH},setsar=1,fps=30"
-            // Subtitle overlay (WYSIWYG: use overlay config)
-            val subOn = overlays?.optJSONObject("sub")?.optBoolean("on", true) ?: true
-            if (subOn) {
-                val sub = overlays?.optJSONObject("sub")
-                val sx = sub?.optDouble("x", 50.0) ?: 50.0
-                val sy = sub?.optDouble("y", 82.0) ?: 82.0
-                val sSize = sub?.optDouble("size", 5.0) ?: 5.0
-                val sColor = (sub?.optString("color", "#FFEB3B") ?: "#FFEB3B").replace("#", "")
-                // Draw subtitle text (simplified - real impl would use drawtext with fontfile)
-                // For now, we note the position; full drawtext requires font file
-            }
-            // CRITICAL FIX: ALL clips must have identical streams for concat.
-            // If no TTS audio, generate silent audio so every clip has audio.
             val hasAudio = audioFile.isNotEmpty() && java.io.File(audioFile).exists()
-            val audioInput = if (hasAudio)
-                "-i \"$audioFile\"" else "-f lavfi -i \"anullsrc=r=44100:cl=stereo:d=$dur\""
-            ffmpegFn("-y -ss $ss -i \"$src\" $audioInput " +
-                    "-vf \"$vf\" " +
+            // A/V SYNC: video clip duration = VO audio duration (perfect sync)
+            val audioDur = if (hasAudio) probeDuration(audioFile).coerceAtLeast(0.5) else 5.0
+            // Fair-use: cap continuous clip at 8s (copyright-safe)
+            val dur = audioDur.coerceAtMost(8.0)
+            var ss = m.scene.start
+            // Keep window inside movie; if near end, shift back
+            if (ss + dur > movieLen && movieLen > dur) ss = movieLen - dur
+            if (ss < 0) ss = 0.0
+
+            // ===== Overlay config =====
+            val subObj = overlays?.optJSONObject("sub")
+            val subOn = subObj?.optBoolean("on", true) ?: true
+            val subX = subObj?.optDouble("x", 50.0) ?: 50.0
+            val subY = subObj?.optDouble("y", 82.0) ?: 82.0
+            val subSize = subObj?.optDouble("size", 5.0) ?: 5.0
+            val subColor = subObj?.optString("color", "#FFEB3B") ?: "#FFEB3B"
+            // Subtitle text: use beat text (truncated for overlay)
+            val beatText = beats.getOrNull(i)?.textMy ?: ""
+
+            val wmObj = overlays?.optJSONObject("wm")
+            val wmOn = wmObj?.optBoolean("on", false) ?: false
+            val wmText = wmObj?.optString("text", "") ?: ""
+            val wmX = wmObj?.optDouble("x", 50.0) ?: 50.0
+            val wmY = wmObj?.optDouble("y", 92.0) ?: 92.0
+
+            val frameObj = overlays?.optJSONObject("frame")
+            val frameOn = frameObj?.optBoolean("on", false) ?: false
+            val frameW = frameObj?.optDouble("w", 2.0) ?: 2.0
+            val frameColor = (frameObj?.optString("color", "#38f26d") ?: "#38f26d").replace("#", "")
+
+            val logoObj = overlays?.optJSONObject("logo")
+            val logoOn = logoObj?.optBoolean("on", false) ?: false
+            val logoPath = logoObj?.optString("path", "") ?: ""
+            val logoX = logoObj?.optDouble("x", 85.0) ?: 85.0
+            val logoY = logoObj?.optDouble("y", 10.0) ?: 10.0
+            val logoW = logoObj?.optDouble("w", 15.0) ?: 15.0
+
+            val blurArr = overlays?.optJSONArray("blur")
+
+            // ===== Build filter_complex =====
+            // Base: trim + copyright transforms (mirror alt + zoom) + scale + fps
+            val mirror = if (i % 2 == 1) "hflip," else ""
+            val sb = StringBuilder()
+            sb.append("[0:v]trim=duration=$dur,${mirror}scale=iw*1.08:ih*1.08,crop=iw/1.08:ih/1.08,")
+            sb.append("scale=${outW}:${outH}:force_original_aspect_ratio=increase,")
+            sb.append("crop=${outW}:${outH},setsar=1,fps=30")
+            // Frame/border
+            if (frameOn) {
+                val bw = (outW * frameW / 100).toInt().coerceAtLeast(2)
+                sb.append(",drawbox=x=0:y=0:w=iw:h=ih:color=${frameColor}:t=${bw}")
+            }
+            sb.append("[base];")
+
+            var curLabel = "[base]"
+            var nextInputIdx = 2 // 0=video, 1=audio, 2+=overlays
+
+            // Blur regions: crop → boxblur → overlay back
+            if (blurArr != null) {
+                for (b in 0 until blurArr.length()) {
+                    val r = blurArr.optJSONObject(b) ?: continue
+                    val bx = (outW * r.optDouble("x", 0.0) / 100).toInt()
+                    val by = (outH * r.optDouble("y", 0.0) / 100).toInt()
+                    val bw2 = (outW * r.optDouble("w", 10.0) / 100).toInt().coerceAtLeast(8)
+                    val bh2 = (outH * r.optDouble("h", 10.0) / 100).toInt().coerceAtLeast(8)
+                    sb.append("${curLabel}crop=${bw2}:${bh2}:${bx}:${by},boxblur=12[blur$b];")
+                    sb.append("${curLabel}[blur$b]overlay=${bx}:${by}[tmp$b];")
+                    curLabel = "[tmp$b]"
+                }
+            }
+
+            // Logo overlay
+            val inputs = mutableListOf<String>()
+            inputs.add("-ss $ss -i \"$src\"")
+            val hasAudioInput = hasAudio
+            if (hasAudioInput) inputs.add("-i \"$audioFile\"")
+            else inputs.add("-f lavfi -i \"anullsrc=r=44100:cl=stereo:d=$dur\"")
+
+            if (logoOn && logoPath.isNotEmpty() && java.io.File(logoPath).exists()) {
+                inputs.add("-i \"$logoPath\"")
+                val lw = (outW * logoW / 100).toInt()
+                val lx = (outW * logoX / 100 - lw / 2).toInt().coerceAtLeast(0)
+                val ly = (outH * logoY / 100 - lw / 4).toInt().coerceAtLeast(0)
+                // Scale logo then overlay
+                sb.append("[$nextInputIdx:v]scale=${lw}:-1[logo$nextInputIdx];")
+                sb.append("${curLabel}[logo$nextInputIdx]overlay=${lx}:${ly}[tmpL];")
+                curLabel = "[tmpL]"
+                nextInputIdx++
+            }
+
+            // Subtitle overlay (render Burmese text to PNG via Canvas)
+            if (subOn && beatText.isNotEmpty()) {
+                val subPng = java.io.File(dir, "sub_$i.png").absolutePath
+                val fontPx = (outW * subSize / 100).coerceAtLeast(16f)
+                val rendered = renderTextPng(beatText.take(60), subPng, fontPx, subColor)
+                if (rendered != null) {
+                    inputs.add("-i \"$rendered\"")
+                    val sx = "(W-w)/2" // center horizontally (sub.x used for vertical mainly)
+                    val sy = "(H*${subY / 100})"
+                    sb.append("${curLabel}[$nextInputIdx:v]overlay=${sx}:${sy}[tmpS];")
+                    curLabel = "[tmpS]"
+                    nextInputIdx++
+                }
+            }
+
+            // Watermark text overlay
+            if (wmOn && wmText.isNotEmpty()) {
+                val wmPng = java.io.File(dir, "wm_$i.png").absolutePath
+                val rendered = renderTextPng(wmText.take(30), wmPng, 28f, "#FFFFFF", 2f)
+                if (rendered != null) {
+                    inputs.add("-i \"$rendered\"")
+                    val wx = "(W*${wmX / 100})-(w/2)"
+                    val wy = "(H*${wmY / 100})-(h/2)"
+                    sb.append("${curLabel}[$nextInputIdx:v]overlay=${wx}:${wy}[tmpW];")
+                    curLabel = "[tmpW]"
+                    nextInputIdx++
+                }
+            }
+
+            // Map final video label
+            val filterComplex = sb.toString()
+            // Audio: loudnorm (+ atempo if capped)
+            val atempoFix = if (hasAudio && audioDur > 8.0) {
+                val ratio = (audioDur / 8.0).coerceAtMost(1.5)
+                ",atempo=$ratio"
+            } else ""
+            val audioMap = if (hasAudioInput) "1:a" else "1:a"
+            ffmpegFn("-y ${inputs.joinToString(" ")} " +
+                    "-filter_complex \"$filterComplex\" " +
+                    "-map \"${curLabel}\" -map \"$audioMap\" " +
                     "-c:v libx264 -preset veryfast -crf 23 " +
-                    "-c:a aac -b:a 128k -af \"loudnorm=I=-16:TP=-1.5:LRA=11\" " +
+                    "-c:a aac -b:a 128k -af \"loudnorm=I=-16:TP=-1.5:LRA=11$atempoFix\" " +
                     "-shortest \"$cp\"")
             clips.add(cp)
         }
