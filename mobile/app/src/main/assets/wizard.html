@@ -93,6 +93,11 @@ h3 { font-size:15px; margin:14px 0 8px; color:var(--green); }
 
   <h2>🎙️ အသံ ရွေးမယ် (၁၀ မျိုး)</h2>
   <div class="card">
+    <h3>TTS Provider</h3>
+    <div class="grid2" id="ttsProviderGrid">
+      <div class="opt sel" data-v="edge"><div class="nm">Edge TTS</div><div class="ds">Key မလို · အခမဲ့</div></div>
+      <div class="opt" data-v="gemini"><div class="nm">Gemini TTS</div><div class="ds">Key လို · အသံကောင်း</div></div>
+    </div>
     <div class="grid2" id="voiceGrid"></div>
     <h3>အသံ ချိန်ညှိမယ်</h3>
     <div class="slider-row"><label>Speed</label><input type="range" id="voiceSpeed" min="0.5" max="2.0" step="0.05" value="1.0"><span id="voiceSpeedV">1.00x</span></div>
@@ -235,7 +240,7 @@ function toast(m){
 // ===== State =====
 var cur = 1;
 var videoPath = null;
-var cfg = { style:'full_story', voice:'thiha', speed:1.0, pitch:0, vol:100, ratio:'16:9', res:'1080p', len:10 };
+var cfg = { style:'full_story', voice:'thiha', ttsProvider:'edge', speed:1.0, pitch:0, vol:100, ratio:'16:9', res:'1080p', len:10 };
 var overlays = { sub:{x:50,y:82,size:5,color:'#FFEB3B',on:true}, blur:[], logo:null, wm:{text:'',x:50,y:5,on:false}, frame:{on:false,color:'#FFD700',w:2} };
 var finalPath = null;
 
@@ -322,8 +327,16 @@ function init(){
   
   document.getElementById('btnPreviewVoice').addEventListener('click', function(){
     dbg('Preview voice button clicked');
-    B('previewVoice', cfg.voice, cfg.speed, cfg.pitch, cfg.vol);
+    B('previewVoice', cfg.ttsProvider, cfg.voice, cfg.speed, cfg.pitch, cfg.vol);
     toast('🔊 အသံ ထုတ်နေတယ်...');
+  });
+  // TTS provider selector
+  document.querySelectorAll('#ttsProviderGrid .opt').forEach(function(o){
+    o.addEventListener('click', function(){
+      cfg.ttsProvider = o.dataset.v;
+      document.querySelectorAll('#ttsProviderGrid .opt').forEach(function(x){ x.classList.toggle('sel', x===o); });
+      dbg('TTS provider: ' + cfg.ttsProvider);
+    });
   });
   
   document.getElementById('btnTestBridge').addEventListener('click', function(){
@@ -466,6 +479,13 @@ function goStep(n){
       ov.setAttribute('data-src', videoPath);
     }
     if (ov.src) ov.play().catch(function(){});
+    // Resize canvas to match selected aspect ratio from Step 1
+    var cv = document.getElementById('overlayCanvas');
+    var ratio = (window.cfg && cfg.ratio) || '9:16';
+    if (ratio === '16:9') { cv.width = 960; cv.height = 540; }
+    else if (ratio === '1:1') { cv.width = 720; cv.height = 720; }
+    else { cv.width = 540; cv.height = 960; }
+    dbg('Canvas ratio: ' + ratio + ' → ' + cv.width + 'x' + cv.height);
     initOverlay();
   }
   if (n === 3) startRender();
@@ -515,6 +535,14 @@ function initOverlay(){
       dragging = 'sub';
       dbg('Dragging subtitle');
       e.preventDefault();
+      return;
+    }
+    // Check watermark
+    if (overlays.wm.on && overlays.wm.text && Math.abs(y - overlays.wm.y) < 8 && Math.abs(x - overlays.wm.x) < 25) {
+      dragging = 'wm';
+      dbg('Dragging watermark');
+      e.preventDefault();
+      return;
     }
   });
   ovCanvas.addEventListener('pointermove', function(e){
@@ -534,6 +562,10 @@ function initOverlay(){
     } else if (dragging === 'logo' && dragData) {
       overlays.logo.x = Math.max(5, Math.min(95, x - dragData.dx));
       overlays.logo.y = Math.max(5, Math.min(95, y - dragData.dy));
+      drawOverlay();
+    } else if (dragging === 'wm') {
+      overlays.wm.x = Math.max(5, Math.min(95, x));
+      overlays.wm.y = Math.max(5, Math.min(95, y));
       drawOverlay();
     }
     e.preventDefault();
@@ -723,6 +755,7 @@ function startRender(){
   var v = VOICES.find(function(x){ return x.id===cfg.voice; });
   var req = {
     video: videoPath, style: cfg.style, voice: v.v, voicePreset: cfg.voice,
+    ttsProvider: cfg.ttsProvider,
     speed: cfg.speed, pitch: cfg.pitch, vol: cfg.vol,
     ratio: cfg.ratio, res: cfg.res, targetMin: cfg.len,
     overlays: overlays
