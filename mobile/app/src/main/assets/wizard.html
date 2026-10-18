@@ -241,7 +241,22 @@ function toast(m){
 var cur = 1;
 var videoPath = null;
 var cfg = { style:'full_story', voice:'thiha', ttsProvider:'edge', speed:1.0, pitch:0, vol:100, ratio:'16:9', res:'1080p', len:10 };
-var overlays = { sub:{x:50,y:82,size:5,color:'#FFEB3B',on:true}, blur:[], logo:null, wm:{text:'',x:50,y:5,on:false}, frame:{on:false,color:'#FFD700',w:2} };
+var overlays = { sub:{x:50,y:82,size:5,color:'#FFEB3B',on:true}, blur:[], logo:null, wm:{text:'',x:50,y:5,size:3,color:'#FFFFFF',on:false}, frame:{on:false,color:'#FFD700',w:2} };
+// Preset color palette (အရောင်စပ်) — used by subtitle/frame/watermark pickers
+var PALETTE = ['#FFEB3B','#FFFFFF','#38f26d','#FF5252','#FF9800','#E040FB','#40C4FF','#000000','#FFD700','#00E676','#FF4081','#9C27B0','#795548','#607D8B'];
+function paletteHtml(cur, fnName){
+  var h = '<div style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0;">';
+  for (var i=0;i<PALETTE.length;i++){
+    var c = PALETTE[i];
+    var sel = (c.toLowerCase()===String(cur).toLowerCase()) ? 'border:2px solid #fff;' : 'border:1px solid #444;';
+    h += '<div onclick="'+fnName+'(\''+c+'\')" style="width:28px;height:28px;border-radius:8px;background:'+c+';'+sel+'cursor:pointer;"></div>';
+  }
+  h += '</div>';
+  return h;
+}
+function pickSubColor(c){ overlays.sub.color = c; drawOverlay(); showOvControls('sub'); }
+function pickFrameColor(c){ overlays.frame.color = c; overlays.frame.on = true; drawOverlay(); showOvControls('frame'); }
+function pickWmColor(c){ overlays.wm.color = c; drawOverlay(); showOvControls('wm'); }
 var finalPath = null;
 
 var STYLES = [
@@ -627,7 +642,8 @@ function drawOverlay(){
     c.fillText('နမူနာ စာတန်းထိုး', tx, ty);
   }
   if (overlays.wm.on && overlays.wm.text) {
-    c.font = '16px sans-serif'; c.fillStyle = 'rgba(255,255,255,0.6)';
+    c.font = 'bold ' + (W * (overlays.wm.size||3) / 100) + 'px sans-serif';
+    c.fillStyle = overlays.wm.color || 'rgba(255,255,255,0.7)';
     c.textAlign = 'center';
     c.fillText(overlays.wm.text, W*overlays.wm.x/100, H*overlays.wm.y/100);
   }
@@ -658,14 +674,15 @@ function showOvControls(t){
   var el = document.getElementById('ovControls');
   if (t === 'sub') {
     el.innerHTML =
-      '<div class="slider-row"><label>Size</label><input type="range" id="ovSubSize" min="2" max="10" value="' + overlays.sub.size + '"><span>' + overlays.sub.size + '%</span></div>' +
+      '<div class="slider-row"><label>Size</label><input type="range" id="ovSubSize" min="2" max="20" value="' + overlays.sub.size + '"><span>' + overlays.sub.size + '%</span></div>' +
       '<div class="slider-row"><label>Color</label><input type="color" id="ovSubColor" value="' + overlays.sub.color + '"></div>' +
+      paletteHtml(overlays.sub.color, 'pickSubColor') +
       '<label><input type="checkbox" id="ovSubOn" ' + (overlays.sub.on?'checked':'') + '> ပြမယ်</label>';
     document.getElementById('ovSubSize').addEventListener('input', function(){
-      overlays.sub.size = this.value; drawOverlay();
+      overlays.sub.size = this.value; this.nextElementSibling.textContent = this.value + '%'; drawOverlay();
     });
     document.getElementById('ovSubColor').addEventListener('input', function(){
-      overlays.sub.color = this.value; drawOverlay();
+      overlays.sub.color = this.value; drawOverlay(); showOvControls('sub');
     });
     document.getElementById('ovSubOn').addEventListener('change', function(){
       overlays.sub.on = this.checked; drawOverlay();
@@ -673,9 +690,18 @@ function showOvControls(t){
   } else if (t === 'wm') {
     el.innerHTML =
       '<input type="text" id="ovWmText" placeholder="Watermark စာသား" value="' + overlays.wm.text + '" style="width:100%;padding:8px;border-radius:8px;border:1px solid #333;background:#1a2230;color:#fff;">' +
+      '<div class="slider-row"><label>Size</label><input type="range" id="ovWmSize" min="2" max="10" value="' + overlays.wm.size + '"><span>' + overlays.wm.size + '%</span></div>' +
+      '<div class="slider-row"><label>Color</label><input type="color" id="ovWmColor" value="' + overlays.wm.color + '"></div>' +
+      paletteHtml(overlays.wm.color, 'pickWmColor') +
       '<label><input type="checkbox" id="ovWmOn" ' + (overlays.wm.on?'checked':'') + '> ပြမယ်</label>';
     document.getElementById('ovWmText').addEventListener('input', function(){
       overlays.wm.text = this.value; overlays.wm.on = true; drawOverlay();
+    });
+    document.getElementById('ovWmSize').addEventListener('input', function(){
+      overlays.wm.size = this.value; this.nextElementSibling.textContent = this.value + '%'; drawOverlay();
+    });
+    document.getElementById('ovWmColor').addEventListener('input', function(){
+      overlays.wm.color = this.value; drawOverlay(); showOvControls('wm');
     });
     document.getElementById('ovWmOn').addEventListener('change', function(){
       overlays.wm.on = this.checked; drawOverlay();
@@ -683,12 +709,17 @@ function showOvControls(t){
   } else if (t === 'frame') {
     el.innerHTML =
       '<label><input type="checkbox" id="ovFrameOn" ' + (overlays.frame.on?'checked':'') + '> Frame ပြမယ်</label>' +
-      '<div class="slider-row"><label>အထူ</label><input type="range" id="ovFrameW" min="0.5" max="8" step="0.5" value="' + overlays.frame.w + '"><span>' + overlays.frame.w + '%</span></div>';
+      '<div class="slider-row"><label>အထူ</label><input type="range" id="ovFrameW" min="0.5" max="8" step="0.5" value="' + overlays.frame.w + '"><span>' + overlays.frame.w + '%</span></div>' +
+      '<div class="slider-row"><label>အရောင်</label><input type="color" id="ovFrameColor" value="' + overlays.frame.color + '"></div>' +
+      paletteHtml(overlays.frame.color, 'pickFrameColor');
     document.getElementById('ovFrameOn').addEventListener('change', function(){
       overlays.frame.on = this.checked; drawOverlay();
     });
     document.getElementById('ovFrameW').addEventListener('input', function(){
-      overlays.frame.w = this.value; drawOverlay();
+      overlays.frame.w = this.value; this.nextElementSibling.textContent = this.value + '%'; drawOverlay();
+    });
+    document.getElementById('ovFrameColor').addEventListener('input', function(){
+      overlays.frame.color = this.value; overlays.frame.on = true; drawOverlay(); showOvControls('frame');
     });
   } else if (t === 'blur') {
     var html = '<button class="btn btn-secondary" id="btnAddBlur">➕ Blur area ထည့်မယ်</button>';
@@ -701,7 +732,7 @@ function showOvControls(t){
       overlays.blur = overlays.blur || [];
       overlays.blur.push({x:30, y:30, w:40, h:20});
       drawOverlay(); showOvControls('blur');
-      toast('🫧 Blur ထည့်ပြီ — canvas ပေါ်မှာ အရွယ်ပြင်နိုင်တယ်');
+      toast('🫧 Blur ထည့်ပြီ — ရွှေ့ဖို့ canvas ပေါ် ဆွဲပါ, အရွယ်ပြင်ဖို့ slider သုံးပါ');
     });
     var cb = document.getElementById('btnClearBlur');
     if (cb) cb.addEventListener('click', function(){
@@ -710,18 +741,29 @@ function showOvControls(t){
     var bl = document.getElementById('blurList');
     (overlays.blur||[]).forEach(function(b, i){
       var d = document.createElement('div');
-      d.style.cssText = 'font-size:12px;color:var(--dim);padding:4px;';
-      d.innerHTML = 'Blur ' + (i+1) + ' <button class="ov-btn" data-i="' + i + '" style="padding:2px 8px;">❌</button>';
+      d.style.cssText = 'font-size:12px;color:var(--dim);padding:6px;border:1px solid #2a3444;border-radius:8px;margin-bottom:6px;';
+      d.innerHTML = 'Blur ' + (i+1) + ' <button class="ov-btn" data-i="' + i + '" style="padding:2px 8px;float:right;">❌</button>' +
+        '<div class="slider-row"><label>အလျား</label><input type="range" min="5" max="90" value="' + b.w + '" data-bi="' + i + '" data-bd="w"><span>' + Math.round(b.w) + '%</span></div>' +
+        '<div class="slider-row"><label>အနံ</label><input type="range" min="5" max="90" value="' + b.h + '" data-bi="' + i + '" data-bd="h"><span>' + Math.round(b.h) + '%</span></div>';
       d.querySelector('button').addEventListener('click', function(){
         overlays.blur.splice(parseInt(this.dataset.i), 1);
         drawOverlay(); showOvControls('blur');
+      });
+      var sliders = d.querySelectorAll('input[type=range]');
+      sliders.forEach(function(s){
+        s.addEventListener('input', function(){
+          var bi = parseInt(this.dataset.bi), bd = this.dataset.bd;
+          overlays.blur[bi][bd] = parseFloat(this.value);
+          this.nextElementSibling.textContent = Math.round(this.value) + '%';
+          drawOverlay();
+        });
       });
       bl.appendChild(d);
     });
   } else if (t === 'logo') {
     var lh = '<button class="btn btn-secondary" id="btnPickLogo">🖼️ Logo ရွေးမယ်</button>';
     if (overlays.logo) {
-      lh += '<div class="slider-row"><label>Size</label><input type="range" id="ovLogoW" min="5" max="40" value="' + overlays.logo.w + '"><span>' + overlays.logo.w + '%</span></div>';
+      lh += '<div class="slider-row"><label>Size</label><input type="range" id="ovLogoW" min="5" max="80" value="' + overlays.logo.w + '"><span>' + overlays.logo.w + '%</span></div>';
       lh += '<label><input type="checkbox" id="ovLogoOn" ' + (overlays.logo.on?'checked':'') + '> ပြမယ်</label> ';
       lh += '<button class="ov-btn" id="btnRmLogo">❌ ဖျက်မယ်</button>';
     }
@@ -732,7 +774,7 @@ function showOvControls(t){
     });
     var lw = document.getElementById('ovLogoW');
     if (lw) lw.addEventListener('input', function(){
-      overlays.logo.w = this.value; drawOverlay();
+      overlays.logo.w = this.value; this.nextElementSibling.textContent = this.value + '%'; drawOverlay();
     });
     var lo = document.getElementById('ovLogoOn');
     if (lo) lo.addEventListener('change', function(){
