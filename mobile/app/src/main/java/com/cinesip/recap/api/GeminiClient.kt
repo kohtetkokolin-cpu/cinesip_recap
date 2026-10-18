@@ -51,16 +51,31 @@ class GeminiClient(private val apiKey: String) {
 
     private fun buildPrompt(transcript: String, style: String,
                             mins: Int, evidence: String): String {
+        val styleGuide = when (style) {
+            "cold_open" -> "Start IN-MEDIAS-RES at the most shocking moment, then rewind to explain how we got here."
+            "dub_dialog" -> "Write as DIALOGUE with character voices. Mark speakers like [မင်းသား]: ..."
+            "open_loop" -> "Plant 3+ open loops (unanswered questions) in the first minute. Pay off 2, leave 1 hanging at the end."
+            "mystery" -> "Withhold the killer/truth until 80% mark. Drop 3 red herrings. Narrator knows but teases."
+            "horror" -> "Slow dread build. Describe sounds, shadows, what's NOT shown. Short sentences for scares."
+            "comedy" -> "Roast the characters lovingly. Exaggerate plot holes. Punchline every 30 seconds."
+            "speedrun" -> "Maximum plot in minimum words. No fluff. Every sentence moves the story."
+            "moral" -> "Extract the life lesson. Connect plot events to real-life wisdom for Myanmar viewers."
+            else -> "Full story recap with host personality, commentary, and emotional peaks."
+        }
         return """
-You are a Burmese movie-recap scriptwriter (SoloRecap style).
-Write a $mins-minute $style recap script in BURMESE.
+You are SoloRecap — Myanmar's top movie-recap writer. Write a $mins-minute "$style" recap script in pure BURMESE (Myanmar language).
 
-RULES (must follow):
-13. NO DEAD AIR — every second has narration or sound.
-14. OPEN-LOOP ENDING — end with a hook, not a summary.
-- Cold open in first 20 seconds (in-medias-res + rewind, or setup + open loop).
-- 20-35% commentary (moral/rating/humor), host persona voice.
-- Pure Burmese, spoiler-hook energy.
+STYLE DIRECTION: $styleGuide
+
+STRICT RULES:
+1. COLD OPEN — first 20 seconds must hook (shocking moment or provocative question).
+2. NO DEAD AIR — every beat has narration; no silent gaps.
+3. COMMENTARY 20-35% — mix plot with your hot takes, moral judgments, humor, ratings.
+4. HOST PERSONA — write like a charismatic friend telling the story, not a Wikipedia summary.
+5. OPEN-LOOP ENDING — end with a hook/question, NEVER a neat summary.
+6. VISUAL SYNC — each beat's visual_query_en must describe a concrete, filmable shot.
+7. PURE BURMESE — no English except names. Natural spoken Burmese, not formal written.
+8. BEAT LENGTH — each beat 5-12 seconds of speech (~15-30 Burmese words).
 
 EVIDENCE (scene analysis):
 $evidence
@@ -69,7 +84,7 @@ TRANSCRIPT (truncated):
 ${transcript.take(8000)}
 
 Return ONLY a JSON array. Each beat:
-{"id":1,"text_my":"Burmese narration...","visual_query_en":"english visual description, e.g. a woman crying in the rain close-up","dur_target":8.5}
+{"id":1,"text_my":"Burmese narration...","visual_query_en":"concrete shot description in English, e.g. close-up of a woman crying in the rain","dur_target":8.5}
 
 Aim for ~${mins * 6} beats. dur_target in seconds, sum ≈ ${mins * 60}.
 """.trimIndent()
