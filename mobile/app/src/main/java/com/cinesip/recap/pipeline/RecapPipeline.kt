@@ -510,6 +510,8 @@ class RecapPipeline(private val ctx: Context) {
                     }
                 }
                 p(40 + i * 30 / beats.size.coerceAtLeast(1), "🔊 အသံ ${i+1}/${beats.size}")
+                // Gentle delay between beats to avoid Edge TTS rate-limit (429)
+                if (ttsProvider != "gemini" && i < beats.size - 1) kotlinx.coroutines.delay(1200)
             }
 
             p(75, "✂️ Video ဖြတ်နေတယ်...")
