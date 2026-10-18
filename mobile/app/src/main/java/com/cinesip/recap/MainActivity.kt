@@ -41,8 +41,29 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        web = WebView(this)
-        setContentView(web)
+        // Splash with motion (like Zippy)
+        setContentView(R.layout.activity_splash)
+        val logo = findViewById<android.widget.ImageView>(R.id.splashLogo)
+        val title = findViewById<android.widget.TextView>(R.id.splashTitle)
+        // Pop-in animation: scale + fade
+        logo.scaleX = 0.5f; logo.scaleY = 0.5f; logo.alpha = 0f
+        title.alpha = 0f; title.translationY = 30f
+        logo.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(600)
+            .setInterpolator(android.view.animation.OvershootInterpolator()).start()
+        title.animate().alpha(1f).translationY(0f).setDuration(500).setStartDelay(300).start()
+        // Load WebView after splash
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            initWebView()
+            // Fade in webview
+            web.alpha = 0f
+            web.animate().alpha(1f).setDuration(400).start()
+        }, 1400)
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    private fun initWebView() {
+        setContentView(R.layout.activity_main)
+        web = findViewById(R.id.mainWeb)
         with(web.settings) {
             javaScriptEnabled = true
             domStorageEnabled = true
