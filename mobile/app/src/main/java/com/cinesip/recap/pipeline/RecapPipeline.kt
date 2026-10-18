@@ -588,11 +588,13 @@ class RecapPipeline(private val ctx: Context) {
             val wmText = wmObj?.optString("text", "") ?: ""
             val wmX = wmObj?.optDouble("x", 50.0) ?: 50.0
             val wmY = wmObj?.optDouble("y", 92.0) ?: 92.0
+            val wmSize = wmObj?.optDouble("size", 3.0) ?: 3.0
+            val wmColor = wmObj?.optString("color", "#FFFFFF") ?: "#FFFFFF"
 
             val frameObj = overlays?.optJSONObject("frame")
             val frameOn = frameObj?.optBoolean("on", false) ?: false
             val frameW = frameObj?.optDouble("w", 2.0) ?: 2.0
-            val frameColor = (frameObj?.optString("color", "#38f26d") ?: "#38f26d").replace("#", "")
+            val frameColor = (frameObj?.optString("color", "#FFD700") ?: "#FFD700").replace("#", "")
 
             val logoObj = overlays?.optJSONObject("logo")
             val logoOn = logoObj?.optBoolean("on", false) ?: false
@@ -613,7 +615,7 @@ class RecapPipeline(private val ctx: Context) {
             // Frame/border
             if (frameOn) {
                 val bw = (outW * frameW / 100).toInt().coerceAtLeast(2)
-                sb.append(",drawbox=x=0:y=0:w=iw:h=ih:color=${frameColor}:t=${bw}")
+                sb.append(",drawbox=x=0:y=0:w=iw:h=ih:color=0x${frameColor}:t=${bw}")
             }
             sb.append("[base];")
 
@@ -671,7 +673,8 @@ class RecapPipeline(private val ctx: Context) {
             // Watermark text overlay
             if (wmOn && wmText.isNotEmpty()) {
                 val wmPng = java.io.File(dir, "wm_$i.png").absolutePath
-                val rendered = renderTextPng(wmText.take(30), wmPng, 28f, "#FFFFFF", 2f)
+                val wmFontPx = (outW * wmSize / 100).toFloat().coerceAtLeast(14f)
+                val rendered = renderTextPng(wmText.take(30), wmPng, wmFontPx, wmColor, 2f)
                 if (rendered != null) {
                     inputs.add("-i \"$rendered\"")
                     val wx = "(W*${wmX / 100})-(w/2)"
@@ -686,7 +689,7 @@ class RecapPipeline(private val ctx: Context) {
             val filterComplex = sb.toString()
             // Audio: loudnorm (+ atempo if capped)
             val atempoFix = if (hasAudio && audioDur > 8.0) {
-                val ratio = (audioDur / 8.0).coerceAtMost(1.5)
+                val ratio = (audioDur / 8.0).coerceAtMost(2.0)
                 ",atempo=$ratio"
             } else ""
             val audioMap = if (hasAudioInput) "1:a" else "1:a"
