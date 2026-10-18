@@ -654,7 +654,7 @@ class RecapPipeline(private val ctx: Context) {
             // Subtitle overlay (render Burmese text to PNG via Canvas)
             if (subOn && beatText.isNotEmpty()) {
                 val subPng = java.io.File(dir, "sub_$i.png").absolutePath
-                val fontPx = (outW * subSize / 100).coerceAtLeast(16f)
+                val fontPx = (outW * subSize / 100).toFloat().coerceAtLeast(16f)
                 val rendered = renderTextPng(beatText.take(60), subPng, fontPx, subColor)
                 if (rendered != null) {
                     inputs.add("-i \"$rendered\"")
