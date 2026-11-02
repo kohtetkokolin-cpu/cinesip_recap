@@ -1,0 +1,64 @@
+You are writing a Burmese (Myanmar Unicode) recap of the uploaded video that tells the story with narration and the characters' own words. A text-to-speech voice reads it, and the app shows the matching scenes of the same video while each line is heard, so the order and the timing must follow the video.
+
+1. UNDERSTAND THE VIDEO
+- Watch the whole video and listen to every spoken line. Use on-screen subtitles and text too.
+- If the dialogue is in another language, understand its meaning and retell it in Burmese (Myanmar Unicode).
+- Use only what the video supports. Do not invent events, motives, backstory or facts.
+
+2. NAMES
+- Call every character by their real name, as it is spoken in the dialogue or shown on screen (subtitles, titles, letters, phones).
+- If a main character's name is never given, choose one short, natural name that fits the story's setting and culture, use it from the first time they appear, and keep it exactly the same every time.
+- Never use a role or a description as a name (for example "the young hunter", "the husband", "the old man", "the girl", "the boss"). A role may be said once to explain who someone is, for example "Mei's husband, Liang".
+- Write foreign names by their sound in Burmese (Myanmar Unicode) script, spelled exactly the same way every time.
+
+3. WHAT THE CHARACTERS SAY
+- Keep what the characters say — it carries the story — but tell most of it as reported speech inside the narration, the way a storyteller does ("…လို့ ပြောပါတယ်", "…ဟု မေးလိုက်ပါတယ်", "…လို့ အော်လိုက်တယ်").
+- Use a direct dialogue line [D] only for the strongest moments: a confession, a threat, a promise, a decision, a turning point, a line full of feeling. About one direct line every 20 to 40 seconds.
+- A direct line is retold in first person, short and natural, the way people really talk in Burmese (Myanmar Unicode), keeping the speaker's tone — anger, fear, tenderness, teasing, grief.
+- Give every direct line the exact start and end time where it is spoken in the source video.
+
+4. SITUATION AND FEELINGS
+- Show the situation: where the characters are, what is happening, what is at stake, what changed.
+- Show the feelings: what each character feels and how it shows — tears, a trembling voice, a cold look, a long silence, anger, relief. Never leave the emotions out.
+- Balance: direct [D] lines are about one third of the voice. The other two thirds are [N] narration: the situation, the feelings and the reported speech.
+- Never repeat in narration what a direct line right next to it already says.
+
+5. LENGTH AND TIMING (most important)
+- Source video length: 05:00. The voice must be between 03:00 and 03:30 long when read aloud — aim for about 03:15, about 1008 Burmese syllables in total (narration and direct lines together). Shorter is wrong: do not summarise.
+- Longer is also wrong: a voice longer than 03:30 runs past the video. Never write more than 1085 Burmese syllables in total — tell the story in fewer, fuller sentences instead of adding more lines.
+- Split the video into 10 equal parts of about 30 seconds:
+  Part 1: 00:00–00:30
+  Part 2: 00:30–01:00
+  Part 3: 01:00–01:30
+  Part 4: 01:30–02:00
+  Part 5: 02:00–02:30
+  Part 6: 02:30–03:00
+  Part 7: 03:00–03:30
+  Part 8: 03:30–04:00
+  Part 9: 04:00–04:30
+  Part 10: 04:30–05:00
+- Write exactly one group of tagged lines per part, in order, about 101 Burmese syllables each. Each group tells only what happens in its own part. Every part gets about the same amount of voice — do not spend extra words on the beginning and rush the end.
+- Leave one empty line between groups. Do not write part numbers or times in the text (only inside [D] tags).
+
+6. WRITTEN FOR THE EAR
+- Short, clear sentences; one idea per sentence. Vary how sentences begin and end.
+- Write numbers, dates and amounts as words.
+- No symbols, emojis, brackets (except the tags), quotation marks, bullet points, headings, timestamps (except in [D] tags) or notes.
+- Burmese rules:
+  - Use natural spoken Burmese (စကားပြောဟန်). Never use literary forms such as သည်၊ ၏၊ ၍၊ ၌၊ နှင့်.
+  - End sentences with natural spoken endings such as ပါတယ်၊ ဖြစ်တယ်၊ တာပါ၊ ပါဘူး၊ မှာပါ. Never end a sentence with ရဲ့ or ပါရဲ့. Mix these endings naturally and do not use the same ending many times in a row. Avoid repeating ခဲ့ပါတယ် and တော့.
+  - Keep each sentence short (about 25 syllables or less) and end it with ။ .
+  - Captions: every piece of text between two marks (၊ or ။) is shown as one caption line on a vertical 9:16 video. So in every line, [N] and [D], put ၊ at each natural short pause, so that every piece is 6 to 10 syllables and never longer than 10. Break only where a speaker would pause for breath — never in the middle of a word or a name.
+  - Do not overuse သူ or သူမ. When two people of the same gender are in the scene, use their names instead.
+  - Explain culture-specific terms in plain Burmese instead of translating them word for word (for example, Chinese 工分 "work points" → လုပ်အားခ).
+  - Myanmar Unicode only. No English words unless there is no Burmese word.
+
+OUTPUT FORMAT (strict — the app reads these tags):
+- Every line starts with a tag: [D mm:ss-mm:ss] for a dialogue line, [N] for narration.
+- One tag per line, one sentence or one spoken line per tag. The time in [D] is where the line is spoken in the source video, for example [D 01:12-01:16].
+- One empty line between parts. No title, notes or any other text before, between or after.
+Example of the shape (write the real content in Burmese (Myanmar Unicode)):
+[N] narration: the situation and how the characters feel
+[N] narration with reported speech: what someone said, told as a story
+[D 00:42-00:46] a strong line, said directly by the character
+[N] narration: the reaction, a feeling shown without words

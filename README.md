@@ -132,6 +132,23 @@ output video မှာ တစ်ထပ်တည်း ကျတယ်။ "Render
 | GET/POST | `/api/overlays/{id}` | get / save overlay JSON |
 | POST | `/api/render-preview/{id}?t=` | 10s clip with overlays burned |
 
+## Desktop app (`desktop/`)
+
+Standalone FastAPI + static-UI version of Cinesip Recap. It runs on
+`http://127.0.0.1:7861` and keeps its data in `desktop/data/` (git-ignored):
+
+- per-chunk pipeline: Gemini analysis → Edge TTS for that chunk → next chunk,
+  then merge the narration; Gemini falls through its model chain and keeps
+  retrying instead of stopping the job
+- Script + Voice stops before rendering — adjust Settings / the editor, then
+  press Render
+- project list with per-project delete, and a fair-use panel that explains the
+  selected level (5-second cut cadence, estimated removed footage, zoom, fades,
+  freeze, flip, transition, face zoom, colour)
+
+See `desktop/README.md` for setup (`setup.bat`, `run.bat`) and
+`desktop/DECISIONS.md` for the design notes.
+
 ## License
 
 MIT — free forever. API keys live in `.env` (never committed).

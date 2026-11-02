@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="my">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cinesip Recap — Long Movie</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">C</div>
+      <div>
+        <h1>Cinesip Recap</h1>
+        <p>Long Movie → Recap · 360p / 10-minute Gemini chunks</p>
+      </div>
+    </div>
+    <div class="pill">M3 · <b>Editor + Render</b></div>
+  </div>
+
+  <section class="hero">
+    <h2>ရုပ်ရှင်အရှည်ကြီးကို <span>Recap</span> အဖြစ် ပြန်ထုတ်</h2>
+    <p>၁ နာရီ၊ ၂ နာရီ၊ ၃ နာရီ ဗီဒီယိုတွေအတွက် အသစ်ရေးထားတဲ့ Long Movie tool။ Upload လုပ်ပြီး 360p proxy နဲ့ ၁၀ မိနစ် chunk တွေ ထုတ်မယ်။ ပြီးရင် chunk တစ်ခုချင်း — Gemini က ဖတ်၊ Edge TTS က အသံထွက်၊ အားလုံးပြီးမှ ပေါင်းပြီး render အလိုအလျောက် လုပ်ပေးမယ်။</p>
+  </section>
+
+  <div class="layout">
+    <div>
+      <div class="card">
+        <div class="card-head">
+          <h3>1 · ဗီဒီယို တင်မယ်</h3>
+          <span class="hint">1–3 နာရီ · MP4 / MOV / MKV</span>
+        </div>
+
+        <div class="drop" id="dropZone">
+          <input type="file" id="fileInput" accept="video/*">
+          <div class="big">🎬</div>
+          <b>ဗီဒီယိုဖိုင် ဆွဲထည့်ပါ သို့မဟုတ် နှိပ်ပြီး ရွေးပါ</b>
+          <small>ဖိုင်ကြီးတွေကို 8MB chunk နဲ့ တင်မယ် · ပြတ်သွားရင် ပြန်ဆက်နိုင်</small>
+        </div>
+
+        <div class="file-row hidden" id="fileRow">
+          <div class="name" id="fileName">—</div>
+          <div class="size" id="fileSize">—</div>
+        </div>
+
+        <div class="grid2" style="margin-top:12px">
+          <label class="field">
+            <span>Project အမည်</span>
+            <input type="text" id="projectName" placeholder="My long recap" maxlength="100">
+          </label>
+          <div class="meta" style="align-self:end">
+            <span>ခန့်မှန်း output</span>
+            <b id="localEstimate">ဗီဒီယို ရွေးပါ</b>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h3>2 · Settings</h3>
+          <span class="hint">အခြေခံချိန်ညှိမှု</span>
+        </div>
+
+        <div class="style-grid" id="styleGrid"></div>
+
+        <div class="grid2" style="margin-top:12px">
+          <label class="field">
+            <span>Target length (source ရဲ့ %)</span>
+            <select id="targetPct"></select>
+          </label>
+          <label class="field">
+            <span>Fairuse</span>
+            <select id="fairuse"></select>
+          </label>
+        </div>
+        <div class="note" id="fairuseInfo"></div>
+
+        <div class="grid2" style="margin-top:12px">
+          <label class="field">
+            <span>ဘာသာစကား</span>
+            <select id="language"></select>
+          </label>
+          <label class="field">
+            <span>Narrator (မြန်မာ ၂၀)</span>
+            <select id="narrator"></select>
+          </label>
+        </div>
+
+        <div class="grid3" style="margin-top:12px">
+          <label class="field">
+            <span>အသံ အမြန် <b id="voiceRateVal">+0%</b></span>
+            <input type="range" id="voiceRate" min="-30" max="30" step="1" value="0">
+          </label>
+          <label class="field">
+            <span>အသံ အနိမ့်အမြင့် <b id="voicePitchVal">+0Hz</b></span>
+            <input type="range" id="voicePitch" min="-15" max="15" step="1" value="0">
+          </label>
+          <label class="field">
+            <span>Scene တစ်ခု အရှည်</span>
+            <select id="sceneSec"></select>
+          </label>
+        </div>
+
+        <div class="voice-row">
+          <button class="btn secondary small" id="voicePreviewBtn" type="button">🔊 အသံ နားထောင်</button>
+          <span class="small muted" id="voicePreviewNote">Narrator၊ speed နဲ့ pitch ကို စမ်းပြီး ကြိုက်တာရွေးပါ</span>
+          <audio id="voicePreviewAudio" controls preload="none" class="hidden"></audio>
+        </div>
+
+        <div class="grid3" style="margin-top:12px">
+          <label class="field">
+            <span>Ratio</span>
+            <select id="ratio"></select>
+          </label>
+          <label class="field">
+            <span>Resolution</span>
+            <select id="resolution"></select>
+          </label>
+          <label class="field">
+            <span>Watermark စာသား</span>
+            <input type="text" id="watermark" placeholder="ဥပမာ Cinesip" maxlength="100">
+          </label>
+        </div>
+
+        <div class="preset-bar">
+          <div class="preset-bar-head">
+            <h4>သိမ်းထားတဲ့ Setting</h4>
+            <span class="small muted">အမည်ပေးပြီး သိမ်း၊ နောက်မှ ပြန်ရွေး</span>
+          </div>
+          <div class="preset-controls">
+            <input type="text" id="presetName" placeholder="ဥပမာ · 9:16 Short 120" maxlength="80">
+            <button class="btn secondary small" id="presetSaveBtn" type="button">Save</button>
+            <select id="presetSelect"><option value="">— ရွေးပါ —</option></select>
+            <button class="btn secondary small" id="presetApplyBtn" type="button">ပြန်သုံး</button>
+            <button class="btn secondary small" id="presetDeleteBtn" type="button">ဖျက်</button>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn" id="startBtn" type="button">စတင်မယ် · Upload + Ingest</button>
+        </div>
+        <div class="note" id="configNote">Gemini ကို 360p နဲ့ ၁၀ မိနစ် chunk အလိုက် ပို့မယ်။ Fairuse က file ထဲက intensity အတိုင်း နောက်ပိုင်း render မှာ သုံးမယ်။</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <div class="card-head">
+          <h3>3 · အခြေအနေ</h3>
+          <span class="hint" id="projectIdLabel"></span>
+        </div>
+
+        <div class="empty" id="statusEmpty">
+          ဗီဒီယိုတင်ပြီး စတင်လိုက်ရင် ဒီနေရာမှာ progress၊ metadata နဲ့ preview ပေါ်လာမယ်။
+        </div>
+
+        <div id="statusBody" class="hidden">
+          <div class="status-top">
+            <div class="status-name" id="statusName">—</div>
+            <span class="status-tag" id="statusTag">—</span>
+          </div>
+          <div class="bar" id="bar"><i id="barFill"></i></div>
+          <div class="small muted" id="statusMessage" style="margin-top:7px">—</div>
+
+          <div class="meta-grid" id="metaGrid"></div>
+
+          <div id="videoWrap" class="hidden">
+            <video id="previewVideo" controls preload="metadata"></video>
+          </div>
+
+          <div class="actions" id="statusActions">
+            <button class="btn secondary small hidden" id="retryBtn" type="button">Ingest ပြန်စမယ်</button>
+          </div>
+
+          <div class="chunks" id="chunkList"></div>
+
+          <pre class="log" id="log"></pre>
+        </div>
+      </div>
+
+      <div class="card recent">
+        <div class="card-head">
+          <h3>မကြာသေးတဲ့ Project များ</h3>
+          <button class="btn secondary small" id="refreshBtn" type="button">Refresh</button>
+        </div>
+        <div id="recentList"><div class="empty">မရှိသေးပါ</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card script-card hidden" id="scriptCard">
+    <div class="card-head">
+      <h3>4 · Script + Voice</h3>
+      <span class="hint" id="scriptHint"></span>
+    </div>
+
+    <div class="script-grid">
+      <div>
+        <div class="status-top">
+          <div class="status-name" id="scriptState">Script</div>
+          <span class="status-tag" id="scriptTag">—</span>
+        </div>
+        <div class="bar" id="scriptBar"><i id="scriptBarFill"></i></div>
+        <div class="small muted" id="scriptMessage" style="margin-top:7px">—</div>
+
+        <div class="actions">
+          <button class="btn" id="scriptBtn" type="button">စတင် · Script + Voice</button>
+          <button class="btn secondary" id="ttsBtn" type="button">Voice ထုတ်</button>
+        </div>
+
+        <div class="meta-grid" id="scriptMeta"></div>
+
+        <div id="audioWrap" class="hidden">
+          <audio id="narrationAudio" controls preload="metadata"></audio>
+          <div class="small muted" id="audioMeta" style="margin-top:6px"></div>
+        </div>
+
+        <div class="actions">
+          <a class="btn secondary small hidden" id="srtLink" href="#" download>SRT ဒေါင်းလုပ်</a>
+          <a class="btn secondary small hidden" id="scriptJsonLink" href="#" target="_blank" rel="noopener">script.json</a>
+        </div>
+
+        <div class="note" id="scriptNote"></div>
+      </div>
+
+      <div>
+        <div class="small muted" style="margin-bottom:6px">Script ကြောင်းများ · source time · N = narration, D = dialogue</div>
+        <div class="script-list" id="scriptList"><div class="empty">Script မရှိသေးပါ</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card editor-card hidden" id="editorCard">
+    <div class="card-head">
+      <h3>5 · Editor + Render</h3>
+      <span class="hint" id="editorHint"></span>
+    </div>
+
+    <div class="editor-grid">
+      <div class="editor-left">
+        <div class="stage-shell">
+          <div class="stage-wrap" id="stageWrap">
+            <div class="edit-stage" id="editStage" data-layer="video">
+              <video id="editBg" class="edit-bg" muted playsinline preload="metadata"></video>
+              <video id="editFg" class="edit-fg" muted playsinline preload="metadata"></video>
+              <div id="editBlurs" class="edit-blurs"></div>
+              <div id="editLogoWrap" class="edit-logo-wrap" data-layer="logo">
+                <img id="editLogo" alt="">
+                <span class="edit-handle" data-handle="logo"></span>
+              </div>
+              <div id="editWatermark" class="edit-watermark" data-layer="watermark">
+                <span class="layer-text" id="editWatermarkText"></span>
+                <span class="edit-handle" data-handle="watermark"></span>
+              </div>
+              <div id="editCaption" class="edit-caption" data-layer="caption">
+                <span class="layer-text" id="editCaptionText"></span>
+                <span class="edit-handle" data-handle="caption"></span>
+              </div>
+              <div id="editFrame" class="edit-frame"></div>
+              <img id="exactImg" class="exact-img hidden" alt="Exact preview">
+            </div>
+          </div>
+        </div>
+
+        <div class="stage-toolbar">
+          <input type="range" id="editTime" min="0" max="1" step="0.05" value="0">
+          <span class="mono small" id="editTimeLabel">0:00 / 0:00</span>
+          <button class="btn secondary small" id="exactBtn" type="button">Exact frame</button>
+          <button class="btn secondary small hidden" id="liveBtn" type="button">Live</button>
+        </div>
+        <div class="small muted" id="editStageNote">
+          Layer ကို ဆွဲရွှေ့နိုင်၊ ထောင့်ကွက်လေးကို ဆွဲပြီး အရွယ်ညှိနိုင်။ Exact frame က render နဲ့ တစ်ထပ်တည်း still ပြမယ်။
+        </div>
+        <div class="small muted" id="editFontNote"></div>
+      </div>
+
+      <div class="editor-right">
+        <div class="preset-row">
+          <div>
+            <span class="small muted">Fairuse preset</span>
+            <b id="editPresetLabel">—</b>
+          </div>
+          <button class="btn secondary small" id="editResetBtn" type="button">Preset ပြန်လုပ်မယ်</button>
+        </div>
+        <div class="small muted" id="editFairuseInfo" style="margin-top:6px"></div>
+
+        <div class="editor-section">
+          <h4>Canvas · နောက်ခံ</h4>
+          <div class="editor-grid3">
+            <label class="field">
+              <span>Ratio</span>
+              <select id="editRatio"></select>
+            </label>
+            <label class="field">
+              <span>Resolution</span>
+              <select id="editResolution"></select>
+            </label>
+            <label class="field">
+              <span>Fit</span>
+              <select id="editFit">
+                <option value="cover">Cover · ဖြည့်/ဖြတ်</option>
+                <option value="contain">Contain · အပြည့်ပြ</option>
+              </select>
+            </label>
+          </div>
+          <div class="editor-grid2" style="margin-top:10px">
+            <label class="field">
+              <span>နောက်ခံ</span>
+              <select id="bgMode">
+                <option value="blur">Blur</option>
+                <option value="color">အရောင်</option>
+                <option value="none">မရှိ (အနက်)</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>နောက်ခံအရောင်</span>
+              <input type="color" id="bgColor" class="color-input">
+            </label>
+          </div>
+          <label class="field" style="margin-top:10px">
+            <span>Blur <b id="bgBlurVal">18</b></span>
+            <input type="range" id="bgBlur" min="0" max="40" step="1" value="18">
+          </label>
+          <label class="field" style="margin-top:10px">
+            <span>Zoom <b id="zoomVal">1.00</b></span>
+            <input type="range" id="zoom" min="1" max="1.6" step="0.01" value="1">
+          </label>
+          <div class="check-row">
+            <label class="check"><input type="checkbox" id="flip"> မှန်ပြောင်း (flip)</label>
+            <button class="btn secondary small" id="centerResetBtn" type="button">အလယ်ပြန်ထား</button>
+          </div>
+        </div>
+
+        <div class="editor-section">
+          <div class="section-head">
+            <h4>Blur ဖုံးအုပ်</h4>
+            <button class="btn secondary small" id="blurAddBtn" type="button">+ Blur ထည့်</button>
+          </div>
+          <div class="small muted" style="margin-bottom:8px">
+            Logo သို့မဟုတ် မူရင်းစာတန်း ဖုံးဖို့ — ကွက်ကို ဆွဲရွှေ့၊ ထောင့်ကွက်ကို ဆွဲပြီး အရွယ်ချိန်။
+          </div>
+          <div class="blur-list" id="blurList"></div>
+        </div>
+
+        <div class="editor-section">
+          <div class="section-head">
+            <h4>Caption / စာတန်း</h4>
+            <label class="check"><input type="checkbox" id="capOn"> ပြ</label>
+          </div>
+          <div class="editor-grid2">
+            <label class="field">
+              <span>Font · Unicode</span>
+              <select id="capFont"></select>
+            </label>
+            <label class="field">
+              <span>Font ဒီဇိုင်း</span>
+              <select id="capBoldWrap">
+                <option value="0">ပုံမှန်</option>
+                <option value="1">Bold · ထူ</option>
+              </select>
+            </label>
+          </div>
+          <div class="editor-grid2" style="margin-top:10px">
+            <label class="field">
+              <span>စာလုံးအရောင်</span>
+              <input type="color" id="capColor" class="color-input">
+            </label>
+            <label class="field">
+              <span>Box အရောင်</span>
+              <input type="color" id="capBoxColor" class="color-input">
+            </label>
+          </div>
+          <div class="editor-grid2" style="margin-top:10px">
+            <label class="field">
+              <span>ဘောင် အရောင်</span>
+              <input type="color" id="capOutlineColor" class="color-input">
+            </label>
+            <label class="field">
+              <span>ဘောင် အထူ <b id="capOutlineVal">7%</b></span>
+              <input type="range" id="capOutline" min="0" max="0.4" step="0.01" value="0.07">
+            </label>
+          </div>
+          <label class="field" style="margin-top:10px">
+            <span>အရိပ် <b id="capShadowVal">0%</b></span>
+            <input type="range" id="capShadow" min="0" max="0.3" step="0.01" value="0">
+          </label>
+          <label class="field" style="margin-top:10px">
+            <span>အရွယ် <b id="capSizeVal">32px</b></span>
+            <input type="range" id="capSize" min="0.02" max="0.08" step="0.001" value="0.044">
+          </label>
+          <label class="field" style="margin-top:10px">
+            <span>အနေအထား (အပေါ်/အောက်) <b id="capYVal">80%</b></span>
+            <input type="range" id="capY" min="0.05" max="0.95" step="0.005" value="0.8">
+          </label>
+          <label class="field" style="margin-top:10px">
+            <span>Box အလင်း <b id="capAlphaVal">0.70</b></span>
+            <input type="range" id="capAlpha" min="0" max="1" step="0.01" value="0.7">
+          </label>
+        </div>
+
+        <div class="editor-section">
+          <div class="section-head">
+            <h4>Logo</h4>
+            <label class="check"><input type="checkbox" id="logoOn"> ပြ</label>
+          </div>
+          <div class="editor-grid2">
+            <label class="field">
+              <span>ပုံစံ</span>
+              <select id="logoShape">
+                <option value="rect">စတုဂံ</option>
+                <option value="circle">အဝိုင်း</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>ဘောင် အထူ <b id="logoBorderVal">0px</b></span>
+              <input type="range" id="logoBorder" min="0" max="0.03" step="0.001" value="0">
+            </label>
+          </div>
+          <label class="field" style="margin-top:10px">
+            <span>ဘောင် အရောင်</span>
+            <input type="color" id="logoBorderColor" class="color-input">
+          </label>
+          <label class="field" style="margin-top:10px">
+            <span>အကျယ် <b id="logoWVal">11%</b></span>
+            <input type="range" id="logoW" min="0.03" max="0.35" step="0.005" value="0.11">
+          </label>
+          <label class="field" style="margin-top:10px">
+            <span>အလင်း <b id="logoOpacityVal">100%</b></span>
+            <input type="range" id="logoOpacity" min="0" max="1" step="0.01" value="1">
+          </label>
+          <button class="btn secondary small" id="logoResetBtn" type="button">ညာဘက်အပေါ်ပြန်ထား</button>
+        </div>
+
+        <div class="editor-section">
+          <div class="section-head">
+            <h4>Watermark စာသား</h4>
+            <label class="check"><input type="checkbox" id="wmOn"> ပြ</label>
+          </div>
+          <input type="text" id="wmText" maxlength="100" placeholder="ဥပမာ Cinesip">
+          <div class="editor-grid2" style="margin-top:10px">
+            <label class="field">
+              <span>အရွယ် <b id="wmSizeVal">20px</b></span>
+              <input type="range" id="wmSize" min="0.01" max="0.06" step="0.001" value="0.028">
+            </label>
+            <label class="field">
+              <span>အလင်း <b id="wmOpacityVal">75%</b></span>
+              <input type="range" id="wmOpacity" min="0" max="1" step="0.01" value="0.75">
+            </label>
+          </div>
+          <button class="btn secondary small" id="wmResetBtn" type="button">ဘယ်ဘက်အပေါ်ပြန်ထား</button>
+        </div>
+
+        <div class="editor-section">
+          <div class="section-head">
+            <h4>Frame</h4>
+            <label class="check"><input type="checkbox" id="frameOn"> ပြ</label>
+          </div>
+          <div class="editor-grid2">
+            <label class="field">
+              <span>အရောင်</span>
+              <input type="color" id="frameColor" class="color-input">
+            </label>
+            <label class="field">
+              <span>အထူ <b id="frameWidthVal">4px</b></span>
+              <input type="range" id="frameWidth" min="0" max="0.03" step="0.001" value="0.006">
+            </label>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn" id="renderBtn" type="button">Render ထုတ်</button>
+          <button class="btn secondary" id="editSaveBtn" type="button">သိမ်းမယ်</button>
+        </div>
+        <div class="small muted" id="editSaveState">—</div>
+
+        <div class="render-box" id="renderBox">
+          <div class="status-top">
+            <div class="status-name">Render</div>
+            <span class="status-tag" id="renderTag">—</span>
+          </div>
+          <div class="bar" id="renderBar"><i id="renderBarFill"></i></div>
+          <div class="small muted" id="renderMessage" style="margin-top:7px">—</div>
+          <div class="small" id="renderStale"></div>
+          <div class="meta-grid" id="renderMeta"></div>
+          <video id="outputVideo" class="hidden" controls preload="metadata"></video>
+          <a class="btn secondary small hidden" id="outputLink" href="#" download>Output ဒေါင်းလုပ်</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

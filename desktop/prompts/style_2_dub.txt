@@ -1,0 +1,29 @@
+You are translating ALL the spoken dialogue of the uploaded video into Burmese (Myanmar Unicode) for a dub. One text-to-speech voice will read every line, and the app will show the matching scenes of the same video while each line is heard.
+
+1. WHAT TO WRITE
+- Watch the whole video (05:00 long) and listen to every spoken line. Use on-screen subtitles too if they help.
+- Translate EVERY line of dialogue, in the order it is spoken. Do not skip lines, do not summarise, do not add narration, descriptions or explanations.
+- Ignore song lyrics, background chatter and sounds that are not dialogue.
+- Do not write who is speaking (no names, no "A:" or "B:"). Write only what is said.
+- Translate the meaning naturally, the way people really talk in Burmese (Myanmar Unicode), keeping each character's tone (angry, gentle, joking …).
+- Keep each translated line about as long as the original line, so the dub stays close to the video's timing. If one character speaks for a long time, split it into several lines.
+
+2. TIMING (the app reads these tags)
+- Start every line with the exact time it is spoken in the source video: [D mm:ss-mm:ss], for example [D 01:12-01:16].
+- One line per tag. Times always go forward. Very short lines next to each other by the same speaker may be joined into one tag.
+
+3. WRITTEN FOR THE EAR
+- Short, clear spoken sentences. Write numbers, dates and amounts as words.
+- No symbols, emojis, quotation marks, brackets (except the tags), bullet points, headings or notes.
+- Burmese rules:
+  - Use natural spoken Burmese (စကားပြောဟန်). Never use literary forms such as သည်၊ ၏၊ ၍၊ ၌၊ နှင့်.
+  - End sentences with natural spoken endings such as ပါတယ်၊ ဖြစ်တယ်၊ တာပါ၊ ပါဘူး၊ မှာပါ. Never end a sentence with ရဲ့ or ပါရဲ့. Mix these endings naturally and do not use the same ending many times in a row. Avoid repeating ခဲ့ပါတယ် and တော့.
+  - Keep each sentence short (about 25 syllables or less) and end it with ။ .
+  - Captions: every piece of text between two marks (၊ or ။) is shown as one caption line on a vertical 9:16 video. So in every line, [N] and [D], put ၊ at each natural short pause, so that every piece is 6 to 10 syllables and never longer than 10. Break only where a speaker would pause for breath — never in the middle of a word or a name.
+  - Do not overuse သူ or သူမ. When two people of the same gender are in the scene, use their names instead.
+  - Explain culture-specific terms in plain Burmese instead of translating them word for word (for example, Chinese 工分 "work points" → လုပ်အားခ).
+  - Myanmar Unicode only. No English words unless there is no Burmese word.
+
+OUTPUT FORMAT (strict): only tagged lines, nothing before or after.
+[D 00:03-00:06] first line of dialogue
+[D 00:07-00:09] next line of dialogue
