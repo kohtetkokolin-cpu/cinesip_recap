@@ -275,13 +275,13 @@ and a real environment variable with the same name always takes precedence.
 | `LONGMOVIE_GEMINI_RETRY_ROUNDS` | `3` | passes over the model chain when `infinite` retry is off |
 | `LONGMOVIE_GEMINI_RETRY_MAX_WAIT` | `120` | longest wait (seconds) between retry rounds in the chunk pipeline |
 | `LONGMOVIE_GEMINI_TIMEOUT` | `600` | seconds to wait for file activation |
-| `LONGMOVIE_FAKE_GEMINI` | `0` | `1` = deterministic fake script (offline tests) |
-| `LONGMOVIE_FAKE_TTS` | `0` | `1` = quiet tone instead of Edge TTS |
 | `LONGMOVIE_TTS_GAP` | `0.12` | silence inserted between lines |
 | `LONGMOVIE_TTS_RATE_MIN` | `-25` | fastest fitting rate (%) |
 | `LONGMOVIE_TTS_RATE_MAX` | `35` | slowest fitting rate (%) |
 
-Fake modes are for development only; the UI shows a warning when they are on.
+There are no fake script/voice modes: the app always calls real Gemini and
+real Edge TTS. Check the live key with `POST /api/gemini/check`, which walks the
+model chain and reports the first model that answers.
 
 ## Troubleshooting
 

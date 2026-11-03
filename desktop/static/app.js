@@ -251,15 +251,15 @@ function fairuseSummary(level, sourceSec) {
   if (!item) return '';
   const r = item.recipe || {};
   const parts = [];
-  if (r.zoom) parts.push(`${Math.round(r.zoom * 100)}% zoom`);
+  if (r.zoom) parts.push(`${Math.round(r.zoom * 100)}% zoom (scene တစ်ခုစီ push-in)`);
   if (r.fade_in || r.fade_out) {
-    parts.push(`fade ${Number(r.fade_in || 0).toFixed(2)}s / ${Number(r.fade_out || 0).toFixed(2)}s`);
+    parts.push(`fade in ${Number(r.fade_in || 0).toFixed(2)}s / out ${Number(r.fade_out || 0).toFixed(2)}s (scene တစ်ခုစီ)`);
   }
-  if (r.freeze) parts.push(`freeze ${Number(r.freeze).toFixed(1)}s`);
-  if (r.flip) parts.push('flip');
-  if (r.transition) parts.push('transition');
-  if (r.face_zoom) parts.push('face zoom');
-  if (r.zoom_out) parts.push('zoom out');
+  if (r.freeze) parts.push(`freeze ${Number(r.freeze).toFixed(1)}s (scene အစ frame ကို ရပ်ထား)`);
+  if (r.flip) parts.push('flip (မှန်ချည် — Editor toggle က အပြီးသတ်)');
+  if (r.transition) parts.push('transition (scene ကြား dip-to-black ~0.18s)');
+  if (r.face_zoom) parts.push('face zoom (scene အလယ် မျက်နှာကြီးကို ချိန်၊ track မလုပ်)');
+  if (r.zoom_out) parts.push('zoom out (push-in အစား ဆွဲထုတ်)');
   const c = r.colour || {};
   const cparts = [];
   if (c.sat) cparts.push(`sat ${Number(c.sat).toFixed(2)}`);
@@ -272,7 +272,7 @@ function fairuseSummary(level, sourceSec) {
   const cut = Number(item.cut_sec || 5);
   let cutText = `${cut}s block မဖြတ်ပါ`;
   if (every > cut) {
-    cutText = `${cut}s block ကို ${Math.round(every)}s တစ်ခါ ဖြတ်မည်`;
+    cutText = `${cut}s block ကို ${Math.round(every)}s တစ်ခါ ဖြတ်မည် (အကြမ်းဖျင်း — scene ကို ဖြတ်ရင် jump cut ဖြစ်နိုင်)`;
     if (sourceSec > cut) {
       const count = Math.max(0, Math.floor((sourceSec - cut) / every));
       const removed = count * cut;
@@ -858,9 +858,9 @@ function renderScript(p) {
 
   const g = (state.config && state.config.gemini) || {};
   const loop = 'အပိုင်း တစ်ပိုင်းချင်း — Gemini ဖတ် → Edge TTS အသံထွက် → နောက်အပိုင်း → အားလုံးပြီးမှ အသံပေါင်း။ ပြီးရင် Setting/Editor ချိန်ပြီး Render ကို ကိုယ်တိုင် နှိပ်ပါ။ Gemini error ရင် model လဲ၊ မရရင် စောင့်ပြီး ပြန်လုပ်မယ် — ရပ်မသွားပါ။';
-  $('scriptNote').textContent = g.fake
-    ? `Gemini FAKE mode ဖြစ်နေတယ် (LONGMOVIE_FAKE_GEMINI=1) — စမ်းသပ်ရာတွင်သာ သုံးပါ။ ${loop}`
-    : (!g.ready ? (g.reason || 'Gemini မရသေးပါ') : `Model: ${g.model} · Voice: Edge TTS။ ${loop}`);
+  $('scriptNote').textContent = !g.ready
+    ? (g.reason || 'Gemini မရသေးပါ')
+    : `Model: ${g.active && g.active !== g.model ? `${g.model} → ${g.active}` : g.model} · Voice: Edge TTS။ ${loop}`;
 }
 
 
@@ -1986,11 +1986,35 @@ function bindControls() {
   });
 }
 
+async function checkGemini() {
+  const btn = $('geminiCheckBtn');
+  const note = $('scriptNote');
+  const old = note.textContent;
+  btn.disabled = true;
+  note.textContent = 'Gemini key ကို စစ်ဆေးနေသည်… (model တစ်ခုချင်း ခေါ်ကြည့်မည်)';
+  try {
+    const r = await api('/api/gemini/check', { method: 'POST' });
+    if (r.detail || r.message) throw new Error(r.detail || r.message);
+    if (r.ok) {
+      if (state.config && state.config.gemini) state.config.gemini.active = r.model;
+      note.textContent = `Gemini OK ✓ · ${r.model} က ဖြေနေသည် · Voice: Edge TTS။`;
+    } else {
+      note.textContent = `Gemini မရပါ — ${r.reason || 'unknown'}`;
+    }
+  } catch (err) {
+    note.textContent = old || `Gemini စစ်ဆေးမှု မအောင်မြင်ပါ — ${err.message || err}`;
+    toast(`Gemini စစ်ဆေးမှု မအောင်မြင်ပါ: ${err.message || err}`, 9000);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 async function init() {
   bindFilePicker();
   bindControls();
   bindEditorControls();
   bindStageDrag();
+  $('geminiCheckBtn').addEventListener('click', checkGemini);
   let resizeTimer = null;
   window.addEventListener('resize', () => {
     if (resizeTimer) clearTimeout(resizeTimer);

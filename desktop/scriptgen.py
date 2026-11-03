@@ -242,62 +242,6 @@ def _assign_times(segs: list[dict], clip_sec: float, offset: float, language: st
         s["src_end"] = round(offset + s["rel_end"], 3)
 
 
-def _fake_chunk(index: int, clip_sec: float, target_pct: int, language: str) -> str:
-    """Deterministic stand-in used by LONGMOVIE_FAKE_GEMINI=1."""
-    unit, per_sec = _unit(language)
-    samples = {
-        "my": "ဒီအခန်းမှာ ဇာတ်ကောင်တွေ ရင်ခုန်စရာ အခြေအနေတွေ ကြုံတွေ့နေတယ်၊ သူတို့ ဘာလုပ်မလဲ ဆက်ကြည့်ရအောင်၊ သူက စိတ်ထဲ ကြောက်နေပေမယ့် မျက်နှာကို မပြဘူး၊ အသံတောင် တုန်နေတယ်၊ နောက်ဆုံးတော့ သူတို့ နှစ်ယောက် ရင်ဆိုင်လိုက်ရတယ်၊ စကားတွေ ပြင်းထန်လာတယ်၊",
-        "th": "ในฉากนี้ ตัวละครต้องเผชิญกับช่วงเวลาสำคัญ และทุกอย่างกำลังเปลี่ยนไปอย่างรวดเร็ว",
-        "km": "នៅក្នុងឈុតនេះ តួអង្គបានជួបប្រទះពេលវេលាសំខាន់ ហើយរឿងរ៉ាវកំពុងផ្លាស់ប្តូរ",
-        "zh": "在这一场里，人物面对重要的时刻，事情开始发生变化，所有人都必须做出选择。",
-        "ja": "この場面で登場人物たちは重大な局面に直面し、物語が大きく動き出します。",
-        "hi": "इस दृश्य में किरदार एक अहम पल का सामना करते हैं और कहानी बदलने लगती है।",
-        "en": "In this scene the characters face a turning point, and everything starts to change as the story moves forward.",
-        "ms": "Dalam babak ini watak-watak menghadapi detik penting dan cerita mula berubah.",
-        "vi": "Trong cảnh này, các nhân vật đối mặt với một khoảnh khắc quan trọng và câu chuyện bắt đầu thay đổi.",
-        "id": "Di adegan ini para tokoh menghadapi momen penting dan cerita mulai berubah.",
-    }
-    sample = samples.get(language, samples["en"])
-
-    def fit(seconds: float) -> str:
-        """Text whose estimated speaking time is about `seconds`."""
-        if seconds <= 0.05:
-            return ""
-        if language in CHARS_PER_SEC:
-            n = max(2, int(round(seconds * per_sec)))
-            body = (sample * 12)[:n]
-            body = body.rstrip("၊ ။ ,. 。")
-            suffix = {"my": "၊", "zh": "。", "ja": "。", "hi": "।"}.get(language, ".")
-            return body + suffix
-        n = max(1, int(round(seconds * per_sec)))
-        words = (sample.split() * 80)[:n]
-        return " ".join(words).rstrip(",. ") + "."
-
-    out: list[str] = []
-    parts = max(2, min(10, int(clip_sec // 50) or 2))
-    part = max(0.5, clip_sec / parts)
-    budget = clip_sec * target_pct / 100.0
-    per_part = budget / parts
-    for i in range(parts):
-        start = i * part
-        if start >= clip_sec:
-            break
-        end = min(clip_sec, start + part)
-        dialogue = i % 3 == 1
-        narr = per_part * (0.68 if dialogue else 1.0)
-        text = fit(narr)
-        if text:
-            out.append(f"[N] {text}")
-        if dialogue:
-            d0 = start + part * 0.25
-            d1 = min(end, d0 + max(0.8, per_part * 0.32))
-            line = fit(per_part * 0.32)
-            if line:
-                out.append(f"[D {_mmss(d0)}-{_mmss(d1)}] {line}")
-        out.append("")
-    return "\n".join(out)
-
-
 def script_dir(pid: str) -> Path:
     d = ingest.project_dir(pid) / "script"
     d.mkdir(parents=True, exist_ok=True)
@@ -496,13 +440,9 @@ def run_analysis(pid: str, with_voice: bool = True) -> None:
                     script_progress=round((_i + 0.15) / n * 100, 1),
                 )
 
-            if config.FAKE_GEMINI:
-                raw = _fake_chunk(i, clip_sec, pct, language)
-                used_model = "fake"
-            else:
-                raw, used_model = gemini_client.analyze_chunk_video(
-                    path, prompt, on_status=status, infinite=True
-                )
+            raw, used_model = gemini_client.analyze_chunk_video(
+                path, prompt, on_status=status, infinite=True
+            )
             segs = parse_lines(raw, language)
             if not segs:
                 raise RuntimeError(f"chunk {i + 1}: Gemini က စာသား မပြန်ပါ")
@@ -613,10 +553,8 @@ def run_analysis(pid: str, with_voice: bool = True) -> None:
         "target_sec": round(total, 3),
         "est_speech_sec": est,
         "created": time.time(),
-        "model": (
-            "fake"
-            if config.FAKE_GEMINI
-            else "+".join(sorted({c.get("model") or "" for c in per_chunk if c.get("model")}))
+        "model": "+".join(
+            sorted({c.get("model") or "" for c in per_chunk if c.get("model")})
         ),
         "chunks": per_chunk,
         "segments": segments,

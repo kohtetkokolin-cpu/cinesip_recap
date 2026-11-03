@@ -31,6 +31,7 @@ from pydantic import BaseModel, Field
 import config
 import db
 import fairuse
+import fairuse_recipe
 import ffmpeg_utils as ff
 import fonts
 import gemini_client
@@ -252,14 +253,10 @@ async def lifespan(_app: FastAPI):
         print(f"[startup] marked {interrupted} interrupted project(s) as error", flush=True)
     if voices.duplicates():
         print(f"[startup] WARNING duplicate voice profiles: {voices.duplicates()}", flush=True)
-    if config.FAKE_GEMINI:
-        print("[startup] Gemini: FAKE mode (LONGMOVIE_FAKE_GEMINI=1)", flush=True)
-    elif not gemini_client.configured():
+    if not gemini_client.configured():
         print("[startup] Gemini: no GEMINI_API_KEY — script step disabled", flush=True)
     else:
         print(f"[startup] Gemini: {config.GEMINI_MODEL}", flush=True)
-    if config.FAKE_TTS:
-        print("[startup] TTS: FAKE mode (LONGMOVIE_FAKE_TTS=1)", flush=True)
     print(f"[startup] Render: {render.FPS} fps, libx264 veryfast", flush=True)
     yield
 
@@ -357,14 +354,15 @@ def get_config():
         "chunk_size": config.CHUNK_SIZE,
         "gemini_chunk_sec": config.GEMINI_CHUNK_SEC,
         "proxy_height": config.PROXY_HEIGHT,
-        "gemini": {
-            "ready": gemini_client.ready(),
-            "model": config.GEMINI_MODEL,
-            "fake": config.FAKE_GEMINI,
-            "reason": gemini_client.missing_reason(),
-        },
-        "tts": {"fake": config.FAKE_TTS, "gap": config.TTS_GAP_SEC},
+        "gemini": gemini_client.status(),
+        "tts": {"gap": config.TTS_GAP_SEC},
     }
+
+
+@app.post("/api/gemini/check")
+def gemini_check():
+    """Real mini-call: confirms the key and which model answers right now."""
+    return gemini_client.probe()
 
 
 @app.get("/api/projects")
@@ -651,9 +649,17 @@ def put_settings(pid: str, body: SettingsBody):
     # Settings, otherwise Render would use the old values.
     if render.edit_path(pid).exists():
         edit = render.load_or_create_edit(pid)
+        old_level = int((p.get("settings_json") or {}).get("fairuse") or 30)
+        new_level = int(settings["fairuse"])
         edit["ratio"] = settings["ratio"]
         edit["resolution"] = settings["resolution"]
         edit["fairuse"] = settings["fairuse"]
+        # Changing the level should restore that level's flip default; the
+        # editor's toggle stays authoritative until the level changes.
+        if old_level != new_level:
+            edit.setdefault("canvas", {})["flip"] = bool(
+                fairuse_recipe.recipe(new_level).get("flip")
+            )
         render.save_edit(pid, render.normalize_edit(edit, settings))
     updated = db.get_project(pid) or p
     return {"ok": True, "settings": settings, "project": project_public(updated)}

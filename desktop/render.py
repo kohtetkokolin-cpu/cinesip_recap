@@ -580,7 +580,9 @@ def build_plan(p: dict[str, Any], edit: dict[str, Any]) -> dict[str, Any]:
             "fx": {
                 "zoom": round(float(recipe.get("zoom") or 0.0), 4),
                 "zoom_out": bool(recipe.get("zoom_out")),
-                "flip": bool(recipe.get("flip")),
+                # The recipe supplies the default flip, but the editor owns it:
+                # otherwise the preview toggle would not match the render.
+                "flip": bool((edit.get("canvas") or {}).get("flip")),
                 "fade_in": round(fade_in, 3),
                 "fade_out": round(fade_out, 3),
                 "freeze": round(freeze, 3),

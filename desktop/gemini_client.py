@@ -29,16 +29,61 @@ def configured() -> bool:
     return bool(config.GEMINI_API_KEY)
 
 
+_LAST_MODEL = ""
+
+
 def ready() -> bool:
-    return config.FAKE_GEMINI or configured()
+    return configured()
 
 
 def missing_reason() -> str:
-    if config.FAKE_GEMINI:
-        return ""
     if not configured():
         return "GEMINI_API_KEY မရှိပါ — .env သို့မဟုတ် env var ထဲ ထည့်ပါ"
     return ""
+
+
+def status() -> dict:
+    """What the UI needs to describe the real Gemini connection."""
+    return {
+        "ready": ready(),
+        "model": config.GEMINI_MODEL,
+        "chain": models(),
+        "active": _LAST_MODEL,
+        "reason": missing_reason(),
+    }
+
+
+def probe() -> dict:
+    """Make one tiny real call to confirm the key and the live model chain.
+
+    The primary model is often overloaded (503), so this walks the same
+    fallback chain the script uses. It costs a handful of tokens.
+    """
+    result: dict = {"ok": False, "model": "", "reason": ""}
+    if not configured():
+        result["reason"] = missing_reason()
+        return result
+    errors: list[str] = []
+    client = _client(config.GEMINI_CALL_TIMEOUT_SEC)
+    for model in models():
+        try:
+            response = client.models.generate_content(
+                model=model,
+                contents="Reply with exactly: OK",
+                config={"temperature": 0},
+            )
+            text = (getattr(response, "text", None) or "").strip()
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"{model}: {type(exc).__name__}: {exc}")
+            continue
+        if text:
+            global _LAST_MODEL
+            _LAST_MODEL = model
+            result.update(ok=True, model=model)
+            return result
+        errors.append(f"{model}: empty reply")
+    result["reason"] = "; ".join(errors)[:600]
+    return result
 
 
 def _genai():
@@ -194,6 +239,8 @@ def _generate(client, contents, on_status=None, label: str = "",
 
             text = (getattr(response, "text", None) or "").strip()
             if text:
+                global _LAST_MODEL
+                _LAST_MODEL = model
                 return text, model
             last = GeminiError(f"{model} က စာသား မပြန်ပါ")
 
@@ -223,9 +270,6 @@ def analyze_chunk_video(
     With `infinite=True`, upload/activation/generation failures are retried
     forever with backoff. The uploaded file is always deleted between tries.
     """
-    if config.FAKE_GEMINI:
-        raise GeminiError("fake mode has no client")
-
     attempt = 0
     while True:
         attempt += 1

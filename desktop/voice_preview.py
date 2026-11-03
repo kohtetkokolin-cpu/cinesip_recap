@@ -1,8 +1,8 @@
 """Narrator audition: synthesize a short sample so the user can compare voices.
 
 Samples are cached by (voice, rate, pitch, language), so clicking a narrator
-twice plays instantly. Real Edge TTS returns MP3; fake mode writes a quiet tone
-(throttled like a real preview).
+twice plays instantly. Edge TTS returns MP3; the short clip is throttled like a
+real preview.
 """
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ def _text(language: str) -> str:
 
 
 async def _say(text: str, voice: str, rate: int, pitch: int, out: Path) -> None:
-    import edge_tts  # lazy: fake mode never needs it
+    import edge_tts  # lazy: imported only when a preview is requested
 
     communicate = edge_tts.Communicate(
         text, voice, rate=f"{rate:+d}%", pitch=f"{pitch:+d}Hz"
@@ -52,20 +52,16 @@ def sample(settings: dict[str, Any]) -> tuple[Path, str]:
     key = hashlib.sha1(
         f"{voice}|{rate}|{pitch}|{language}|{text}".encode("utf-8")
     ).hexdigest()[:20]
-    ext = ".wav" if config.FAKE_TTS else ".mp3"
-    out = CACHE_DIR / f"{key}{ext}"
+    out = CACHE_DIR / f"{key}.mp3"
     if out.exists() and out.stat().st_size > 512:
-        return out, ("audio/wav" if config.FAKE_TTS else "audio/mpeg")
+        return out, "audio/mpeg"
 
     tmp = out.with_suffix(out.suffix + ".tmp")
-    if config.FAKE_TTS:
-        tts._fake_voice(tmp, 3.2, freq=180.0 + (pitch + 20) * 2)
-    else:
-        asyncio.run(_say(text, voice, rate, pitch, tmp))
+    asyncio.run(_say(text, voice, rate, pitch, tmp))
     if not tmp.exists() or tmp.stat().st_size < 512:
         raise RuntimeError("voice preview was not created")
     tmp.replace(out)
-    return out, ("audio/wav" if config.FAKE_TTS else "audio/mpeg")
+    return out, "audio/mpeg"
 
 
 def info(settings: dict[str, Any]) -> dict[str, Any]:

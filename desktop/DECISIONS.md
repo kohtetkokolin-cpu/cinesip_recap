@@ -93,8 +93,8 @@ Date: 2026-10-30
   is derived from it. SRT files are written with `\n` line endings.
 - Regenerating the script removes the narration/timeline/SRT metadata, so the UI
   cannot pair an old voice with a new script.
-- Offline development uses `LONGMOVIE_FAKE_GEMINI=1` and `LONGMOVIE_FAKE_TTS=1`;
-  the fake script respects the target length so the fitting path is testable.
+- There is no offline fake mode: analysis always calls real Gemini and voice
+  always calls real Edge TTS. Tests monkeypatch those two boundaries instead.
 
 ## M2.1 — sequential per-chunk pipeline
 
@@ -182,9 +182,6 @@ Date: 2026-10-30
 - Output ratio/resolution come from Settings (`16:9 | 9:16 | 1:1`,
   `854:480 | 1280:720 | 1920:1080`) and are copied into `edit.json`; the stage
   and renderer support all three ratios.
-- Fake TTS uses a quiet tone for "speech" (gaps stay silent). A fully silent
-  AAC track encodes as empty packets that Chromium refuses to decode, which
-  would make fake-mode output unplayable in the browser.
 
 ## M3.1 — narrator, blur, ratio, fonts, logo, presets, render speed
 

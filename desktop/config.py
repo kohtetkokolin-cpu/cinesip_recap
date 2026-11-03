@@ -87,11 +87,9 @@ GEMINI_RETRY_DELAY_SEC = float(os.environ.get("LONGMOVIE_GEMINI_RETRY_DELAY", "8
 GEMINI_RETRY_MAX_WAIT_SEC = float(
     os.environ.get("LONGMOVIE_GEMINI_RETRY_MAX_WAIT", "120")
 )
-FAKE_GEMINI = os.environ.get("LONGMOVIE_FAKE_GEMINI", "0") == "1"
 GEMINI_TIMEOUT_SEC = int(os.environ.get("LONGMOVIE_GEMINI_TIMEOUT", "600"))
 
 # ---- TTS ----
-FAKE_TTS = os.environ.get("LONGMOVIE_FAKE_TTS", "0") == "1"
 TTS_GAP_SEC = float(os.environ.get("LONGMOVIE_TTS_GAP", "0.12"))
 TTS_RATE_MIN = int(os.environ.get("LONGMOVIE_TTS_RATE_MIN", "-25"))
 TTS_RATE_MAX = int(os.environ.get("LONGMOVIE_TTS_RATE_MAX", "35"))

@@ -43,7 +43,7 @@ def voice_for(language: str, narrator_id: str, rate_offset: float = 0.0,
 
 
 async def _synth_one(text: str, voice: str, rate: int, pitch: int, out: Path) -> None:
-    import edge_tts  # lazy: fake mode does not need it
+    import edge_tts  # lazy: imported only when synthesis runs
 
     communicate = edge_tts.Communicate(
         text, voice, rate=f"{rate:+d}%", pitch=f"{pitch:+d}Hz"
@@ -87,22 +87,6 @@ def _silence(out: Path, seconds: float) -> None:
     )
 
 
-def _fake_voice(out: Path, seconds: float, freq: float = 220.0) -> None:
-    """Quiet tone standing in for speech in fake mode.
-
-    Real Edge TTS is never digital silence, and an all-silent AAC track
-    encodes as empty packets that Chromium's media player refuses to decode.
-    A low tone keeps the fake pipeline testable end to end, including playback
-    of the rendered output in the browser.
-    """
-    ff.run_ffmpeg(
-        ["-f", "lavfi", "-i", f"sine=frequency={freq:.0f}:sample_rate=44100",
-         "-t", f"{max(0.05, seconds):.3f}", "-af", "volume=0.05",
-         "-c:a", "pcm_s16le", str(out)],
-        label="fake voice",
-    )
-
-
 def _norm_wav(src: Path, out: Path) -> None:
     ff.run_ffmpeg(
         ["-i", str(src), "-vn", "-ac", "1", "-ar", str(config.TTS_SAMPLE_RATE),
@@ -128,30 +112,22 @@ def _synth_pass(pid: str, script: dict, voice: str, rate: int, pitch: int,
     raw_dir.mkdir(parents=True, exist_ok=True)
     jobs = []
     for seg in segs:
-        ext = ".wav" if config.FAKE_TTS else ".mp3"
         jobs.append({
             "text": seg["text"],
             "voice": voice,
             "rate": rate,
             "pitch": pitch,
-            "out": raw_dir / f"{seg['id']}{ext}",
+            "out": raw_dir / f"{seg['id']}.mp3",
         })
 
-    if config.FAKE_TTS:
-        for job in jobs:
-            seg = next(s for s in segs if s["id"] == job["out"].stem)
-            base = max(0.4, float(seg.get("est_sec") or 1.0))
-            # simulate Edge's rate control so the fitting pass is testable
-            _fake_voice(job["out"], base * 100.0 / max(40.0, 100.0 + rate))
-    else:
-        done = {"n": 0}
+    done = {"n": 0}
 
-        def tick() -> None:
-            done["n"] += 1
-            if on_progress and len(jobs):
-                on_progress(done["n"] / len(jobs))
+    def tick() -> None:
+        done["n"] += 1
+        if on_progress and len(jobs):
+            on_progress(done["n"] / len(jobs))
 
-        asyncio.run(_synth_batch(jobs, on_done=tick))
+    asyncio.run(_synth_batch(jobs, on_done=tick))
 
     durations: list[float] = []
     for job in jobs:
@@ -167,36 +143,28 @@ def synth_chunk(segs: list[dict], voice: str, rate: int, pitch: int, out_dir: Pa
     Edge TTS is retried forever here, so a flaky network cannot stop the run.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
-    ext = ".wav" if config.FAKE_TTS else ".mp3"
-    paths = [out_dir / f"line_{i:04d}{ext}" for i in range(len(segs))]
+    paths = [out_dir / f"line_{i:04d}.mp3" for i in range(len(segs))]
     if not paths:
         return [], []
 
-    if config.FAKE_TTS:
-        for i, (seg, path) in enumerate(zip(segs, paths)):
-            base = max(0.4, float(seg.get("est_sec") or 1.0))
-            _fake_voice(path, base * 100.0 / max(40.0, 100.0 + rate))
-            if on_progress and len(paths):
-                on_progress((i + 1) / len(paths))
-    else:
-        jobs = [
-            {
-                "text": seg["text"],
-                "voice": voice,
-                "rate": rate,
-                "pitch": pitch,
-                "out": path,
-            }
-            for seg, path in zip(segs, paths)
-        ]
-        done = {"n": 0}
+    jobs = [
+        {
+            "text": seg["text"],
+            "voice": voice,
+            "rate": rate,
+            "pitch": pitch,
+            "out": path,
+        }
+        for seg, path in zip(segs, paths)
+    ]
+    done = {"n": 0}
 
-        def tick() -> None:
-            done["n"] += 1
-            if on_progress and len(jobs):
-                on_progress(done["n"] / len(jobs))
+    def tick() -> None:
+        done["n"] += 1
+        if on_progress and len(jobs):
+            on_progress(done["n"] / len(jobs))
 
-        asyncio.run(_synth_batch(jobs, on_done=tick, max_attempts=None, on_retry=on_retry))
+    asyncio.run(_synth_batch(jobs, on_done=tick, max_attempts=None, on_retry=on_retry))
 
     durations = [round(_duration(path), 3) for path in paths]
     return paths, durations
@@ -212,12 +180,11 @@ def _build_track(pid: str, script: dict, work: Path, tag: str,
     raw_dir = work / f"raw_{tag}"
 
     files: list[Path] = []
-    ext = ".wav" if config.FAKE_TTS else ".mp3"
     for idx, (seg, dur) in enumerate(zip(segs, durations)):
         if raw_paths is not None:
             src = Path(raw_paths[idx])
         else:
-            src = raw_dir / f"{seg['id']}{ext}"
+            src = raw_dir / f"{seg['id']}.mp3"
         out = norm_dir / f"{seg['id']}.wav"
         _norm_wav(src, out)
         files.append(out)
@@ -380,7 +347,7 @@ def publish_narration(pid: str, script: dict, work: Path, *,
         "stretch": round(stretch, 4),
         "segments": timeline,
         "updated": time.time(),
-        "mode": "fake" if config.FAKE_TTS else "edge",
+        "mode": "edge",
     }
     timeline_path = work / "timeline.json"
     timeline_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
